@@ -346,7 +346,7 @@ class BloomFilterOnDisk(BloomFilter):
         self.close()
 
     def init(self, filepath, est_elements, false_positive_rate,
-                   hash_function=None):
+             hash_function=None):
         ''' initialize the Bloom Filter on disk '''
         fpr = false_positive_rate
         super(BloomFilterOnDisk,
