@@ -1,6 +1,7 @@
 ''' Module Installation script '''
 import setuptools
-
+from probables import (__version__, __url__, __author__, __email__,
+                       __license__)
 setuptools.setup(
     name = 'pyprobables',  # mediawiki was taken
     version = __version__,
@@ -13,7 +14,7 @@ setuptools.setup(
     download_url = '{0}/tarball/v{1}'.format(__url__, __version__),
     install_requires = [],
     packages = ['probables'],
-    long_description = open('README.rst', 'r').read(),
+    long_description = open('README.md', 'r').read(),
     classifiers = [
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',

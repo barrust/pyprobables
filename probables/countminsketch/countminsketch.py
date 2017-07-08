@@ -5,9 +5,8 @@
 '''
 from __future__ import (unicode_literals, absolute_import, print_function)
 import os
-from struct import (pack, unpack, calcsize)
 import math
-
+from struct import (pack, unpack, calcsize)
 
 class CountMinSketch(object):
     ''' Count-Min Sketch class '''
