@@ -12,7 +12,7 @@ install:
   - ./provision/python.sh
 
 script:
-    - pep8 mediawiki/
+    - pep8 probables/
     - coverage run --source=mediawiki setup.py test
 
 # commands to run after the tests successfully complete
