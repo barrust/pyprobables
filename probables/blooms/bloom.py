@@ -339,12 +339,13 @@ class BloomFilterOnDisk(BloomFilter):
         self.__file_pointer = None
         self.__filename = None
         self.__export_offset = struct.calcsize('Qf')
+        self._on_disk = True
 
     def __del__(self):
         ''' handle if user doesn't close the on disk bloom filter '''
         self.close()
 
-    def initialize(self, filepath, est_elements, false_positive_rate,
+    def init(self, filepath, est_elements, false_positive_rate,
                    hash_function=None):
         ''' initialize the Bloom Filter on disk '''
         fpr = false_positive_rate
