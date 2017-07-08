@@ -8,6 +8,7 @@ import os
 import math
 from struct import (pack, unpack, calcsize)
 
+
 class CountMinSketch(object):
     ''' Count-Min Sketch class '''
 

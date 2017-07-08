@@ -1,7 +1,14 @@
 ''' Module Installation script '''
 import setuptools
+import io
 from probables import (__version__, __url__, __author__, __email__,
                        __license__)
+
+def read_file(filepath):
+    with io.open(filepath, 'r') as filepointer:
+        res = filepointer.read()
+    return res
+
 setuptools.setup(
     name = 'pyprobables',  # mediawiki was taken
     version = __version__,
@@ -12,9 +19,9 @@ setuptools.setup(
     keywords = 'python mediawiki wikipedia API wiki parse',
     url = __url__,
     download_url = '{0}/tarball/v{1}'.format(__url__, __version__),
-    install_requires = [],
+    install_requires = read_file('./requirements/python').splitlines(),
     packages = ['probables'],
-    long_description = open('README.md', 'r').read(),
+    long_description = read_file('README.md'),
     classifiers = [
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
