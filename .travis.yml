@@ -13,7 +13,7 @@ install:
 
 script:
     - pep8 probables/
-    - coverage run --source=pyprobables setup.py test
+    - coverage run --source=probables setup.py test
 
 # commands to run after the tests successfully complete
 after_success:
