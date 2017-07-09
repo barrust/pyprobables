@@ -3,7 +3,8 @@
     Author: Tyler Barrus (barrust@gmail.com)
     URL: https://github.com/barrust/count-min-sketch
 '''
-from __future__ import (unicode_literals, absolute_import, print_function)
+from __future__ import (unicode_literals, absolute_import, print_function,
+                        division)
 import os
 import math
 from struct import (pack, unpack, calcsize)
@@ -42,7 +43,7 @@ class CountMinSketch(object):
             self.__width = math.ceil(2 / error_rate)
             numerator = (-1 * math.log(1 - confidence))
             self.__depth = math.ceil(numerator / 0.6931471805599453)
-            self._bins = [0] * (self.__width * self.__depth)
+            self._bins = [0] * int(self.__width * self.__depth)
         else:
             msg = ('Must provide one of the following to initialize the '
                    'Count-Min Sketch: \n'
