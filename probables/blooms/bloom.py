@@ -10,6 +10,7 @@ import math
 import struct
 import os
 import mmap
+from shutil import (copyfile)
 from binascii import (hexlify, unhexlify)
 
 
@@ -392,16 +393,17 @@ class BloomFilterOnDisk(BloomFilter):
 
     def export(self, filename):
         ''' export to disk if a different location '''
+        self.__update()
         if filename != self.__filename:
-            super(BloomFilterOnDisk, self).export(filename)
+            # setup the new bloom filter
+            copyfile(self.__filename, filename)
         # otherwise, nothing to do!
 
     def add_alt(self, hashes):
         ''' add the element represented by the hashes to the Bloom Filter
             on disk '''
-        res = super(BloomFilterOnDisk, self).add_alt(hashes)
+        super(BloomFilterOnDisk, self).add_alt(hashes)
         self.__update()
-        return res
 
     def union(self, second):
         ''' union using an on disk bloom filter '''

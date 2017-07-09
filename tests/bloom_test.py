@@ -3,9 +3,8 @@
 from __future__ import (unicode_literals, absolute_import, print_function)
 import unittest
 import os
-from hashlib import (md5)
-from probables import (BloomFilter, BloomFilterOnDisk, CountMinSketch,
-                       HeavyHitters, StreamThreshold)
+from probables import (BloomFilter, BloomFilterOnDisk)
+from . utilities import(calc_file_md5)
 
 
 class TestBloomFilter(unittest.TestCase):
@@ -239,7 +238,7 @@ class TestBloomFilter(unittest.TestCase):
         blm.add('this is a test')
         blm.export(filename)
 
-        md5_out = md5(open(filename, 'rb').read()).hexdigest()
+        md5_out = calc_file_md5(filename)
         self.assertEqual(md5_out, md5_val)
         os.remove(filename)
 
@@ -408,5 +407,21 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         os.remove(filename)
 
     # export to new file
-    # export without setting new file name
+    def test_bfod_export(self):
+        ''' export to on disk to new file '''
+        filename = 'tmp.blm'
+        filename2 = 'tmp2.blm'
+        blm = BloomFilterOnDisk()
+        blm.init(filename, 10, 0.05)
+        blm.add('this is a test')
+
+        blm.export(filename2)
+        blm.close()
+
+        md5_1 = calc_file_md5(filename)
+        md5_2 = calc_file_md5(filename2)
+        self.assertEqual(md5_1, md5_2)
+        os.remove(filename)
+        os.remove(filename2)
+
     # catch hex exceptions
