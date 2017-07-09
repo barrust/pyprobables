@@ -1,0 +1,20 @@
+language: python
+python:
+    - "2.7"
+    - "3.3"
+    - "3.4"
+    - "3.5"
+    - "3.6"
+
+# install python dependencies including this package in the travis
+# virtualenv
+install:
+  - ./provision/python.sh
+
+script:
+    - pep8 probables/
+    - coverage run --source=probables setup.py test
+
+# commands to run after the tests successfully complete
+after_success:
+  - coveralls
