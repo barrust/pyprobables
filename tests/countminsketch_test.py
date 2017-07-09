@@ -5,6 +5,7 @@ import unittest
 import os
 from hashlib import (md5)
 from probables import (CountMinSketch, HeavyHitters, StreamThreshold)
+from . utilities import(calc_file_md5)
 
 
 class TestCountMinSketch(unittest.TestCase):
@@ -79,6 +80,91 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertEqual(cms.elements_added, 16)
         self.assertEqual(cms.remove('this is a test', 4), 12)
         self.assertEqual(cms.elements_added, 12)
+
+    def test_cms_check_min(self):
+        ''' test checking number elements using min algorithm '''
+        cms = CountMinSketch(width=1000, depth=5)
+        self.assertEqual(cms.add('this is a test', 255), 255)
+        self.assertEqual(cms.add('this is another test', 189), 189)
+        self.assertEqual(cms.add('this is also a test', 16), 16)
+        self.assertEqual(cms.add('this is something to test', 5), 5)
+
+        self.assertEqual(cms.check('this is something to test'), 5)
+        self.assertEqual(cms.check('this is also a test'), 16)
+        self.assertEqual(cms.check('this is another test'), 189)
+        self.assertEqual(cms.check('this is a test'), 255)
+        self.assertEqual(cms.elements_added, 5 + 16 + 189 + 255)
+
+    def test_cms_check_min_called(self):
+        ''' test checking number elements using min algorithm called out '''
+        cms = CountMinSketch(width=1000, depth=5)
+        self.assertEqual(cms.add('this is a test', 255), 255)
+        self.assertEqual(cms.add('this is another test', 189), 189)
+        self.assertEqual(cms.add('this is also a test', 16), 16)
+        self.assertEqual(cms.add('this is something to test', 5), 5)
+
+        self.assertEqual(cms.check('this is something to test', 'min'), 5)
+        self.assertEqual(cms.check('this is also a test', 'min'), 16)
+        self.assertEqual(cms.check('this is another test', 'min'), 189)
+        self.assertEqual(cms.check('this is a test', 'min'), 255)
+        self.assertEqual(cms.elements_added, 5 + 16 + 189 + 255)
+
+    def test_cms_check_mean_called(self):
+        ''' test checking number elements using mean algorithm called out '''
+        cms = CountMinSketch(width=1000, depth=5)
+        self.assertEqual(cms.add('this is a test', 255), 255)
+        self.assertEqual(cms.add('this is another test', 189), 189)
+        self.assertEqual(cms.add('this is also a test', 16), 16)
+        self.assertEqual(cms.add('this is something to test', 5), 5)
+
+        self.assertEqual(cms.check('this is something to test', 'mean'), 5)
+        self.assertEqual(cms.check('this is also a test', 'mean'), 16)
+        self.assertEqual(cms.check('this is another test', 'mean'), 189)
+        self.assertEqual(cms.check('this is a test', 'mean'), 255)
+        self.assertEqual(cms.elements_added, 5 + 16 + 189 + 255)
+
+    def test_cms_check_mean_min_called(self):
+        ''' test checking number elements using mean-min algorithm called
+            out '''
+        cms = CountMinSketch(width=1000, depth=5)
+        self.assertEqual(cms.add('this is a test', 255), 255)
+        self.assertEqual(cms.add('this is another test', 189), 189)
+        self.assertEqual(cms.add('this is also a test', 16), 16)
+        self.assertEqual(cms.add('this is something to test', 5), 5)
+
+        self.assertEqual(cms.check('this is something to test', 'mean-min'), 5)
+        self.assertEqual(cms.check('this is also a test', 'mean-min'), 16)
+        self.assertEqual(cms.check('this is another test', 'mean-min'), 189)
+        self.assertEqual(cms.check('this is a test', 'mean-min'), 255)
+        self.assertEqual(cms.elements_added, 5 + 16 + 189 + 255)
+
+    def test_cms_export(self):
+        ''' test exporting a count-min sketch '''
+        md5_val = '61d2ea9d0cb09b7bb284e1cf1a860449'
+        filename = 'test.cms'
+        cms = CountMinSketch(width=1000, depth=5)
+        cms.add('this is a test', 100)
+        cms.export(filename)
+        md5_out = calc_file_md5(filename)
+        os.remove(filename)
+
+        self.assertEqual(md5_out, md5_val)
+
+    def test_cms_load(self):
+        ''' test loading a count-min sketch from file '''
+        md5_val = '61d2ea9d0cb09b7bb284e1cf1a860449'
+        filename = 'test.cms'
+        cms = CountMinSketch(width=1000, depth=5)
+        self.assertEqual(cms.add('this is a test', 100), 100)
+        cms.export(filename)
+        md5_out = calc_file_md5(filename)
+        self.assertEqual(md5_out, md5_val)
+
+        # try loading directly to file!
+        cms2 = CountMinSketch(filepath=filename)
+        self.assertEqual(cms2.elements_added, 100)
+        self.assertEqual(cms2.check('this is a test'), 100)
+        os.remove(filename)
 
 
 class TestHeavyHitters(unittest.TestCase):
