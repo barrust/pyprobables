@@ -424,4 +424,38 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         os.remove(filename)
         os.remove(filename2)
 
-    # catch hex exceptions
+    def test_bfod_export_hex(self):
+        ''' test that page error is thrown correctly '''
+        blm = BloomFilterOnDisk()
+        filename = 'tmp.blm'
+        blm.init(filename, 10, 0.05)
+        self.assertRaises(NotImplementedError, lambda: blm.export_hex())
+        os.remove(filename)
+
+    def test_bfod_export_hex_msg(self):
+        ''' test that page error is thrown correctly '''
+        blm = BloomFilterOnDisk()
+        filename = 'tmp.blm'
+        blm.init(filename, 10, 0.05)
+        try:
+            blm.export_hex()
+        except NotImplementedError as ex:
+            msg = 'Currently not supported by the on disk Bloom Filter!'
+            self.assertEqual(str(ex), msg)
+        os.remove(filename)
+
+    def test_bfod_load_hex(self):
+        ''' test that page error is thrown correctly '''
+        blm = BloomFilterOnDisk()
+        hex_val = '85f240623b6d9459000000000000000a000000000000000a3d4ccccd'
+        self.assertRaises(NotImplementedError, lambda: blm.load_hex(hex_val))
+
+    def test_bfod_load_hex_msg(self):
+        ''' test that page error is thrown correctly '''
+        blm = BloomFilterOnDisk()
+        hex_val = '85f240623b6d9459000000000000000a000000000000000a3d4ccccd'
+        try:
+            blm.load_hex(hex_val)
+        except NotImplementedError as ex:
+            msg = "Unable to load a hex string into an on disk Bloom Filter!"
+            self.assertEqual(str(ex), msg)
