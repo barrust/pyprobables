@@ -3,7 +3,8 @@
     Author: Tyler Barrus (barrust@gmail.com)
     URL: https://github.com/barrust/bloom
 '''
-from __future__ import (unicode_literals, absolute_import, print_function)
+from __future__ import (unicode_literals, absolute_import, print_function,
+                        division)
 import sys
 import math
 import struct
@@ -25,7 +26,7 @@ class BloomFilter(object):
         self._est_elements = 0
         self._fpr = 0.0
         self.__number_hashes = 0
-        self.__bloom_length = self.number_bits / 8
+        self.__bloom_length = self.number_bits // 8
         self.__hash_func = self._default_hash
         self.__els_added = 0
         self._on_disk = False  # not on disk
@@ -190,7 +191,7 @@ class BloomFilter(object):
             count_int += self.__cnt_set_bits(t_intersection)
         if count_union == 0:
             return 1.0
-        return float(count_int) / float(count_union)
+        return count_int / count_union
 
     def export(self, filename):
         ''' export the bloom filter to disk '''
@@ -395,18 +396,21 @@ class BloomFilterOnDisk(BloomFilter):
     def add_alt(self, hashes):
         ''' add the element represented by the hashes to the Bloom Filter
             on disk '''
-        super(BloomFilterOnDisk, self).add_alt(hashes)
+        res = super(BloomFilterOnDisk, self).add_alt(hashes)
         self.__update()
+        return res
 
     def union(self, second):
         ''' union using an on disk bloom filter '''
-        super(BloomFilterOnDisk, self).union(second)
+        res = super(BloomFilterOnDisk, self).union(second)
         self.__update()
+        return res
 
     def intersection(self, second):
         ''' intersection using an on disk bloom filter '''
-        super(BloomFilterOnDisk, self).intersection(second)
+        res = super(BloomFilterOnDisk, self).intersection(second)
         self.__update()
+        return res
 
     def export_hex(self):
         ''' export to a hex string '''
