@@ -230,7 +230,7 @@ class BloomFilter(object):
                               self.elements_added, self.false_positive_rate)
         bytes_string = hexlify(bytearray(self.bloom_array)) + hexlify(mybytes)
         if sys.version_info > (3, 0):  # python 3 gives us bytes
-            return str(bytes_string,'utf-8')
+            return str(bytes_string, 'utf-8')
         return bytes_string
 
     def load_hex(self, hex_string, hash_function=None):
