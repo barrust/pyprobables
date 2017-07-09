@@ -410,21 +410,3 @@ class TestBloomFilterOnDisk(unittest.TestCase):
     # export to new file
     # export without setting new file name
     # catch hex exceptions
-
-
-class TestCountMinSketch(unittest.TestCase):
-    ''' Test the default count-min sketch implementation '''
-    def test_countminsketch(self):
-        pass
-
-
-class TestHeavyHitters(unittest.TestCase):
-    ''' Test the default heavy hitters implementation '''
-    def test_heavyhitters(self):
-        pass
-
-
-class TestStreamThreshold(unittest.TestCase):
-    ''' Test the default stream threshold implementation '''
-    def test_streamthreshold(self):
-        pass
