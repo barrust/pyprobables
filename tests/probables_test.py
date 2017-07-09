@@ -2,6 +2,8 @@
 ''' Unittest class '''
 from __future__ import (unicode_literals, absolute_import, print_function)
 import unittest
+import os
+from hashlib import (md5)
 from probables import (BloomFilter, BloomFilterOnDisk, CountMinSketch,
                        HeavyHitters, StreamThreshold)
 
@@ -228,13 +230,43 @@ class TestBloomFilter(unittest.TestCase):
         self.assertEqual('this is a test 11' in blm, False)
         self.assertEqual('this is a test 12' in blm, False)
 
+    def test_bf_export_file(self):
+        ''' test exporting bloom filter to file '''
+        filename = 'test.blm'
+        md5_val = '7f590086f9b962387e145899dd001256'
+        blm = BloomFilter()
+        blm.init(10, 0.05)
+        blm.add('this is a test')
+        blm.export(filename)
+
+        md5_out = md5(open(filename, 'rb').read()).hexdigest()
+        self.assertEqual(md5_out, md5_val)
+        os.remove(filename)
+
+    def test_bf_load_file(self):
+        ''' test loading bloom filter from file '''
+        filename = 'test.blm'
+
+        blm = BloomFilter()
+        blm.init(10, 0.05)
+        blm.add('this is a test')
+        blm.export(filename)
+
+        blm2 = BloomFilter()
+        blm2.load(filename=filename)
+        self.assertEqual('this is a test' in blm2, True)
+        self.assertEqual('this is not a test' in blm2, False)
+        os.remove(filename)
+
 
 class TestBloomFilterOnDisk(unittest.TestCase):
-    ''' Test the default count-min sketch implementation '''
+    ''' Test the Bloom Filter on disk implementation '''
+
     def test_bfod_init(self):
         ''' test the initalization of the on disk version '''
+        filename = 'tmp.blm'
         blmd = BloomFilterOnDisk()
-        blmd.init('tmp.blm', 10, 0.05)
+        blmd.init(filename, 10, 0.05)
         self.assertEqual(blmd.false_positive_rate, 0.05000000074505806)
         self.assertEqual(blmd.estimated_elements, 10)
         self.assertEqual(blmd.number_hashes, 4)
@@ -243,20 +275,24 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         self.assertEqual(blmd.is_on_disk, True)
         self.assertEqual(blmd.bloom_length, 63 // 8 + 1)
         blmd.close()
+        os.remove(filename)
 
     def test_bfod_ea(self):
         ''' test on disk elements added is correct '''
+        filename = 'tmp.blm'
         blmd = BloomFilterOnDisk()
-        blmd.init('tmp.blm', 10, 0.05)
+        blmd.init(filename, 10, 0.05)
         self.assertEqual(blmd.elements_added, 0)
         blmd.add('this is a test')
         self.assertEqual(blmd.elements_added, 1)
         blmd.close()
+        os.remove(filename)
 
     def test_bfod_ee(self):
-        ''' test on disk estimate elements is correct '''
+        ''' test on disk estimate elements is correct on disk '''
+        filename = 'tmp.blm'
         blmd = BloomFilterOnDisk()
-        blmd.init('tmp.blm', 10, 0.05)
+        blmd.init(filename, 10, 0.05)
         res1 = blmd.estimate_elements()
         blmd.add('this is a test')
         res2 = blmd.estimate_elements()
@@ -264,10 +300,13 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         self.assertEqual(res1, 0)
         self.assertEqual(res2, 1)
         blmd.close()
+        os.remove(filename)
 
     def test_bfod_check(self):
+        ''' ensure the use of check works on disk bloom '''
+        filename = 'tmp.blm'
         blm = BloomFilterOnDisk()
-        blm.init('tmp.blm', 10, 0.05)
+        blm.init(filename, 10, 0.05)
         blm.add('this is a test')
         blm.add('this is another test')
         self.assertEqual(blm.check('this is a test'), True)
@@ -275,11 +314,13 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         self.assertEqual(blm.check('this is yet another test'), False)
         self.assertEqual(blm.check('this is not another test'), False)
         blm.close()
+        os.remove(filename)
 
     def test_bfod_union(self):
-        ''' test the union of two bloom filters '''
+        ''' test the union of two bloom filters on disk '''
+        filename = 'tmp.blm'
         blm = BloomFilterOnDisk()
-        blm.init('tmp.blm', 10, 0.05)
+        blm.init(filename, 10, 0.05)
         blm.add('this is a test')
         blm.add('this is another test')
         blm2 = BloomFilter()
@@ -294,11 +335,13 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         self.assertEqual(blm3.check('this is yet another test'), True)
         self.assertEqual(blm3.check('this is not another test'), False)
         blm.close()
+        os.remove(filename)
 
     def test_bfod_intersection(self):
-        ''' test the union of two bloom filters '''
+        ''' test the intersection of two bloom filters on disk '''
+        filename = 'tmp.blm'
         blm = BloomFilterOnDisk()
-        blm.init('tmp.blm', 10, 0.05)
+        blm.init(filename, 10, 0.05)
         blm.add('this is a test')
         blm.add('this is another test')
         blm2 = BloomFilter()
@@ -314,11 +357,13 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         self.assertEqual(blm3.check('this is yet another test'), False)
         self.assertEqual(blm3.check('this is not another test'), False)
         blm.close()
+        os.remove(filename)
 
     def test_bfod_jaccard(self):
         ''' test the on disk jaccard index of two bloom filters '''
+        filename = 'tmp.blm'
         blm = BloomFilterOnDisk()
-        blm.init('tmp.blm', 10, 0.05)
+        blm.init(filename, 10, 0.05)
         blm.add('this is a test')
         blm.add('this is another test')
         blm2 = BloomFilter()
@@ -330,6 +375,42 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         self.assertGreater(res, 0.33)
         self.assertLess(res, 0.50)
         blm.close()
+        os.remove(filename)
+
+    def test_bfod_load_on_disk(self):
+        ''' test loading a previously saved blm on disk '''
+        filename = 'tmp.blm'
+
+        blm = BloomFilter()
+        blm.init(10, 0.05)
+        blm.add('this is a test')
+        blm.export(filename)
+
+        blmd = BloomFilterOnDisk()
+        blmd.load(filename)
+        self.assertEqual('this is a test' in blmd, True)
+        self.assertEqual('this is not a test' in blmd, False)
+        blmd.close()
+        os.remove(filename)
+
+    def test_bfod_load_del(self):
+        ''' close an on disk bloom using the del syntax '''
+        filename = 'tmp.blm'
+        blm = BloomFilterOnDisk()
+        blm.init(filename, 10, 0.05)
+        blm.add('this is a test')
+        del blm
+        try:
+            self.assertEqual(True, blm)
+        except UnboundLocalError as ex:
+            msg = "local variable 'blm' referenced before assignment"
+            self.assertEqual(str(ex), msg)
+        os.remove(filename)
+
+    # export to new file
+    # export without setting new file name
+    # catch hex exceptions
+
 
 class TestCountMinSketch(unittest.TestCase):
     ''' Test the default count-min sketch implementation '''
