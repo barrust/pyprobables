@@ -8,6 +8,7 @@ from probables import (BloomFilter, BloomFilterOnDisk, CountMinSketch,
 
 class TestBloomFilter(unittest.TestCase):
     ''' Test the default bloom filter implementation '''
+
     def test_bf_init(self):
         ''' test version information '''
         blm = BloomFilter()
@@ -41,6 +42,7 @@ class TestBloomFilter(unittest.TestCase):
         self.assertEqual(blm.elements_added, 1)
 
     def test_bf_check(self):
+        ''' ensure that checking the bloom filter works '''
         blm = BloomFilter()
         blm.init(10, 0.05)
         blm.add('this is a test')
@@ -49,6 +51,17 @@ class TestBloomFilter(unittest.TestCase):
         self.assertEqual(blm.check('this is another test'), True)
         self.assertEqual(blm.check('this is yet another test'), False)
         self.assertEqual(blm.check('this is not another test'), False)
+
+    def test_bf_in_check(self):
+        ''' check that the in construct works '''
+        blm = BloomFilter()
+        blm.init(10, 0.05)
+        blm.add('this is a test')
+        blm.add('this is another test')
+        self.assertEqual('this is a test' in blm, True)
+        self.assertEqual('this is another test' in blm, True)
+        self.assertEqual('this is yet another test' in blm, False)
+        self.assertEqual('this is not another test' in blm, False)
 
     def test_bf_union(self):
         ''' test the union of two bloom filters '''
@@ -67,6 +80,17 @@ class TestBloomFilter(unittest.TestCase):
         self.assertEqual(blm3.check('this is another test'), True)
         self.assertEqual(blm3.check('this is yet another test'), True)
         self.assertEqual(blm3.check('this is not another test'), False)
+
+    def test_bf_union_diff(self):
+        ''' make sure checking for different bloom filters works union '''
+        blm = BloomFilter()
+        blm.init(10, 0.05)
+        blm.add('this is a test')
+        blm2 = BloomFilter()
+        blm2.init(100, 0.05)
+
+        blm3 = blm.union(blm2)
+        self.assertEqual(blm3, None)
 
     def test_bf_intersection(self):
         ''' test the union of two bloom filters '''
@@ -87,6 +111,18 @@ class TestBloomFilter(unittest.TestCase):
         self.assertEqual(blm3.check('this is yet another test'), False)
         self.assertEqual(blm3.check('this is not another test'), False)
 
+    def test_bf_intersection_diff(self):
+        ''' make sure checking for different bloom filters works
+            intersection '''
+        blm = BloomFilter()
+        blm.init(10, 0.05)
+        blm.add('this is a test')
+        blm2 = BloomFilter()
+        blm2.init(100, 0.05)
+
+        blm3 = blm.intersection(blm2)
+        self.assertEqual(blm3, None)
+
     def test_bf_jaccard(self):
         ''' test the jaccard index of two bloom filters '''
         blm = BloomFilter()
@@ -101,6 +137,96 @@ class TestBloomFilter(unittest.TestCase):
         res = blm.jaccard_index(blm2)
         self.assertGreater(res, 0.33)
         self.assertLess(res, 0.50)
+
+    def test_bf_jaccard_diff(self):
+        ''' make sure checking for different bloom filters works jaccard '''
+        blm = BloomFilter()
+        blm.init(10, 0.05)
+        blm.add('this is a test')
+        blm2 = BloomFilter()
+        blm2.init(100, 0.05)
+
+        blm3 = blm.jaccard_index(blm2)
+        self.assertEqual(blm3, None)
+
+    def test_bf_jaccard_empty(self):
+        ''' make sure checking for different bloom filters works jaccard '''
+        blm = BloomFilter()
+        blm.init(10, 0.05)
+        blm2 = BloomFilter()
+        blm2.init(10, 0.05)
+
+        blm3 = blm.jaccard_index(blm2)
+        self.assertEqual(blm3, 1.0)
+
+    def test_bf_stats(self):
+        ''' test that the information in the stats is correct '''
+        msg = ('BloomFilter: \n'
+               '\tbits: 63\n'
+               '\testimated elements: 10\n'
+               '\tnumber hashes: 4\n'
+               '\tmax false positive rate: 0.050000\n'
+               '\tbloom length (8 bits): 8\n'
+               '\telements added: 10\n'
+               '\testimated elements added: 9\n'
+               '\tcurrent false positive rate: 0.048806\n'
+               '\texport size (bytes): 28\n'
+               '\tnumber bits set: 29\n'
+               '\tis on disk: no\n')
+        blm = BloomFilter()
+        blm.init(10, 0.05)
+        blm.add('this is a test 0')
+        blm.add('this is a test 1')
+        blm.add('this is a test 2')
+        blm.add('this is a test 3')
+        blm.add('this is a test 4')
+        blm.add('this is a test 5')
+        blm.add('this is a test 6')
+        blm.add('this is a test 7')
+        blm.add('this is a test 8')
+        blm.add('this is a test 9')
+        stats = str(blm)
+        self.assertEqual(stats, msg)
+
+    def test_bf_export_hex(self):
+        ''' test the exporting of the bloom filter to a hex string '''
+        hex_val = '85f240623b6d9459000000000000000a000000000000000a3d4ccccd'
+        blm = BloomFilter()
+        blm.init(10, 0.05)
+        blm.add('this is a test 0')
+        blm.add('this is a test 1')
+        blm.add('this is a test 2')
+        blm.add('this is a test 3')
+        blm.add('this is a test 4')
+        blm.add('this is a test 5')
+        blm.add('this is a test 6')
+        blm.add('this is a test 7')
+        blm.add('this is a test 8')
+        blm.add('this is a test 9')
+        hex_out = blm.export_hex()
+
+        self.assertEqual(hex_out, hex_val)
+
+    def test_bf_load_hex(self):
+        ''' test importing a bloom filter from hex value '''
+        hex_val = '85f240623b6d9459000000000000000a000000000000000a3d4ccccd'
+        blm = BloomFilter()
+        blm.load_hex(hex_val)
+
+        self.assertEqual('this is a test 0' in blm, True)
+        self.assertEqual('this is a test 1' in blm, True)
+        self.assertEqual('this is a test 2' in blm, True)
+        self.assertEqual('this is a test 3' in blm, True)
+        self.assertEqual('this is a test 4' in blm, True)
+        self.assertEqual('this is a test 5' in blm, True)
+        self.assertEqual('this is a test 6' in blm, True)
+        self.assertEqual('this is a test 7' in blm, True)
+        self.assertEqual('this is a test 8' in blm, True)
+        self.assertEqual('this is a test 9' in blm, True)
+
+        self.assertEqual('this is a test 10' in blm, False)
+        self.assertEqual('this is a test 11' in blm, False)
+        self.assertEqual('this is a test 12' in blm, False)
 
 
 class TestBloomFilterOnDisk(unittest.TestCase):

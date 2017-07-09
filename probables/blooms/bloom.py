@@ -228,7 +228,10 @@ class BloomFilter(object):
         ''' export Bloom Filter to hex string '''
         mybytes = struct.pack('>QQf', self.estimated_elements,
                               self.elements_added, self.false_positive_rate)
-        return hexlify(bytearray(self.bloom_array)) + hexlify(mybytes)
+        bytes_string = hexlify(bytearray(self.bloom_array)) + hexlify(mybytes)
+        if sys.version_info > (3, 0):  # python 3 gives us bytes
+            return str(bytes_string,'utf-8')
+        return bytes_string
 
     def load_hex(self, hex_string, hash_function=None):
         ''' placeholder for loading from hex string '''
