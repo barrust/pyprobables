@@ -162,7 +162,7 @@ class CountMinSketch(object):
             else:
                 res = meanmin[self.__depth//2]
         else:
-            print('invalid query type')
+            raise SyntaxError('Invalid query type')
         return res
 
     def export(self, filepath):

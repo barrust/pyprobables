@@ -5,7 +5,7 @@ import unittest
 import os
 from hashlib import (md5)
 from probables import (CountMinSketch, HeavyHitters, StreamThreshold)
-from . utilities import(calc_file_md5)
+from . utilities import(calc_file_md5, different_hash)
 
 
 class TestCountMinSketch(unittest.TestCase):
@@ -138,6 +138,21 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertEqual(cms.check('this is a test', 'mean-min'), 255)
         self.assertEqual(cms.elements_added, 5 + 16 + 189 + 255)
 
+    def test_cms_check_mean_called_even(self):
+        ''' test checking number elements using mean algorithm called out when
+            the depth is an even number... '''
+        cms = CountMinSketch(width=1000, depth=6)
+        self.assertEqual(cms.add('this is a test', 255), 255)
+        self.assertEqual(cms.add('this is another test', 189), 189)
+        self.assertEqual(cms.add('this is also a test', 16), 16)
+        self.assertEqual(cms.add('this is something to test', 5), 5)
+
+        self.assertEqual(cms.check('this is something to test', 'mean-min'), 5)
+        self.assertEqual(cms.check('this is also a test', 'mean-min'), 16)
+        self.assertEqual(cms.check('this is another test', 'mean-min'), 189)
+        self.assertEqual(cms.check('this is a test', 'mean-min'), 255)
+        self.assertEqual(cms.elements_added, 5 + 16 + 189 + 255)
+
     def test_cms_export(self):
         ''' test exporting a count-min sketch '''
         md5_val = '61d2ea9d0cb09b7bb284e1cf1a860449'
@@ -165,6 +180,77 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertEqual(cms2.elements_added, 100)
         self.assertEqual(cms2.check('this is a test'), 100)
         os.remove(filename)
+
+    def test_cms_load_diff_hash(self):
+        ''' test loading a count-min sketch from file '''
+        md5_val = '61d2ea9d0cb09b7bb284e1cf1a860449'
+        filename = 'test.cms'
+        cms = CountMinSketch(width=1000, depth=5)
+        self.assertEqual(cms.add('this is a test', 100), 100)
+        cms.export(filename)
+        md5_out = calc_file_md5(filename)
+        self.assertEqual(md5_out, md5_val)
+
+        cms2 = CountMinSketch(filepath=filename, hash_function=different_hash)
+        self.assertEqual(cms2.elements_added, 100)
+        # should not work since it is a different hash
+        self.assertNotEqual(cms.check('this is a test'), True)
+        self.assertNotEqual(cms.hashes('this is a test'),
+                            cms2.hashes('this is a test'))
+        os.remove(filename)
+
+    def test_cms_different_hash(self):
+        ''' test using a different hash function '''
+        cms = CountMinSketch(width=1000, depth=5)
+        hashes1 = cms.hashes('this is a test')
+
+        cms2 = CountMinSketch(width=1000, depth=5,
+                              hash_function=different_hash)
+        hashes2 = cms2.hashes('this is a test')
+        self.assertNotEqual(hashes1, hashes2)
+
+    def test_cms_min_val(self):
+        ''' test when we come to the bottom of the 32 bit int
+            (stop overflow) '''
+        cms = CountMinSketch(width=1000, depth=5)
+        cms.remove('this is a test', 2147483648 + 1)
+        self.assertEqual(cms.check('this is a test'), -2147483648)
+        self.assertEqual(cms.elements_added, 2147483647)
+
+    def test_cms_max_val(self):
+        ''' test when we come to the top of the 32 bit int
+            (stop overflow) '''
+        cms = CountMinSketch(width=1000, depth=5)
+        cms.add('this is a test', 2147483647 + 1)
+        self.assertEqual(cms.check('this is a test'), 2147483647)
+        self.assertEqual(cms.elements_added, 2147483647)
+
+    def test_cms_clear(self):
+        ''' test the clear functionality '''
+        cms = CountMinSketch(width=1000, depth=5)
+        self.assertEqual(cms.add('this is a test', 100), 100)
+        self.assertEqual(cms.elements_added, 100)
+
+        cms.clear()
+        self.assertEqual(cms.elements_added, 0)
+        self.assertEqual(cms.check('this is a test'), 0)
+
+    def test_cms_bad_query(self):
+        ''' test a bad query '''
+        cms = CountMinSketch(width=1000, depth=5)
+        self.assertEqual(cms.add('this is a test', 100), 100)
+        self.assertRaises(SyntaxError,
+                          lambda: cms.check('this is a test', 'unknown'))
+
+    def test_cms_bad_query_msg(self):
+        ''' test a bad query '''
+        cms = CountMinSketch(width=1000, depth=5)
+        self.assertEqual(cms.add('this is a test', 100), 100)
+        try:
+            cms.check('this is a test', 'unknown')
+        except SyntaxError as ex:
+            msg = "Invalid query type"
+            self.assertEqual(str(ex), msg)
 
 
 class TestHeavyHitters(unittest.TestCase):
