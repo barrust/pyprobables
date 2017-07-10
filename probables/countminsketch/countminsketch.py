@@ -46,7 +46,7 @@ class CountMinSketch(object):
             self._bins = [0] * int(self.__width * self.__depth)
         else:
             msg = ('Must provide one of the following to initialize the '
-                   'Count-Min Sketch: \n'
+                   'Count-Min Sketch:\n'
                    '    A file to load,\n'
                    '    The width and depth,\n'
                    '    OR confidence and error rate')
@@ -244,9 +244,14 @@ class HeavyHitters(CountMinSketch):
         self.__smallest = 0
 
     @property
-    def heavyhitters(self):
+    def heavy_hitters(self):
         ''' return the heavy hitters '''
         return self.__top_x
+
+    @property
+    def number_heavy_hitters(self):
+        ''' return the heavy hitters '''
+        return self.__num_hitters
 
     def add(self, key, num_els=1):
         ''' add element to heavy hitters '''
@@ -289,7 +294,14 @@ class HeavyHitters(CountMinSketch):
         msg = ('Unable to remove elements in the HeavyHitters '
                'class as it is an un supported action (and does not'
                'make sense)!')
-        raise TypeError(msg)
+        raise NotImplementedError(msg)
+
+    def clear(self):
+        ''' clear out the heavy hitters! '''
+        super(HeavyHitters, self).clear()
+        self.__top_x = dict()
+        self.__top_x_size = 0
+        self.__smallest = 0
 
 
 class StreamThreshold(CountMinSketch):

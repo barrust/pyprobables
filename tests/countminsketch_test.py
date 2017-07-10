@@ -3,7 +3,6 @@
 from __future__ import (unicode_literals, absolute_import, print_function)
 import unittest
 import os
-from hashlib import (md5)
 from probables import (CountMinSketch, HeavyHitters, StreamThreshold)
 from . utilities import(calc_file_md5, different_hash)
 
@@ -40,7 +39,7 @@ class TestCountMinSketch(unittest.TestCase):
             CountMinSketch(width=1000)
         except SyntaxError as ex:
             msg = ('Must provide one of the following to initialize the '
-                   'Count-Min Sketch: \n'
+                   'Count-Min Sketch:\n'
                    '    A file to load,\n'
                    '    The width and depth,\n'
                    '    OR confidence and error rate')
@@ -255,11 +254,139 @@ class TestCountMinSketch(unittest.TestCase):
 
 class TestHeavyHitters(unittest.TestCase):
     ''' Test the default heavy hitters implementation '''
-    def test_heavyhitters(self):
-        pass
+
+    def test_heavyhitters_init_wd(self):
+        ''' test initializing heavy hitters '''
+        hh1 = HeavyHitters(num_hitters=1000, width=1000, depth=5)
+        self.assertEqual(hh1.width, 1000)
+        self.assertEqual(hh1.depth, 5)
+        self.assertEqual(hh1.confidence, 0.96875)
+        self.assertEqual(hh1.error_rate, 0.002)
+        self.assertEqual(hh1.elements_added, 0)
+        self.assertEqual(hh1.heavy_hitters, dict())
+        self.assertEqual(hh1.number_heavy_hitters, 1000)
+
+    def test_heavyhitters_init_ce(self):
+        ''' test initializing heavy hitters '''
+        hh1 = HeavyHitters(num_hitters=1000, confidence=0.96875,
+                           error_rate=0.002)
+        self.assertEqual(hh1.width, 1000)
+        self.assertEqual(hh1.depth, 5)
+        self.assertEqual(hh1.confidence, 0.96875)
+        self.assertEqual(hh1.error_rate, 0.002)
+        self.assertEqual(hh1.elements_added, 0)
+        self.assertEqual(hh1.heavy_hitters, dict())
+        self.assertEqual(hh1.number_heavy_hitters, 1000)
+
+    def test_heavyhitters_add(self):
+        ''' test adding things (singular) to the heavy hitters '''
+        hh1 = HeavyHitters(num_hitters=2, width=1000, depth=5)
+        self.assertEqual(hh1.add('this is a test'), 1)
+        self.assertEqual(hh1.add('this is a test'), 2)
+        self.assertEqual(hh1.add('this is a test'), 3)
+        self.assertEqual(hh1.add('this is also a test'), 1)
+        self.assertEqual(hh1.add('this is not a test'), 1)
+        self.assertEqual(hh1.add('this is not a test'), 2)
+        self.assertEqual(hh1.heavy_hitters,
+                         {'this is a test': 3, 'this is not a test': 2})
+        self.assertEqual(hh1.add('this is also a test'), 2)
+        self.assertEqual(hh1.add('this is also a test'), 3)
+        self.assertEqual(hh1.add('this is also a test'), 4)
+        self.assertEqual(hh1.heavy_hitters,
+                         {'this is a test': 3, 'this is also a test': 4})
+
+    def test_heavyhitters_add_mult(self):
+        ''' test adding things (multiple) to the heavy hitters '''
+        hh1 = HeavyHitters(num_hitters=2, width=1000, depth=5)
+        self.assertEqual(hh1.add('this is a test', 3), 3)
+        self.assertEqual(hh1.add('this is also a test'), 1)
+        self.assertEqual(hh1.add('this is not a test', 2), 2)
+        self.assertEqual(hh1.heavy_hitters,
+                         {'this is a test': 3, 'this is not a test': 2})
+        self.assertEqual(hh1.add('this is also a test', 3), 4)
+        self.assertEqual(hh1.heavy_hitters,
+                         {'this is a test': 3, 'this is also a test': 4})
+        self.assertEqual(hh1.add('this is not a test', 2), 4)
+        self.assertEqual(hh1.heavy_hitters,
+                         {'this is not a test': 4, 'this is also a test': 4})
+
+    def test_hh_remove(self):
+        ''' test remove from heavy hitters exception '''
+        hh1 = HeavyHitters(num_hitters=2, width=1000, depth=5)
+        self.assertEqual(hh1.add('this is a test', 3), 3)
+        self.assertRaises(NotImplementedError,
+                          lambda: hh1.remove('this is a test'))
+
+    def test_hh_remove_msg(self):
+        ''' test remove from heavy hitters exception message '''
+        hh1 = HeavyHitters(num_hitters=2, width=1000, depth=5)
+        self.assertEqual(hh1.add('this is a test', 3), 3)
+        try:
+            hh1.remove('this is a test')
+        except NotImplementedError as ex:
+            msg = ('Unable to remove elements in the HeavyHitters '
+                   'class as it is an un supported action (and does not'
+                   'make sense)!')
+            self.assertEqual(str(ex), msg)
+
+    def test_hh_clear(self):
+        ''' test clearing out the heavy hitters object '''
+        hh1 = HeavyHitters(num_hitters=1000, width=1000, depth=5)
+        self.assertEqual(hh1.width, 1000)
+        self.assertEqual(hh1.depth, 5)
+        self.assertEqual(hh1.confidence, 0.96875)
+        self.assertEqual(hh1.error_rate, 0.002)
+        self.assertEqual(hh1.elements_added, 0)
+        self.assertEqual(hh1.heavy_hitters, dict())
+        self.assertEqual(hh1.number_heavy_hitters, 1000)
+
+        self.assertEqual(hh1.add('this is a test', 3), 3)
+        self.assertEqual(hh1.elements_added, 3)
+        self.assertEqual(hh1.heavy_hitters, {'this is a test': 3})
+
+        hh1.clear()
+        self.assertEqual(hh1.elements_added, 0)
+        self.assertEqual(hh1.heavy_hitters, dict())
+
+    def test_hh_export(self):
+        ''' test exporting a count-min sketch '''
+        md5_val = '61d2ea9d0cb09b7bb284e1cf1a860449'
+        filename = 'test.cms'
+        hh1 = HeavyHitters(num_hitters=1000, width=1000, depth=5)
+        hh1.add('this is a test', 100)
+        hh1.export(filename)
+        md5_out = calc_file_md5(filename)
+        os.remove(filename)
+
+        self.assertEqual(md5_out, md5_val)
+
+    def test_cms_load(self):
+        ''' test loading a count-min sketch from file '''
+        md5_val = '61d2ea9d0cb09b7bb284e1cf1a860449'
+        filename = 'test.cms'
+        hh1 = HeavyHitters(num_hitters=1000, width=1000, depth=5)
+        self.assertEqual(hh1.add('this is a test', 100), 100)
+        self.assertEqual(hh1.elements_added, 100)
+        self.assertEqual(hh1.heavy_hitters, {'this is a test': 100})
+        hh1.export(filename)
+        md5_out = calc_file_md5(filename)
+        self.assertEqual(md5_out, md5_val)
+
+        # try loading directly to file!
+        hh2 = HeavyHitters(num_hitters=1000, filepath=filename)
+        self.assertEqual(hh2.width, 1000)
+        self.assertEqual(hh2.depth, 5)
+        self.assertEqual(hh2.elements_added, 100)
+        self.assertEqual(hh2.check('this is a test'), 100)
+        # show on load that the tracking of heavy hitters is gone
+        self.assertEqual(hh2.heavy_hitters, dict())
+        self.assertEqual(hh2.add('this is a test', 1), 101)
+        self.assertEqual(hh2.heavy_hitters, {'this is a test': 101})
+        os.remove(filename)
 
 
 class TestStreamThreshold(unittest.TestCase):
     ''' Test the default stream threshold implementation '''
     def test_streamthreshold(self):
+        ''' starting point '''
         pass

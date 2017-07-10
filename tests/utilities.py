@@ -3,6 +3,7 @@ from hashlib import (md5)
 
 
 def calc_file_md5(filename):
+    ''' calc the md5 of a file '''
     with open(filename, 'rb') as filepointer:
         res = filepointer.read()
     return md5(res).hexdigest()
