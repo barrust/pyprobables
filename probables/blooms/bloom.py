@@ -88,7 +88,7 @@ class BloomFilter(object):
     def __unicode__(self):
         ''' string / unicode representation of the bloom filter '''
         on_disk = "no" if self.is_on_disk is False else "yes"
-        stats = ('BloomFilter: \n'
+        stats = ('BloomFilter:\n'
                  '\tbits: {0}\n'
                  '\testimated elements: {1}\n'
                  '\tnumber hashes: {2}\n'

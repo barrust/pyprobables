@@ -162,7 +162,7 @@ class TestBloomFilter(unittest.TestCase):
 
     def test_bf_stats(self):
         ''' test that the information in the stats is correct '''
-        msg = ('BloomFilter: \n'
+        msg = ('BloomFilter:\n'
                '\tbits: 63\n'
                '\testimated elements: 10\n'
                '\tnumber hashes: 4\n'

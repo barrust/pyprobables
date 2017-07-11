@@ -251,6 +251,18 @@ class TestCountMinSketch(unittest.TestCase):
             msg = "Invalid query type"
             self.assertEqual(str(ex), msg)
 
+    def test_cms_str(self):
+        ''' test the string representation of the count-min sketch '''
+        cms = CountMinSketch(width=1000, depth=5)
+        self.assertEqual(cms.add('this is a test', 100), 100)
+        msg = ('Count-Min Sketch:\n'
+        	   '\tWidth: 1000\n'
+        	   '\tDepth: 5\n'
+        	   '\tConfidence: 0.96875\n'
+        	   '\tError Rate: 0.002\n'
+        	   '\tElements Added: 100')
+        self.assertEqual(str(cms), msg)
+
 
 class TestHeavyHitters(unittest.TestCase):
     ''' Test the default heavy hitters implementation '''
@@ -386,6 +398,20 @@ class TestHeavyHitters(unittest.TestCase):
         self.assertEqual(hh2.add('this is a test', 1), 101)
         self.assertEqual(hh2.heavy_hitters, {'this is a test': 101})
         os.remove(filename)
+
+    def test_hh_str(self):
+        ''' test the string representation of the heavy hitters sketch '''
+        hh1 = HeavyHitters(num_hitters=2, width=1000, depth=5)
+        self.assertEqual(hh1.add('this is a test', 100), 100)
+        msg = ('Count-Min Sketch:\n'
+        	   '\tWidth: 1000\n'
+        	   '\tDepth: 5\n'
+        	   '\tConfidence: 0.96875\n'
+        	   '\tError Rate: 0.002\n'
+        	   '\tElements Added: 100\n'
+               '\tNumber Hitters: 2\n'
+               '\tNumber Recorded: 1')
+        self.assertEqual(str(hh1), msg)
 
 
 class TestStreamThreshold(unittest.TestCase):

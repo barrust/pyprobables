@@ -57,6 +57,17 @@ class CountMinSketch(object):
         else:
             self._hash_function = hash_function
 
+    def __str__(self):
+        ''' string representation of the count min sketch '''
+        msg = ('Count-Min Sketch:\n'
+               '\tWidth: {0}\n'
+               '\tDepth: {1}\n'
+               '\tConfidence: {2}\n'
+               '\tError Rate: {3}\n'
+               '\tElements Added: {4}')
+        return msg.format(self.width, self.depth, self.confidence,
+                          self.error_rate, self.elements_added)
+
     @property
     def width(self):
         ''' get width '''
@@ -243,6 +254,12 @@ class HeavyHitters(CountMinSketch):
         self.__num_hitters = num_hitters
         self.__smallest = 0
 
+    def __str__(self):
+        ''' heavy hitters string rep '''
+        msg = super(HeavyHitters, self).__str__()
+        tmp = msg + '\n\tNumber Hitters: {0}\n\tNumber Recorded: {1}'
+        return tmp.format(self.number_heavy_hitters, self.__top_x_size)
+
     @property
     def heavy_hitters(self):
         ''' return the heavy hitters '''
@@ -315,6 +332,11 @@ class StreamThreshold(CountMinSketch):
                                               hash_function)
         self.__threshold = threshold
         self.__meets_threshold = dict()
+
+    def __str__(self):
+        ''' Stream Threshold string representation '''
+        pre = super(StreamThreshold, self).__str__()
+        return pre + '\n'
 
     @property
     def meets_threshold(self):
