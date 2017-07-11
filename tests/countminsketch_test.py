@@ -307,8 +307,11 @@ class TestHeavyHitters(unittest.TestCase):
         self.assertEqual(hh1.heavy_hitters,
                          {'this is a test': 3, 'this is also a test': 4})
         self.assertEqual(hh1.add('this is not a test', 2), 4)
+        self.assertEqual(hh1.add('this is not a test', 2), 6)
+        self.assertEqual(hh1.add('this is not a test', 2), 8)
+        self.assertEqual(hh1.add('this is not a test', 2), 10)
         self.assertEqual(hh1.heavy_hitters,
-                         {'this is not a test': 4, 'this is also a test': 4})
+                         {'this is not a test': 10, 'this is also a test': 4})
 
     def test_hh_remove(self):
         ''' test remove from heavy hitters exception '''
@@ -349,7 +352,7 @@ class TestHeavyHitters(unittest.TestCase):
         self.assertEqual(hh1.heavy_hitters, dict())
 
     def test_hh_export(self):
-        ''' test exporting a count-min sketch '''
+        ''' test exporting a heavy hitters sketch '''
         md5_val = '61d2ea9d0cb09b7bb284e1cf1a860449'
         filename = 'test.cms'
         hh1 = HeavyHitters(num_hitters=1000, width=1000, depth=5)
@@ -360,8 +363,8 @@ class TestHeavyHitters(unittest.TestCase):
 
         self.assertEqual(md5_out, md5_val)
 
-    def test_cms_load(self):
-        ''' test loading a count-min sketch from file '''
+    def test_hh_load(self):
+        ''' test loading a heavy hitters from file '''
         md5_val = '61d2ea9d0cb09b7bb284e1cf1a860449'
         filename = 'test.cms'
         hh1 = HeavyHitters(num_hitters=1000, width=1000, depth=5)
@@ -387,6 +390,151 @@ class TestHeavyHitters(unittest.TestCase):
 
 class TestStreamThreshold(unittest.TestCase):
     ''' Test the default stream threshold implementation '''
-    def test_streamthreshold(self):
-        ''' starting point '''
-        pass
+
+    def test_streamthreshold_init_wd(self):
+        ''' test initializing the stream threshold using width and depth '''
+        st1 = StreamThreshold(threshold=1000, width=1000, depth=5)
+        self.assertEqual(st1.width, 1000)
+        self.assertEqual(st1.depth, 5)
+        self.assertEqual(st1.confidence, 0.96875)
+        self.assertEqual(st1.error_rate, 0.002)
+        self.assertEqual(st1.elements_added, 0)
+        self.assertEqual(st1.meets_threshold, dict())
+        self.assertEqual(st1.threshold, 1000)
+
+    def test_streamthreshold_init_ec(self):
+        ''' test initializing the stream threshold using error rate and
+            confidence '''
+        st1 = StreamThreshold(threshold=1000, confidence=0.96875,
+                           error_rate=0.002)
+        self.assertEqual(st1.width, 1000)
+        self.assertEqual(st1.depth, 5)
+        self.assertEqual(st1.confidence, 0.96875)
+        self.assertEqual(st1.error_rate, 0.002)
+        self.assertEqual(st1.elements_added, 0)
+        self.assertEqual(st1.meets_threshold, dict())
+        self.assertEqual(st1.threshold, 1000)
+
+    def test_streamthreshold_add(self):
+        ''' test adding elements to the stream threshold in singular '''
+        st1 = StreamThreshold(threshold=2, width=1000, depth=5)
+        self.assertEqual(st1.add('this is a test'), 1)
+        self.assertEqual(st1.meets_threshold, dict())
+        self.assertEqual(st1.add('this is a test'), 2)
+        self.assertEqual(st1.meets_threshold, {'this is a test': 2})
+        self.assertEqual(st1.add('this is not a test'), 1)
+        self.assertEqual(st1.meets_threshold, {'this is a test': 2})
+        self.assertEqual(st1.add('this is a test'), 3)
+        self.assertEqual(st1.meets_threshold, {'this is a test': 3})
+        self.assertEqual(st1.add('this is not a test'), 2)
+        self.assertEqual(st1.add('this is still not a test'), 1)
+        self.assertEqual(st1.meets_threshold,
+                         {'this is a test': 3, 'this is not a test': 2})
+        self.assertEqual(st1.elements_added, 6)
+
+    def test_streamthreshold_add_mult(self):
+        ''' test adding elements to the stream threshold in multiple '''
+        st1 = StreamThreshold(threshold=10, width=1000, depth=5)
+        self.assertEqual(st1.add('this is a test', 5), 5)
+        self.assertEqual(st1.meets_threshold, dict())
+        self.assertEqual(st1.add('this is a test', 5), 10)
+        self.assertEqual(st1.meets_threshold, {'this is a test': 10})
+        self.assertEqual(st1.add('this is not a test', 9), 9)
+        self.assertEqual(st1.meets_threshold, {'this is a test': 10})
+        self.assertEqual(st1.add('this is a test', 20), 30)
+        self.assertEqual(st1.meets_threshold, {'this is a test': 30})
+        self.assertEqual(st1.add('this is not a test', 2), 11)
+        self.assertEqual(st1.meets_threshold,
+                         {'this is a test': 30, 'this is not a test': 11})
+        self.assertEqual(st1.elements_added, 41)
+
+    def test_streamthreshold_clear(self):
+        ''' test clearing the stream threshold '''
+        st1 = StreamThreshold(threshold=10, width=1000, depth=5)
+        self.assertEqual(st1.add('this is a test', 5), 5)
+        self.assertEqual(st1.meets_threshold, dict())
+        self.assertEqual(st1.add('this is a test', 5), 10)
+        self.assertEqual(st1.meets_threshold, {'this is a test': 10})
+        self.assertEqual(st1.add('this is not a test', 9), 9)
+        self.assertEqual(st1.meets_threshold, {'this is a test': 10})
+        self.assertEqual(st1.add('this is a test', 20), 30)
+        self.assertEqual(st1.meets_threshold, {'this is a test': 30})
+        self.assertEqual(st1.add('this is not a test', 2), 11)
+        self.assertEqual(st1.meets_threshold,
+                         {'this is a test': 30, 'this is not a test': 11})
+        self.assertEqual(st1.elements_added, 41)
+
+        st1.clear()
+        self.assertEqual(st1.meets_threshold, dict())
+        self.assertEqual(st1.elements_added, 0)
+
+    def test_streamthreshold_remove(self):
+        ''' test removing elements from the stream threshold singular '''
+        st1 = StreamThreshold(threshold=10, width=1000, depth=5)
+        self.assertEqual(st1.add('this is a test', 5), 5)
+        self.assertEqual(st1.meets_threshold, dict())
+        self.assertEqual(st1.add('this is a test', 5), 10)
+        self.assertEqual(st1.meets_threshold, {'this is a test': 10})
+        self.assertEqual(st1.add('this is not a test', 9), 9)
+        self.assertEqual(st1.meets_threshold, {'this is a test': 10})
+        self.assertEqual(st1.add('this is a test', 20), 30)
+        self.assertEqual(st1.meets_threshold, {'this is a test': 30})
+        self.assertEqual(st1.add('this is not a test', 2), 11)
+        self.assertEqual(st1.meets_threshold,
+                         {'this is a test': 30, 'this is not a test': 11})
+        self.assertEqual(st1.remove('this is a test'), 29)
+        self.assertEqual(st1.meets_threshold,
+                         {'this is a test': 29, 'this is not a test': 11})
+        self.assertEqual(st1.remove('this is not a test'), 10)
+        self.assertEqual(st1.remove('this is not a test'), 9)
+        self.assertEqual(st1.meets_threshold, {'this is a test': 29})
+
+        self.assertEqual(st1.elements_added, 38)
+
+    def test_streamthreshold_remove_mult(self):
+        ''' test adding elements to the stream threshold in multiple '''
+        st1 = StreamThreshold(threshold=10, width=1000, depth=5)
+        self.assertEqual(st1.add('this is a test', 30), 30)
+        self.assertEqual(st1.add('this is not a test', 11), 11)
+        self.assertEqual(st1.meets_threshold,
+                         {'this is a test': 30, 'this is not a test': 11})
+        self.assertEqual(st1.elements_added, 41)
+        self.assertEqual(st1.remove('this is not a test', 2), 9)
+        self.assertEqual(st1.meets_threshold, {'this is a test': 30})
+        self.assertEqual(st1.elements_added, 39)
+
+    def test_streamthreshold_export(self):
+        ''' test exporting a stream threshold sketch '''
+        md5_val = '61d2ea9d0cb09b7bb284e1cf1a860449'
+        filename = 'test.cms'
+        st1 = StreamThreshold(threshold=10, width=1000, depth=5)
+        st1.add('this is a test', 100)
+        st1.export(filename)
+        md5_out = calc_file_md5(filename)
+        os.remove(filename)
+
+        self.assertEqual(md5_out, md5_val)
+
+    def test_hh_load(self):
+        ''' test loading a stream threshold sketch from file '''
+        md5_val = '61d2ea9d0cb09b7bb284e1cf1a860449'
+        filename = 'test.cms'
+        st1 = StreamThreshold(threshold=10, width=1000, depth=5)
+        self.assertEqual(st1.add('this is a test', 100), 100)
+        self.assertEqual(st1.elements_added, 100)
+        self.assertEqual(st1.meets_threshold, {'this is a test': 100})
+        st1.export(filename)
+        md5_out = calc_file_md5(filename)
+        self.assertEqual(md5_out, md5_val)
+
+        # try loading directly to file!
+        st2 = StreamThreshold(threshold=10, filepath=filename)
+        self.assertEqual(st2.width, 1000)
+        self.assertEqual(st2.depth, 5)
+        self.assertEqual(st2.elements_added, 100)
+        self.assertEqual(st2.check('this is a test'), 100)
+        # show on load that the tracking of stream threshold is gone
+        self.assertEqual(st2.meets_threshold, dict())
+        self.assertEqual(st2.add('this is a test', 1), 101)
+        self.assertEqual(st2.meets_threshold, {'this is a test': 101})
+        os.remove(filename)

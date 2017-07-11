@@ -316,6 +316,21 @@ class StreamThreshold(CountMinSketch):
         self.__threshold = threshold
         self.__meets_threshold = dict()
 
+    @property
+    def meets_threshold(self):
+        ''' dictionary of those that meet the required threshold '''
+        return self.__meets_threshold
+
+    @property
+    def threshold(self):
+        ''' dictionary of those that meet the required threshold '''
+        return self.__threshold
+
+    def clear(self):
+        ''' clear out the heavy hitters! '''
+        super(StreamThreshold, self).clear()
+        self.__meets_threshold = dict()
+
     def add(self, key, num_els=1):
         ''' Add the element for key into the data structure '''
         hashes = self.hashes(key)
@@ -338,8 +353,6 @@ class StreamThreshold(CountMinSketch):
         res = super(StreamThreshold, self).remove_alt(hashes, num_els)
         if res < self.__threshold:
             self.__meets_threshold.pop(key, None)
-
-    @property
-    def meets_threshold(self):
-        ''' dictionary of those that meet the required threshold '''
-        return self.__meets_threshold
+        else:
+            self.__meets_threshold[key] = res
+        return res
