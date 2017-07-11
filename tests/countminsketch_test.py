@@ -403,7 +403,7 @@ class TestHeavyHitters(unittest.TestCase):
         ''' test the string representation of the heavy hitters sketch '''
         hh1 = HeavyHitters(num_hitters=2, width=1000, depth=5)
         self.assertEqual(hh1.add('this is a test', 100), 100)
-        msg = ('Count-Min Sketch:\n'
+        msg = ('Heavy Hitters Count-Min Sketch:\n'
         	   '\tWidth: 1000\n'
         	   '\tDepth: 5\n'
         	   '\tConfidence: 0.96875\n'
@@ -541,7 +541,7 @@ class TestStreamThreshold(unittest.TestCase):
 
         self.assertEqual(md5_out, md5_val)
 
-    def test_hh_load(self):
+    def test_streamthreshold_load(self):
         ''' test loading a stream threshold sketch from file '''
         md5_val = '61d2ea9d0cb09b7bb284e1cf1a860449'
         filename = 'test.cms'
@@ -564,3 +564,17 @@ class TestStreamThreshold(unittest.TestCase):
         self.assertEqual(st2.add('this is a test', 1), 101)
         self.assertEqual(st2.meets_threshold, {'this is a test': 101})
         os.remove(filename)
+
+    def test_streamthreshold_str(self):
+        ''' test the string representation of the stream threshold sketch '''
+        st1 = StreamThreshold(threshold=10, width=1000, depth=5)
+        self.assertEqual(st1.add('this is a test', 100), 100)
+        msg = ('Stream Threshold Count-Min Sketch:\n'
+        	   '\tWidth: 1000\n'
+        	   '\tDepth: 5\n'
+        	   '\tConfidence: 0.96875\n'
+        	   '\tError Rate: 0.002\n'
+        	   '\tElements Added: 100\n'
+               '\tThreshold: 10\n'
+               '\tNumber Meeting Threshold: 1')
+        self.assertEqual(str(st1), msg)

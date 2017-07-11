@@ -257,8 +257,10 @@ class HeavyHitters(CountMinSketch):
     def __str__(self):
         ''' heavy hitters string rep '''
         msg = super(HeavyHitters, self).__str__()
-        tmp = msg + '\n\tNumber Hitters: {0}\n\tNumber Recorded: {1}'
-        return tmp.format(self.number_heavy_hitters, self.__top_x_size)
+        tmp = ('Heavy Hitters {0}\n'
+               '\tNumber Hitters: {1}\n'
+               '\tNumber Recorded: {2}')
+        return tmp.format(msg, self.number_heavy_hitters, self.__top_x_size)
 
     @property
     def heavy_hitters(self):
@@ -334,9 +336,12 @@ class StreamThreshold(CountMinSketch):
         self.__meets_threshold = dict()
 
     def __str__(self):
-        ''' Stream Threshold string representation '''
-        pre = super(StreamThreshold, self).__str__()
-        return pre + '\n'
+        ''' heavy hitters string rep '''
+        msg = super(StreamThreshold, self).__str__()
+        tmp = ('Stream Threshold {0}\n'
+               '\tThreshold: {1}\n'
+               '\tNumber Meeting Threshold: {2}')
+        return tmp.format(msg, self.threshold, len(self.__meets_threshold))
 
     @property
     def meets_threshold(self):
