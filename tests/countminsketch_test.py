@@ -406,7 +406,7 @@ class TestStreamThreshold(unittest.TestCase):
         ''' test initializing the stream threshold using error rate and
             confidence '''
         st1 = StreamThreshold(threshold=1000, confidence=0.96875,
-                           error_rate=0.002)
+                              error_rate=0.002)
         self.assertEqual(st1.width, 1000)
         self.assertEqual(st1.depth, 5)
         self.assertEqual(st1.confidence, 0.96875)
@@ -491,7 +491,7 @@ class TestStreamThreshold(unittest.TestCase):
 
         self.assertEqual(st1.elements_added, 38)
 
-    def test_streamthreshold_remove_mult(self):
+    def test_streamthreshold_rem_mult(self):
         ''' test adding elements to the stream threshold in multiple '''
         st1 = StreamThreshold(threshold=10, width=1000, depth=5)
         self.assertEqual(st1.add('this is a test', 30), 30)

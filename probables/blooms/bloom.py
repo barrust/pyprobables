@@ -118,6 +118,12 @@ class BloomFilter(object):
                                    hash_function)
         self._bloom = [0] * self.bloom_length
 
+    def clear(self):
+        ''' clear the bloom filter '''
+        self.elements_added = 0
+        for idx in range(self.bloom_length):
+            self.bloom_array[idx] = 0
+
     def hashes(self, key, depth=None):
         ''' calculate the hashes for the passed in key '''
         tmp = depth if depth is not None else self.number_hashes

@@ -257,6 +257,29 @@ class TestBloomFilter(unittest.TestCase):
         self.assertEqual('this is not a test' in blm2, False)
         os.remove(filename)
 
+    def test_bf_clear(self):
+        ''' test clearing out the bloom filter '''
+        blm = BloomFilter()
+        blm.init(10, 0.05)
+        self.assertEqual(blm.elements_added, 0)
+        blm.add('this is a test 0')
+        blm.add('this is a test 1')
+        blm.add('this is a test 2')
+        blm.add('this is a test 3')
+        blm.add('this is a test 4')
+        blm.add('this is a test 5')
+        blm.add('this is a test 6')
+        blm.add('this is a test 7')
+        blm.add('this is a test 8')
+        blm.add('this is a test 9')
+
+        self.assertEqual(blm.elements_added, 10)
+
+        blm.clear()
+        self.assertEqual(blm.elements_added, 0)
+        for idx in range(blm.bloom_length):
+            self.assertEqual(blm.bloom_array[idx], 0)
+
 
 class TestBloomFilterOnDisk(unittest.TestCase):
     ''' Test the Bloom Filter on disk implementation '''
