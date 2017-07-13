@@ -7,20 +7,24 @@ from __future__ import (unicode_literals, absolute_import, print_function,
                         division)
 import sys
 import math
-import struct
 import os
 import mmap
+from struct import (pack, unpack, calcsize, Struct)
 from shutil import (copyfile)
 from binascii import (hexlify, unhexlify)
 
 
 class BloomFilter(object):
     ''' Simple Bloom Filter implementation for use in python;
-    It can read and write the same format as the c version
+        It can read and write the same format as the c version
 
-    NOTE: Does *not* support the 'on disk' opperations!'''
+        Initialization order of operations:
+        1) From file
+        2) From Hex String
+        3) From params '''
 
-    def __init__(self):
+    def __init__(self, est_elements=None, false_positive_rate=None,
+                 filepath=None, hex_string=None, hash_function=None):
         ''' setup the basic values needed '''
         self._bloom = None
         self.__num_bits = 0  # number of bits
@@ -31,6 +35,17 @@ class BloomFilter(object):
         self.__hash_func = self._default_hash
         self.__els_added = 0
         self._on_disk = False  # not on disk
+
+        if filepath is not None:  # TODO: check that it is a real file?
+            self._load(filepath, hash_function)
+        elif hex_string is not None:  # TODO: verify it is actually hex?
+            self._load_hex(hex_string, hash_function)
+        elif est_elements is not None and false_positive_rate is not None:
+            self._set_optimized_params(est_elements, false_positive_rate, 0,
+                                       hash_function)
+            self._bloom = [0] * self.bloom_length
+        else:
+            pass  # TODO: need to determine what to do with this
 
     @property
     def bloom_array(self):
@@ -88,7 +103,7 @@ class BloomFilter(object):
     def __unicode__(self):
         ''' string / unicode representation of the bloom filter '''
         on_disk = "no" if self.is_on_disk is False else "yes"
-        stats = ('BloomFilter: \n'
+        stats = ('BloomFilter:\n'
                  '\tbits: {0}\n'
                  '\testimated elements: {1}\n'
                  '\tnumber hashes: {2}\n'
@@ -112,11 +127,11 @@ class BloomFilter(object):
         ''' setup the `in` keyword '''
         return self.check(key)
 
-    def init(self, est_elements, false_positive_rate, hash_function=None):
-        ''' initialize the bloom filter '''
-        self._set_optimized_params(est_elements, false_positive_rate, 0,
-                                   hash_function)
-        self._bloom = [0] * self.bloom_length
+    def clear(self):
+        ''' clear the bloom filter '''
+        self.elements_added = 0
+        for idx in range(self.bloom_length):
+            self.bloom_array[idx] = 0
 
     def hashes(self, key, depth=None):
         ''' calculate the hashes for the passed in key '''
@@ -157,9 +172,8 @@ class BloomFilter(object):
             two '''
         if self.__verify_bloom_similarity(second) is False:
             return None
-        res = BloomFilter()
-        res.init(self.estimated_elements, self.false_positive_rate,
-                 self.__hash_func)
+        res = BloomFilter(self.estimated_elements, self.false_positive_rate,
+                          hash_function=self.__hash_func)
 
         for i in list(range(0, self.bloom_length)):
             res.bloom_array[i] = self.get_element(i) & second.get_element(i)
@@ -170,9 +184,8 @@ class BloomFilter(object):
         ''' return a new Bloom Filter that contains the union of the two '''
         if self.__verify_bloom_similarity(second) is False:
             return None
-        res = BloomFilter()
-        res.init(self.estimated_elements, self.false_positive_rate,
-                 self.__hash_func)
+        res = BloomFilter(self.estimated_elements, self.false_positive_rate,
+                          hash_function=self.__hash_func)
 
         for i in list(range(0, self.bloom_length)):
             res.bloom_array[i] = self.get_element(i) | second.get_element(i)
@@ -198,19 +211,19 @@ class BloomFilter(object):
         ''' export the bloom filter to disk '''
         with open(filename, 'wb') as filepointer:
             rep = 'B' * self.bloom_length
-            filepointer.write(struct.pack(rep, *self.bloom_array))
-            filepointer.write(struct.pack('QQf', self.estimated_elements,
-                                          self.elements_added,
-                                          self.false_positive_rate))
+            filepointer.write(pack(rep, *self.bloom_array))
+            filepointer.write(pack('QQf', self.estimated_elements,
+                                   self.elements_added,
+                                   self.false_positive_rate))
 
-    def load(self, filename, hash_function=None):
+    def _load(self, filename, hash_function=None):
         ''' load the bloom filter from file '''
         # read in the needed information, and then call _set_optimized_params
         # to set everything correctly
         with open(filename, 'rb') as filepointer:
-            offset = struct.calcsize('QQf')
+            offset = calcsize('QQf')
             filepointer.seek(offset * -1, os.SEEK_END)
-            mybytes = struct.unpack('QQf', filepointer.read(offset))
+            mybytes = unpack('QQf', filepointer.read(offset))
             self._est_elements = mybytes[0]
             self.elements_added = mybytes[1]
             self._fpr = mybytes[2]
@@ -221,34 +234,34 @@ class BloomFilter(object):
 
             # now read in the bit array!
             filepointer.seek(0, os.SEEK_SET)
-            offset = struct.calcsize('B') * self.bloom_length
+            offset = calcsize('B') * self.bloom_length
             rep = 'B' * self.bloom_length
-            self._bloom = list(struct.unpack(rep, filepointer.read(offset)))
+            self._bloom = list(unpack(rep, filepointer.read(offset)))
 
     def export_hex(self):
         ''' export Bloom Filter to hex string '''
-        mybytes = struct.pack('>QQf', self.estimated_elements,
-                              self.elements_added, self.false_positive_rate)
+        mybytes = pack('>QQf', self.estimated_elements,
+                       self.elements_added, self.false_positive_rate)
         bytes_string = hexlify(bytearray(self.bloom_array)) + hexlify(mybytes)
         if sys.version_info > (3, 0):  # python 3 gives us bytes
             return str(bytes_string, 'utf-8')
         return bytes_string
 
-    def load_hex(self, hex_string, hash_function=None):
+    def _load_hex(self, hex_string, hash_function=None):
         ''' placeholder for loading from hex string '''
-        offset = struct.calcsize('>QQf') * 2
-        stct = struct.Struct('>QQf')
+        offset = calcsize('>QQf') * 2
+        stct = Struct('>QQf')
         tmp_data = stct.unpack_from(unhexlify(hex_string[-offset:]))
         self._set_optimized_params(tmp_data[0], tmp_data[2], tmp_data[1],
                                    hash_function)
         tmp_bloom = unhexlify(hex_string[:-offset])
         rep = 'B' * self.bloom_length
-        self._bloom = list(struct.unpack(rep, tmp_bloom))
+        self._bloom = list(unpack(rep, tmp_bloom))
 
     def export_size(self):
         ''' calculate the size of the bloom on disk '''
-        tmp_b = struct.calcsize('B')
-        return (self.bloom_length * tmp_b) + struct.calcsize('QQf')
+        tmp_b = calcsize('B')
+        return (self.bloom_length * tmp_b) + calcsize('QQf')
 
     def estimate_elements(self):
         ''' estimate the number of elements added '''
@@ -272,8 +285,8 @@ class BloomFilter(object):
         else:
             self.__hash_func = hash_function
         self._est_elements = estimated_elements
-        fpr = struct.pack('f', float(false_positive_rate))
-        self._fpr = struct.unpack('f', fpr)[0]  # to mimic the c version!
+        fpr = pack('f', float(false_positive_rate))
+        self._fpr = unpack('f', fpr)[0]  # to mimic the c version!
         self.elements_added = elements_added
         # optimal caluclations
         n_els = self.estimated_elements
@@ -338,32 +351,41 @@ class BloomFilter(object):
 
 
 class BloomFilterOnDisk(BloomFilter):
-    ''' Bloom Filter on disk implementation '''
-    def __init__(self):
+    ''' Bloom Filter on disk implementation
+        Init order of opperations:
+        1) esimated elements and false positive rate
+        2) hex string
+        3) only filepath provided '''
+
+    def __init__(self, filepath, est_elements=None, false_positive_rate=None,
+                 hex_string=None, hash_function=None):
         super(BloomFilterOnDisk, self).__init__()
         self.__file_pointer = None
         self.__filename = None
-        self.__export_offset = struct.calcsize('Qf')
+        self.__export_offset = calcsize('Qf')
         self._on_disk = True
+
+        if est_elements is not None and false_positive_rate is not None:
+            fpr = false_positive_rate
+            super(BloomFilterOnDisk,
+                  self)._set_optimized_params(est_elements, fpr, 0,
+                                              hash_function)
+            # do the on disk things
+            with open(filepath, 'wb') as filepointer:
+                for _ in range(self.bloom_length):
+                    filepointer.write(pack('B', int(0)))
+                filepointer.write(pack('QQf', est_elements, 0,
+                                       false_positive_rate))
+                filepointer.flush()
+            self._load(filepath, hash_function)
+        elif hex_string is not None:  # TODO: check to see if is hex?
+            self._load_hex(hex_string, hash_function)
+        elif filepath is not None:  # TODO: should we check if file exists?
+            self._load(filepath, hash_function)
 
     def __del__(self):
         ''' handle if user doesn't close the on disk bloom filter '''
         self.close()
-
-    def init(self, filepath, est_elements, false_positive_rate,
-             hash_function=None):
-        ''' initialize the Bloom Filter on disk '''
-        fpr = false_positive_rate
-        super(BloomFilterOnDisk,
-              self)._set_optimized_params(est_elements, fpr, 0, hash_function)
-        # do the on disk things
-        with open(filepath, 'wb') as filepointer:
-            for _ in range(self.bloom_length):
-                filepointer.write(struct.pack('B', int(0)))
-            filepointer.write(struct.pack('QQf', est_elements, 0,
-                                          false_positive_rate))
-            filepointer.flush()
-        self.load(filepath, hash_function)
 
     def close(self):
         ''' clean up the memory '''
@@ -373,14 +395,14 @@ class BloomFilterOnDisk(BloomFilter):
             self.__file_pointer.close()
             self.__file_pointer = None
 
-    def load(self, filepath, hash_function=None):
+    def _load(self, filepath, hash_function=None):
         ''' load the bloom filter on disk '''
         # read the file, set the optimal params
         # mmap everything
         with open(filepath, 'r+b') as filepointer:
-            offset = struct.calcsize('QQf')
+            offset = calcsize('QQf')
             filepointer.seek(offset * -1, os.SEEK_END)
-            mybytes = struct.unpack('QQf', filepointer.read(offset))
+            mybytes = unpack('QQf', filepointer.read(offset))
             self._est_elements = mybytes[0]
             self.elements_added = mybytes[1]
             self._fpr = mybytes[2]
@@ -422,7 +444,7 @@ class BloomFilterOnDisk(BloomFilter):
         msg = "Currently not supported by the on disk Bloom Filter!"
         raise NotImplementedError(msg)
 
-    def load_hex(self, hex_string, hash_function=None):
+    def _load_hex(self, hex_string, hash_function=None):
         ''' load from hex ... '''
         msg = "Unable to load a hex string into an on disk Bloom Filter!"
         raise NotImplementedError(msg)
@@ -430,21 +452,21 @@ class BloomFilterOnDisk(BloomFilter):
     def get_element(self, idx):
         ''' wrappper to use similar functions always! '''
         if sys.version_info > (3, 0):  # python 3 wants a byte
-            return struct.unpack('B', bytes([self.bloom_array[idx]]))[0]
+            return unpack('B', bytes([self.bloom_array[idx]]))[0]
         # python 2 wants a string
-        return struct.unpack('B', self.bloom_array[idx])[0]
+        return unpack('B', self.bloom_array[idx])[0]
 
     @staticmethod
     def get_set_element(tmp_bit):
         ''' wrappper to use similar functions always! '''
         if sys.version_info > (3, 0):  # python 3 wants a byte
             return tmp_bit
-        return struct.pack('B', tmp_bit)
+        return pack('B', tmp_bit)
 
     def __update(self):
         ''' update the on disk bloom filter and ensure everything is out
             to disk '''
         self._bloom.flush()
         self.__file_pointer.seek(-self.__export_offset, os.SEEK_END)
-        self.__file_pointer.write(struct.pack('Q', self.elements_added))
+        self.__file_pointer.write(pack('Q', self.elements_added))
         self.__file_pointer.flush()

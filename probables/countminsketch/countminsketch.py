@@ -46,7 +46,7 @@ class CountMinSketch(object):
             self._bins = [0] * int(self.__width * self.__depth)
         else:
             msg = ('Must provide one of the following to initialize the '
-                   'Count-Min Sketch: \n'
+                   'Count-Min Sketch:\n'
                    '    A file to load,\n'
                    '    The width and depth,\n'
                    '    OR confidence and error rate')
@@ -56,6 +56,17 @@ class CountMinSketch(object):
             self._hash_function = self.__default_hash
         else:
             self._hash_function = hash_function
+
+    def __str__(self):
+        ''' string representation of the count min sketch '''
+        msg = ('Count-Min Sketch:\n'
+               '\tWidth: {0}\n'
+               '\tDepth: {1}\n'
+               '\tConfidence: {2}\n'
+               '\tError Rate: {3}\n'
+               '\tElements Added: {4}')
+        return msg.format(self.width, self.depth, self.confidence,
+                          self.error_rate, self.elements_added)
 
     @property
     def width(self):
@@ -243,10 +254,23 @@ class HeavyHitters(CountMinSketch):
         self.__num_hitters = num_hitters
         self.__smallest = 0
 
+    def __str__(self):
+        ''' heavy hitters string rep '''
+        msg = super(HeavyHitters, self).__str__()
+        tmp = ('Heavy Hitters {0}\n'
+               '\tNumber Hitters: {1}\n'
+               '\tNumber Recorded: {2}')
+        return tmp.format(msg, self.number_heavy_hitters, self.__top_x_size)
+
     @property
-    def heavyhitters(self):
+    def heavy_hitters(self):
         ''' return the heavy hitters '''
         return self.__top_x
+
+    @property
+    def number_heavy_hitters(self):
+        ''' return the heavy hitters '''
+        return self.__num_hitters
 
     def add(self, key, num_els=1):
         ''' add element to heavy hitters '''
@@ -289,7 +313,14 @@ class HeavyHitters(CountMinSketch):
         msg = ('Unable to remove elements in the HeavyHitters '
                'class as it is an un supported action (and does not'
                'make sense)!')
-        raise TypeError(msg)
+        raise NotImplementedError(msg)
+
+    def clear(self):
+        ''' clear out the heavy hitters! '''
+        super(HeavyHitters, self).clear()
+        self.__top_x = dict()
+        self.__top_x_size = 0
+        self.__smallest = 0
 
 
 class StreamThreshold(CountMinSketch):
@@ -302,6 +333,29 @@ class StreamThreshold(CountMinSketch):
                                               error_rate, filepath,
                                               hash_function)
         self.__threshold = threshold
+        self.__meets_threshold = dict()
+
+    def __str__(self):
+        ''' heavy hitters string rep '''
+        msg = super(StreamThreshold, self).__str__()
+        tmp = ('Stream Threshold {0}\n'
+               '\tThreshold: {1}\n'
+               '\tNumber Meeting Threshold: {2}')
+        return tmp.format(msg, self.threshold, len(self.__meets_threshold))
+
+    @property
+    def meets_threshold(self):
+        ''' dictionary of those that meet the required threshold '''
+        return self.__meets_threshold
+
+    @property
+    def threshold(self):
+        ''' dictionary of those that meet the required threshold '''
+        return self.__threshold
+
+    def clear(self):
+        ''' clear out the heavy hitters! '''
+        super(StreamThreshold, self).clear()
         self.__meets_threshold = dict()
 
     def add(self, key, num_els=1):
@@ -326,8 +380,6 @@ class StreamThreshold(CountMinSketch):
         res = super(StreamThreshold, self).remove_alt(hashes, num_els)
         if res < self.__threshold:
             self.__meets_threshold.pop(key, None)
-
-    @property
-    def meets_threshold(self):
-        ''' dictionary of those that meet the required threshold '''
-        return self.__meets_threshold
+        else:
+            self.__meets_threshold[key] = res
+        return res
