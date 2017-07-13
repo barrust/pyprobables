@@ -2,6 +2,8 @@
 from __future__ import (unicode_literals, absolute_import, print_function)
 from .blooms import (BloomFilter, BloomFilterOnDisk)
 from .countminsketch import (CountMinSketch, HeavyHitters, StreamThreshold)
+from .exceptions import (InitializationError, NotSupportedError,
+                         ProbablesBaseException)
 
 __author__ = 'Tyler Barrus'
 __maintainer__ = 'Tyler Barrus'

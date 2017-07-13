@@ -4,6 +4,7 @@ from __future__ import (unicode_literals, absolute_import, print_function)
 import unittest
 import os
 from probables import (BloomFilter, BloomFilterOnDisk)
+from probables.exceptions import (InitializationError, NotSupportedError)
 from . utilities import(calc_file_md5, different_hash)
 
 
@@ -412,7 +413,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         ''' test that page error is thrown correctly '''
         filename = 'tmp.blm'
         blm = BloomFilterOnDisk(filename, 10, 0.05)
-        self.assertRaises(NotImplementedError, lambda: blm.export_hex())
+        self.assertRaises(NotSupportedError, lambda: blm.export_hex())
         os.remove(filename)
 
     def test_bfod_export_hex_msg(self):
@@ -421,8 +422,9 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         blm = BloomFilterOnDisk(filename, 10, 0.05)
         try:
             blm.export_hex()
-        except NotImplementedError as ex:
-            msg = 'Currently not supported by the on disk Bloom Filter!'
+        except NotSupportedError as ex:
+            msg = ('`export_hex` is currently not supported by the on disk '
+                   'Bloom Filter')
             self.assertEqual(str(ex), msg)
         os.remove(filename)
 
@@ -430,8 +432,8 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         ''' test that page error is thrown correctly '''
         filename = 'tmp.blm'
         hex_val = '85f240623b6d9459000000000000000a000000000000000a3d4ccccd'
-        self.assertRaises(NotImplementedError,
-                          lambda: BloomFilterOnDisk(filepath=filename,
+        self.assertRaises(NotSupportedError, lambda:
+                          BloomFilterOnDisk(filepath=filename,
                                             hex_string=hex_val))
 
     def test_bfod_load_hex_msg(self):
@@ -440,6 +442,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         filename = 'tmp.blm'
         try:
             BloomFilterOnDisk(filepath=filename, hex_string=hex_val)
-        except NotImplementedError as ex:
-            msg = "Unable to load a hex string into an on disk Bloom Filter!"
+        except NotSupportedError as ex:
+            msg = ('Loading from hex_string is currently not supported by '
+                   'the on disk Bloom Filter')
             self.assertEqual(str(ex), msg)

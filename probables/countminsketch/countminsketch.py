@@ -8,6 +8,7 @@ from __future__ import (unicode_literals, absolute_import, print_function,
 import os
 import math
 from struct import (pack, unpack, calcsize)
+from .. exceptions import (InitializationError, NotSupportedError)
 
 
 class CountMinSketch(object):
@@ -50,7 +51,7 @@ class CountMinSketch(object):
                    '    A file to load,\n'
                    '    The width and depth,\n'
                    '    OR confidence and error rate')
-            raise SyntaxError(msg)
+            raise InitializationError(msg)
 
         if hash_function is None:
             self._hash_function = self.__default_hash
@@ -173,7 +174,7 @@ class CountMinSketch(object):
             else:
                 res = meanmin[self.__depth//2]
         else:
-            raise SyntaxError('Invalid query type')
+            raise NotSupportedError('`check`: Invalid query type')
         return res
 
     def export(self, filepath):
@@ -313,7 +314,7 @@ class HeavyHitters(CountMinSketch):
         msg = ('Unable to remove elements in the HeavyHitters '
                'class as it is an un supported action (and does not'
                'make sense)!')
-        raise NotImplementedError(msg)
+        raise NotSupportedError(msg)
 
     def clear(self):
         ''' clear out the heavy hitters! '''

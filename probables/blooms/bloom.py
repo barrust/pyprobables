@@ -12,6 +12,7 @@ import mmap
 from struct import (pack, unpack, calcsize, Struct)
 from shutil import (copyfile)
 from binascii import (hexlify, unhexlify)
+from .. exceptions import (InitializationError, NotSupportedError)
 
 
 class BloomFilter(object):
@@ -45,7 +46,8 @@ class BloomFilter(object):
                                        hash_function)
             self._bloom = [0] * self.bloom_length
         else:
-            pass  # TODO: need to determine what to do with this
+            msg = ('Insufecient parameters to set up the Bloom Filter')
+            raise InitializationError(msg)
 
     @property
     def bloom_array(self):
@@ -359,7 +361,16 @@ class BloomFilterOnDisk(BloomFilter):
 
     def __init__(self, filepath, est_elements=None, false_positive_rate=None,
                  hex_string=None, hash_function=None):
-        super(BloomFilterOnDisk, self).__init__()
+        # since we cannot load from a file only (to memory), we can't pass
+        # the file to the constructor; therefore, we will have to catch
+        # any exception thrown
+        try:
+            super(BloomFilterOnDisk,
+                  self).__init__(est_elements, false_positive_rate,
+                                 hash_function)
+        except InitializationError:
+            pass
+
         self.__file_pointer = None
         self.__filename = None
         self.__export_offset = calcsize('Qf')
@@ -382,6 +393,9 @@ class BloomFilterOnDisk(BloomFilter):
             self._load_hex(hex_string, hash_function)
         elif filepath is not None:  # TODO: should we check if file exists?
             self._load(filepath, hash_function)
+        else:
+            msg = ('Insufecient parameters to set up the Bloom Filter')
+            raise InitializationError(msg)
 
     def __del__(self):
         ''' handle if user doesn't close the on disk bloom filter '''
@@ -441,13 +455,15 @@ class BloomFilterOnDisk(BloomFilter):
 
     def export_hex(self):
         ''' export to a hex string '''
-        msg = "Currently not supported by the on disk Bloom Filter!"
-        raise NotImplementedError(msg)
+        msg = ('`export_hex` is currently not supported by the on disk '
+               'Bloom Filter')
+        raise NotSupportedError(msg)
 
     def _load_hex(self, hex_string, hash_function=None):
         ''' load from hex ... '''
-        msg = "Unable to load a hex string into an on disk Bloom Filter!"
-        raise NotImplementedError(msg)
+        msg = ('Loading from hex_string is currently not supported by the '
+               'on disk Bloom Filter')
+        raise NotSupportedError(msg)
 
     def get_element(self, idx):
         ''' wrappper to use similar functions always! '''
