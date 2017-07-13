@@ -76,7 +76,8 @@ Import pyprobables and setup a Count-Min Sketch:
     >>> cms.add('google.com')  # should return 1
     >>> cms.add('facebook.com', 25)  # insert 25 at once; should return 25
 
-See the documentation for other data structures available and for further
+See the documentation for other data structures available and for more
+examples!
 
 Changelog
 ------------------
