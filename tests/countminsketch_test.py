@@ -200,6 +200,12 @@ class TestCountMinSketch(unittest.TestCase):
                             cms2.hashes('this is a test'))
         os.remove(filename)
 
+    def test_cms_load_invalid_file(self):
+        ''' test loading a count-min sketch from invalid file '''
+        filename = 'invalid.cms'
+        self.assertRaises(InitializationError,
+                          lambda: CountMinSketch(filepath=filename))
+
     def test_cms_different_hash(self):
         ''' test using a different hash function '''
         cms = CountMinSketch(width=1000, depth=5)

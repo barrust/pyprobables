@@ -21,7 +21,7 @@ setuptools.setup(
     download_url = '{0}/tarball/v{1}'.format(__url__, __version__),
     install_requires = read_file('./requirements/python').splitlines(),
     packages = ['probables'],
-    long_description = read_file('README.md'),
+    long_description = read_file('README.rst'),
     classifiers = [
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',

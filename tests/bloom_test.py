@@ -209,6 +209,12 @@ class TestBloomFilter(unittest.TestCase):
         self.assertEqual('this is a test 11' in blm, False)
         self.assertEqual('this is a test 12' in blm, False)
 
+    def test_bf_load_invalid_hex(self):
+        ''' test importing a bloom filter from an invalid hex value '''
+        hex_val = '85f240623b6d9459000000000000000a000000000000000a3d4ccccQ'
+        self.assertRaises(InitializationError,
+                          lambda: BloomFilter(hex_string=hex_val))
+
     def test_bf_export_file(self):
         ''' test exporting bloom filter to file '''
         filename = 'test.blm'
@@ -233,6 +239,12 @@ class TestBloomFilter(unittest.TestCase):
         self.assertEqual('this is a test' in blm2, True)
         self.assertEqual('this is not a test' in blm2, False)
         os.remove(filename)
+
+    def test_bf_load_invalid_file(self):
+        ''' test importing a bloom filter from an invalid filepath '''
+        filename = 'invalid.blm'
+        self.assertRaises(InitializationError,
+                          lambda: BloomFilter(filepath=filename))
 
     def test_bf_clear(self):
         ''' test clearing out the bloom filter '''

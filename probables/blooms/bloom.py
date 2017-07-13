@@ -13,6 +13,8 @@ from struct import (pack, unpack, calcsize, Struct)
 from shutil import (copyfile)
 from binascii import (hexlify, unhexlify)
 from .. exceptions import (InitializationError, NotSupportedError)
+from .. hashes import (default_fnv_1a)
+from .. utilities import (is_hex_string, is_valid_file)
 
 
 class BloomFilter(object):
@@ -33,13 +35,13 @@ class BloomFilter(object):
         self._fpr = 0.0
         self.__number_hashes = 0
         self.__bloom_length = self.number_bits // 8
-        self.__hash_func = self._default_hash
+        self.__hash_func = default_fnv_1a
         self.__els_added = 0
         self._on_disk = False  # not on disk
 
-        if filepath is not None:  # TODO: check that it is a real file?
+        if is_valid_file(filepath):
             self._load(filepath, hash_function)
-        elif hex_string is not None:  # TODO: verify it is actually hex?
+        elif is_hex_string(hex_string):
             self._load_hex(hex_string, hash_function)
         elif est_elements is not None and false_positive_rate is not None:
             self._set_optimized_params(est_elements, false_positive_rate, 0,
@@ -283,7 +285,7 @@ class BloomFilter(object):
                               elements_added, hash_function):
         ''' set the parameters to the optimal sizes '''
         if hash_function is None:
-            self.__hash_func = self._default_hash
+            self.__hash_func = default_fnv_1a
         else:
             self.__hash_func = hash_function
         self._est_elements = estimated_elements
@@ -323,29 +325,6 @@ class BloomFilter(object):
             setbits += self.__cnt_set_bits(self.get_element(i))
         return setbits
 
-    def _default_hash(self, key, depth):
-        ''' the default fnv-1a hashing routine '''
-        res = list()
-        tmp = key
-        for _ in list(range(0, depth)):
-            if tmp != key:
-                tmp = self.__fnv_1a("{0:x}".format(tmp))
-            else:
-                tmp = self.__fnv_1a(key)
-            res.append(tmp)
-        return res
-
-    @staticmethod
-    def __fnv_1a(key):
-        ''' 64 bit fnv-1a hash '''
-        hval = 14695981039346656073
-        fnv_64_prime = 1099511628211
-        uint64_max = 2 ** 64
-        for tmp_s in key:
-            hval = hval ^ ord(tmp_s)
-            hval = (hval * fnv_64_prime) % uint64_max
-        return hval
-
     @staticmethod
     def get_set_element(tmp_bit):
         ''' wrappper to use similar functions always! '''
@@ -377,6 +356,7 @@ class BloomFilterOnDisk(BloomFilter):
         self._on_disk = True
 
         if est_elements is not None and false_positive_rate is not None:
+            # no need to check the file since this will over write it
             fpr = false_positive_rate
             super(BloomFilterOnDisk,
                   self)._set_optimized_params(est_elements, fpr, 0,
@@ -389,9 +369,9 @@ class BloomFilterOnDisk(BloomFilter):
                                        false_positive_rate))
                 filepointer.flush()
             self._load(filepath, hash_function)
-        elif hex_string is not None:  # TODO: check to see if is hex?
+        elif hex_string is not None and is_hex_string(hex_string):
             self._load_hex(hex_string, hash_function)
-        elif filepath is not None:  # TODO: should we check if file exists?
+        elif is_valid_file(filepath):
             self._load(filepath, hash_function)
         else:
             msg = ('Insufecient parameters to set up the Bloom Filter')

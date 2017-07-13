@@ -9,6 +9,8 @@ import os
 import math
 from struct import (pack, unpack, calcsize)
 from .. exceptions import (InitializationError, NotSupportedError)
+from .. hashes import (default_fnv_1a)
+from .. utilities import (is_hex_string, is_valid_file)
 
 
 class CountMinSketch(object):
@@ -30,7 +32,7 @@ class CountMinSketch(object):
         self.__int64_t_max = 9223372036854775807
         self.__uint64_t_max = 2 ** 64
 
-        if filepath is not None:
+        if is_valid_file(filepath):
             self.__load(filepath, hash_function)
         elif width is not None and depth is not None:
             self.__width = width
@@ -54,7 +56,7 @@ class CountMinSketch(object):
             raise InitializationError(msg)
 
         if hash_function is None:
-            self._hash_function = self.__default_hash
+            self._hash_function = default_fnv_1a
         else:
             self._hash_function = hash_function
 
@@ -205,30 +207,9 @@ class CountMinSketch(object):
             self._bins = list(unpack(rep, filepointer.read(offset)))
 
         if hash_function is None:
-            self._hash_function = self.__default_hash
+            self._hash_function = default_fnv_1a
         else:
             self._hash_function = hash_function
-
-    def __default_hash(self, key, depth):
-        ''' the default fnv-1a hashing routine '''
-        res = list()
-        tmp = key
-        for _ in range(0, depth):
-            if tmp != key:
-                tmp = self.__fnv_1a("{0:x}".format(tmp))
-            else:
-                tmp = self.__fnv_1a(key)
-            res.append(tmp)
-        return res
-
-    def __fnv_1a(self, key):
-        ''' 64 bit fnv-1a hash '''
-        hval = 14695981039346656073
-        fnv_64_prime = 1099511628211
-        for t_str in key:
-            hval = hval ^ ord(t_str)
-            hval = (hval * fnv_64_prime) % self.__uint64_t_max
-        return hval
 
     def __get_values_sorted(self, hashes):
         ''' get the values sorted '''
