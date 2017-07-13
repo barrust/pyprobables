@@ -33,18 +33,18 @@ def fnv_1a(key):
 def default_md5(key, depth):
     ''' the defualt md5 hashing routine '''
     res = list()
-    tmp = key
+    tmp = key.encode('utf-8')
     for _ in range(depth):
         tmp = md5(tmp).digest()
-        res.append(str(unpack('Q', tmp[:8])[0]))  # turn into 64 bit number
+        res.append(unpack('Q', tmp[:8])[0])  # turn into 64 bit number
     return res
 
 
 def default_sha256(key, depth):
     ''' the defualt sha256 hashing routine '''
     res = list()
-    tmp = key
+    tmp = key.encode('utf-8')
     for _ in range(depth):
         tmp = sha256(tmp).digest()
-        res.append(str(unpack('Q', tmp[:8])[0]))  # turn into 64 bit number
+        res.append(unpack('Q', tmp[:8])[0])  # turn into 64 bit number
     return res
