@@ -1,7 +1,7 @@
 .. _api:
 
-pyprobables
-***********
+pyprobables API
+***************
 
 Here you can find the full developer API for the pyprobables project.
 
@@ -17,37 +17,50 @@ Contents:
 Data Structures and Classes
 ===============================
 
+Bloom Filters
+-------------
+
+Bloom Filters are a class of probabilistic data structures that guarantee a
+zero percent false negative rate and a predetermined false positive rate.
+
 BloomFilter
 +++++++++++++++++++++++++++++++
 
-.. autoclass:: probables.blooms.BloomFilter
+.. autoclass:: probables.BloomFilter
     :members:
 
 
 BloomFilterOnDisk
 +++++++++++++++++++++++++++++++
 
-.. autoclass:: probables.blooms.BloomFilter
+.. autoclass:: probables.BloomFilter
     :members:
+    :inherited-members:
+
+
+Count-Min Sketches
+------------------
 
 CountMinSketch
 +++++++++++++++++++++++++++++++
 
-.. autoclass:: probables.countminsketch.CountMinSketch
+.. autoclass:: probables.CountMinSketch
     :members:
 
 
 HeavyHitters
 +++++++++++++++++++++++++++++++
 
-.. autoclass:: probables.countminsketch.HeavyHitters
+.. autoclass:: probables.HeavyHitters
     :members:
+    :inherited-members:
 
 StreamThreshold
 +++++++++++++++++++++++++++++++
 
-.. autoclass:: probables.countminsketch.StreamThreshold
+.. autoclass:: probables.StreamThreshold
     :members:
+    :inherited-members:
 
 Exceptions
 ===============================

@@ -1,14 +1,7 @@
 .. _home:
+.. include:: ../../README.rst
 
-pyprobables
-============
-
-.. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-
-Indices and tables
+Read More
 ==================
 
 * :ref:`api`

@@ -8,7 +8,7 @@ probabilistic data-structures to use in their work.
 Installation
 ------------------
 
-Pip Installation: ** coming**
+Pip Installation:
 
 ::
 
@@ -25,8 +25,8 @@ To install `pyprobables`, simply clone the `repository on GitHub
 
 `pyprobables` supports python versions 2.7 and 3.3 - 3.6
 
-Documentation
--------------
+API Documentation
+---------------------
 
 Documentation is currently under development. The documentation of
 the latest release will be hosted on
