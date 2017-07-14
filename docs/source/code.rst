@@ -14,7 +14,6 @@ in data analytics and data science projects.
    code
 
 
-
 Data Structures and Classes
 ===============================
 
@@ -45,7 +44,8 @@ Count-Min Sketches
 ------------------
 
 Count-Min Sketches are a class of probabilistic data structures designed to
-count the number of occurrences of data elements in data streams. 
+count the number of occurrences of data elements in data streams.
+
 
 CountMinSketch
 +++++++++++++++++++++++++++++++
@@ -61,12 +61,14 @@ HeavyHitters
     :members:
     :inherited-members:
 
+
 StreamThreshold
 +++++++++++++++++++++++++++++++
 
 .. autoclass:: probables.StreamThreshold
     :members:
     :inherited-members:
+
 
 Exceptions
 ===============================
@@ -80,6 +82,7 @@ Hashing Functions
 
 .. automodule:: probables.hashes
     :members:
+
 
 Indices and tables
 ==================

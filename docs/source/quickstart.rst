@@ -172,3 +172,13 @@ Stream Threshold
 Heavy Hitters. The main difference is that the there is a threshold for
 including an element to be tracked instead of tracking a certain number of
 elements.
+
+
+Indices and tables
+==================
+
+* :ref:`home`
+* :ref:`api`
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`

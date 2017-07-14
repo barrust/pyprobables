@@ -5,6 +5,7 @@ PyProbables
 is to provide the developer with a pure-python implementation of common
 probabilistic data-structures to use in their work.
 
+
 Installation
 ------------------
 
@@ -25,11 +26,12 @@ To install `pyprobables`, simply clone the `repository on GitHub
 
 `pyprobables` supports python versions 2.7 and 3.3 - 3.6
 
+
 API Documentation
 ---------------------
 
 The documentation of is hosted on
-`readthedocs.io <http://pyprobables.readthedocs.io/en/stable/code.html#api>`__
+`readthedocs.io <http://pyprobables.readthedocs.io/en/latest/code.html#api>`__
 
 You can build the documentation yourself by running:
 
@@ -50,6 +52,7 @@ downloaded folder:
 ::
 
   $ python setup.py test
+
 
 
 Quickstart
@@ -75,10 +78,11 @@ Import pyprobables and setup a Count-Min Sketch:
     >>> cms.add('google.com')  # should return 1
     >>> cms.add('facebook.com', 25)  # insert 25 at once; should return 25
 
-See the `API documentation <http://pyprobables.readthedocs.io/en/stable/code.html#api>`__
+See the `API documentation <http://pyprobables.readthedocs.io/en/latest/code.html#api>`__
 for other data structures available and the
-`quickstart page <http://pyprobables.readthedocs.io/en/stable/quickstart.html#quickstart>`__
+`quickstart page <http://pyprobables.readthedocs.io/en/latest/quickstart.html#quickstart>`__
 for more examples!
+
 
 Changelog
 ------------------
