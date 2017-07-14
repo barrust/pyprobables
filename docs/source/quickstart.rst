@@ -74,6 +74,26 @@ Import a Bloom Filter
     >>> print(blm2.check('sutler'))
 
 
+Other Bloom Filters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Bloom Filter on Disk
+"""""""""""""""""""""""""""""""""""""""""""""""
+
+The **Bloom Filter on Disk** is a specialized version of the standard
+Bloom Filter that is run directly off of disk instead of in memory. This
+can be useful for very large Bloom Filters or when needing to access many
+Blooms that are exported to file.
+
+
+Counting Bloom Filter
+"""""""""""""""""""""""""""""""""""""""""""""""
+
+**Counting Bloom Filters** are another specialized version of the standard
+Bloom Filter. Instead of using a bit array to track added elements, a
+Counting Bloom uses integers to track the number of times the element has
+been added. **currently not supported; planned**
+
 
 Count-Min Sketch
 ==========================
@@ -82,7 +102,9 @@ Count-Min Sketches, and its derivatives, are good for counting the number of
 occurrences of an element in streaming data while not needing to retain all the
 data elements. The result is a probabilistic count of elements inserted into
 the data structure. It will always provide a **maximum** number of times
-encountered.
+encountered. Notice that the result may be **more** than the true number
+of times it was inserted, but never fewer.
+
 
 Import, Initialize, and Train
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -96,6 +118,7 @@ Import, Initialize, and Train
     >>>         for word in line.split():
     >>>             cms.add(word.lower())  # add each to the count-min sketch!
 
+
 Query the Count-Min Sketch
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -105,6 +128,7 @@ Query the Count-Min Sketch
     >>> for word in words_to_check:
     >>>     print(cms.check(word))  # prints: 80, 17, 1, 20, 25
 
+
 Export Count-Min Sketch
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -112,9 +136,39 @@ Export Count-Min Sketch
 
     >>> cms.export('war_and_peace.cms')
 
+
 Import a Count-Min Sketch
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. code:: python
 
     >>> cms2 = CountMinSketch(filepath='war_and_peace.cms')
     >>> print(cms2.check('fleches'))  # prints 20
+
+
+Other Count-Min Sketches
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Count-Mean Sketch and Count-Mean-Min Sketch
+"""""""""""""""""""""""""""""""""""""""""""""""
+
+**Count-Mean Sketch** and **Count-Mean-Min Sketch** are identical to the
+Count-Min Sketch for the data structure but both differ in the method of
+calculating the number of times and element has been inserted. These are
+currently supported by specifying at query time which method is desired.
+
+
+Heavy Hitters
+"""""""""""""""""""""""""""""""""""""""""""""""
+
+**Heavy Hitters** is a version of the Count-Min Sketch that tracks those
+elements that are seen most often. Beyond the normal initialization parameters
+one only needs to specify the number of heavy hitters to track.
+
+
+Stream Threshold
+"""""""""""""""""""""""""""""""""""""""""""""""
+
+**Stream Threshold** is another version of the Count-Min Sketch similar to the
+Heavy Hitters. The main difference is that the there is a threshold for
+including an element to be tracked instead of tracking a certain number of
+elements.
