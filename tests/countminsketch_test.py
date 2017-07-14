@@ -4,6 +4,7 @@ from __future__ import (unicode_literals, absolute_import, print_function)
 import unittest
 import os
 from probables import (CountMinSketch, HeavyHitters, StreamThreshold)
+from probables.exceptions import (InitializationError, NotSupportedError)
 from . utilities import(calc_file_md5, different_hash)
 
 
@@ -31,13 +32,14 @@ class TestCountMinSketch(unittest.TestCase):
 
     def test_cms_init_error(self):
         ''' Test count-min sketch initialization without enough params '''
-        self.assertRaises(SyntaxError, lambda: CountMinSketch(width=1000))
+        self.assertRaises(InitializationError,
+                          lambda: CountMinSketch(width=1000))
 
     def test_cms_init_error_msg(self):
         ''' Test count-min sketch initialization without enough params '''
         try:
             CountMinSketch(width=1000)
-        except SyntaxError as ex:
+        except InitializationError as ex:
             msg = ('Must provide one of the following to initialize the '
                    'Count-Min Sketch:\n'
                    '    A file to load,\n'
@@ -198,6 +200,12 @@ class TestCountMinSketch(unittest.TestCase):
                             cms2.hashes('this is a test'))
         os.remove(filename)
 
+    def test_cms_load_invalid_file(self):
+        ''' test loading a count-min sketch from invalid file '''
+        filename = 'invalid.cms'
+        self.assertRaises(InitializationError,
+                          lambda: CountMinSketch(filepath=filename))
+
     def test_cms_different_hash(self):
         ''' test using a different hash function '''
         cms = CountMinSketch(width=1000, depth=5)
@@ -238,7 +246,7 @@ class TestCountMinSketch(unittest.TestCase):
         ''' test a bad query '''
         cms = CountMinSketch(width=1000, depth=5)
         self.assertEqual(cms.add('this is a test', 100), 100)
-        self.assertRaises(SyntaxError,
+        self.assertRaises(NotSupportedError,
                           lambda: cms.check('this is a test', 'unknown'))
 
     def test_cms_bad_query_msg(self):
@@ -247,8 +255,8 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertEqual(cms.add('this is a test', 100), 100)
         try:
             cms.check('this is a test', 'unknown')
-        except SyntaxError as ex:
-            msg = "Invalid query type"
+        except NotSupportedError as ex:
+            msg = "`check`: Invalid query type"
             self.assertEqual(str(ex), msg)
 
     def test_cms_str(self):
@@ -256,11 +264,11 @@ class TestCountMinSketch(unittest.TestCase):
         cms = CountMinSketch(width=1000, depth=5)
         self.assertEqual(cms.add('this is a test', 100), 100)
         msg = ('Count-Min Sketch:\n'
-        	   '\tWidth: 1000\n'
-        	   '\tDepth: 5\n'
-        	   '\tConfidence: 0.96875\n'
-        	   '\tError Rate: 0.002\n'
-        	   '\tElements Added: 100')
+               '\tWidth: 1000\n'
+               '\tDepth: 5\n'
+               '\tConfidence: 0.96875\n'
+               '\tError Rate: 0.002\n'
+               '\tElements Added: 100')
         self.assertEqual(str(cms), msg)
 
 
@@ -329,7 +337,7 @@ class TestHeavyHitters(unittest.TestCase):
         ''' test remove from heavy hitters exception '''
         hh1 = HeavyHitters(num_hitters=2, width=1000, depth=5)
         self.assertEqual(hh1.add('this is a test', 3), 3)
-        self.assertRaises(NotImplementedError,
+        self.assertRaises(NotSupportedError,
                           lambda: hh1.remove('this is a test'))
 
     def test_hh_remove_msg(self):
@@ -338,7 +346,7 @@ class TestHeavyHitters(unittest.TestCase):
         self.assertEqual(hh1.add('this is a test', 3), 3)
         try:
             hh1.remove('this is a test')
-        except NotImplementedError as ex:
+        except NotSupportedError as ex:
             msg = ('Unable to remove elements in the HeavyHitters '
                    'class as it is an un supported action (and does not'
                    'make sense)!')
@@ -404,11 +412,11 @@ class TestHeavyHitters(unittest.TestCase):
         hh1 = HeavyHitters(num_hitters=2, width=1000, depth=5)
         self.assertEqual(hh1.add('this is a test', 100), 100)
         msg = ('Heavy Hitters Count-Min Sketch:\n'
-        	   '\tWidth: 1000\n'
-        	   '\tDepth: 5\n'
-        	   '\tConfidence: 0.96875\n'
-        	   '\tError Rate: 0.002\n'
-        	   '\tElements Added: 100\n'
+               '\tWidth: 1000\n'
+               '\tDepth: 5\n'
+               '\tConfidence: 0.96875\n'
+               '\tError Rate: 0.002\n'
+               '\tElements Added: 100\n'
                '\tNumber Hitters: 2\n'
                '\tNumber Recorded: 1')
         self.assertEqual(str(hh1), msg)
@@ -570,11 +578,11 @@ class TestStreamThreshold(unittest.TestCase):
         st1 = StreamThreshold(threshold=10, width=1000, depth=5)
         self.assertEqual(st1.add('this is a test', 100), 100)
         msg = ('Stream Threshold Count-Min Sketch:\n'
-        	   '\tWidth: 1000\n'
-        	   '\tDepth: 5\n'
-        	   '\tConfidence: 0.96875\n'
-        	   '\tError Rate: 0.002\n'
-        	   '\tElements Added: 100\n'
+               '\tWidth: 1000\n'
+               '\tDepth: 5\n'
+               '\tConfidence: 0.96875\n'
+               '\tError Rate: 0.002\n'
+               '\tElements Added: 100\n'
                '\tThreshold: 10\n'
                '\tNumber Meeting Threshold: 1')
         self.assertEqual(str(st1), msg)

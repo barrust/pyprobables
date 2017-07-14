@@ -4,6 +4,7 @@ from __future__ import (unicode_literals, absolute_import, print_function)
 import unittest
 import os
 from probables import (BloomFilter, BloomFilterOnDisk)
+from probables.exceptions import (InitializationError, NotSupportedError)
 from . utilities import(calc_file_md5, different_hash)
 
 
@@ -208,6 +209,12 @@ class TestBloomFilter(unittest.TestCase):
         self.assertEqual('this is a test 11' in blm, False)
         self.assertEqual('this is a test 12' in blm, False)
 
+    def test_bf_load_invalid_hex(self):
+        ''' test importing a bloom filter from an invalid hex value '''
+        hex_val = '85f240623b6d9459000000000000000a000000000000000a3d4ccccQ'
+        self.assertRaises(InitializationError,
+                          lambda: BloomFilter(hex_string=hex_val))
+
     def test_bf_export_file(self):
         ''' test exporting bloom filter to file '''
         filename = 'test.blm'
@@ -232,6 +239,12 @@ class TestBloomFilter(unittest.TestCase):
         self.assertEqual('this is a test' in blm2, True)
         self.assertEqual('this is not a test' in blm2, False)
         os.remove(filename)
+
+    def test_bf_load_invalid_file(self):
+        ''' test importing a bloom filter from an invalid filepath '''
+        filename = 'invalid.blm'
+        self.assertRaises(InitializationError,
+                          lambda: BloomFilter(filepath=filename))
 
     def test_bf_clear(self):
         ''' test clearing out the bloom filter '''
@@ -378,7 +391,13 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         blmd.close()
         os.remove(filename)
 
-    def test_bfod_load_del(self):
+    def test_bf_load_invalid_file(self):
+        ''' test importing a bloom filter on disk from an invalid filepath '''
+        filename = 'invalid.blm'
+        self.assertRaises(InitializationError,
+                          lambda: BloomFilterOnDisk(filepath=filename))
+
+    def test_bfod_close_del(self):
         ''' close an on disk bloom using the del syntax '''
         filename = 'tmp.blm'
         blm = BloomFilterOnDisk(filename, 10, 0.05)
@@ -412,7 +431,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         ''' test that page error is thrown correctly '''
         filename = 'tmp.blm'
         blm = BloomFilterOnDisk(filename, 10, 0.05)
-        self.assertRaises(NotImplementedError, lambda: blm.export_hex())
+        self.assertRaises(NotSupportedError, lambda: blm.export_hex())
         os.remove(filename)
 
     def test_bfod_export_hex_msg(self):
@@ -421,8 +440,9 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         blm = BloomFilterOnDisk(filename, 10, 0.05)
         try:
             blm.export_hex()
-        except NotImplementedError as ex:
-            msg = 'Currently not supported by the on disk Bloom Filter!'
+        except NotSupportedError as ex:
+            msg = ('`export_hex` is currently not supported by the on disk '
+                   'Bloom Filter')
             self.assertEqual(str(ex), msg)
         os.remove(filename)
 
@@ -430,8 +450,8 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         ''' test that page error is thrown correctly '''
         filename = 'tmp.blm'
         hex_val = '85f240623b6d9459000000000000000a000000000000000a3d4ccccd'
-        self.assertRaises(NotImplementedError,
-                          lambda: BloomFilterOnDisk(filepath=filename,
+        self.assertRaises(NotSupportedError, lambda:
+                          BloomFilterOnDisk(filepath=filename,
                                             hex_string=hex_val))
 
     def test_bfod_load_hex_msg(self):
@@ -440,6 +460,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         filename = 'tmp.blm'
         try:
             BloomFilterOnDisk(filepath=filename, hex_string=hex_val)
-        except NotImplementedError as ex:
-            msg = "Unable to load a hex string into an on disk Bloom Filter!"
+        except NotSupportedError as ex:
+            msg = ('Loading from hex_string is currently not supported by '
+                   'the on disk Bloom Filter')
             self.assertEqual(str(ex), msg)
