@@ -395,7 +395,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         ''' test importing a bloom filter on disk from an invalid filepath '''
         filename = 'invalid.blm'
         self.assertRaises(InitializationError,
-                          lambda: BloomFilter(filepath=filename))
+                          lambda: BloomFilterOnDisk(filepath=filename))
 
     def test_bfod_close_del(self):
         ''' close an on disk bloom using the del syntax '''
