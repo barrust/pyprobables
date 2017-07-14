@@ -52,7 +52,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'pyprobables'
+project = u'probables'
 copyright = u'2017, Tyler Barrus'
 author = __author__
 

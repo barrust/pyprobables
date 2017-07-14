@@ -1,20 +1,17 @@
-.. pyprobables documentation master file, created by
-   sphinx-quickstart on Thu Jul 13 22:20:03 2017.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. _home:
 
-Welcome to pyprobables's documentation!
-=======================================
+pyprobables
+============
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
 
-
 Indices and tables
 ==================
 
+* :ref:`api`
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
