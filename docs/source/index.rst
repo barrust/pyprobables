@@ -5,6 +5,7 @@ Read More
 ==================
 
 * :ref:`api`
+* :ref:`quickstart`
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`

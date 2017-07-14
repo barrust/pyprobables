@@ -28,11 +28,10 @@ To install `pyprobables`, simply clone the `repository on GitHub
 API Documentation
 ---------------------
 
-Documentation is currently under development. The documentation of
-the latest release will be hosted on
-`readthedocs.io <http://pyprobables.readthedocs.io/en/stable/?>`__
+The documentation of is hosted on
+`readthedocs.io <http://pyprobables.readthedocs.io/en/stable/code.html#api>`__
 
-Once completed, you can build the documentation yourself by running:
+You can build the documentation yourself by running:
 
 ::
 
@@ -76,8 +75,10 @@ Import pyprobables and setup a Count-Min Sketch:
     >>> cms.add('google.com')  # should return 1
     >>> cms.add('facebook.com', 25)  # insert 25 at once; should return 25
 
-See the documentation for other data structures available and for more
-examples!
+See the `API documentation <http://pyprobables.readthedocs.io/en/stable/code.html#api>`__
+for other data structures available and the
+`quickstart page <http://pyprobables.readthedocs.io/en/stable/quickstart.html#quickstart>`__
+for more examples!
 
 Changelog
 ------------------
