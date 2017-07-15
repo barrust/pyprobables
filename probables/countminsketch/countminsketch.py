@@ -10,7 +10,7 @@ import math
 from struct import (pack, unpack, calcsize)
 from .. exceptions import (InitializationError, NotSupportedError)
 from .. hashes import (default_fnv_1a)
-from .. utilities import (is_hex_string, is_valid_file)
+from .. utilities import (is_valid_file)
 
 
 class CountMinSketch(object):
@@ -34,7 +34,7 @@ class CountMinSketch(object):
         self.__uint64_t_max = 2 ** 64
 
         if is_valid_file(filepath):
-            self.__load(filepath, hash_function)
+            self.__load(filepath)
         elif width is not None and depth is not None:
             self.__width = width
             self.__depth = depth
@@ -99,6 +99,7 @@ class CountMinSketch(object):
 
     @property
     def query_type(self):
+        ''' return the name of the query type being used '''
         if self.__query_method == self.__min_query:
             return 'min'
         elif self.__query_method == self.__mean_query:
@@ -108,7 +109,10 @@ class CountMinSketch(object):
 
     @query_type.setter
     def query_type(self, val):
-        ''' set to min query '''
+        ''' set to min query Options='min', 'mean', 'mean-min'
+            other values are set to min
+            setting to mean is converting to a Count-Mean Sketch
+            setting to mean-min is converting to a Count-Mean-Min Sketch '''
         if val is None:
             self.__query_method = self.__min_query
             return
@@ -190,7 +194,7 @@ class CountMinSketch(object):
             filepointer.write(pack('IIq', self.__width, self.__depth,
                                    self.__elements_added))
 
-    def __load(self, filepath, hash_function=None):
+    def __load(self, filepath):
         ''' load the count-min sketch from file '''
         with open(filepath, 'rb') as filepointer:
             offset = calcsize('IIq')
@@ -217,7 +221,8 @@ class CountMinSketch(object):
         bins.sort()
         return bins
 
-    def __min_query(self, results):
+    @staticmethod
+    def __min_query(results):
         ''' generate the min query; assumes sorted list '''
         return results[0]
 
@@ -239,6 +244,7 @@ class CountMinSketch(object):
         else:
             res = meanmin[self.__depth//2]
         return res
+
 
 class HeavyHitters(CountMinSketch):
     ''' Find those elements that are the most common, up to X elements '''
