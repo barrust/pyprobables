@@ -47,6 +47,15 @@ class TestCountMinSketch(unittest.TestCase):
                    '    OR confidence and error rate')
             self.assertEqual(str(ex), msg)
 
+    def test_cms_set_query_type(self):
+        ''' test setting different query types '''
+        cms = CountMinSketch(width=1000, depth=5)
+        self.assertEqual(cms.query_type, 'min')
+        cms.query_type = 'mean-min'
+        self.assertEqual(cms.query_type, 'mean-min')
+        cms.query_type = 'mean'
+        self.assertEqual(cms.query_type, 'mean')
+
     def test_cms_add_single(self):
         ''' test the insertion of a single element at a time '''
         cms = CountMinSketch(width=1000, depth=5)
@@ -99,59 +108,63 @@ class TestCountMinSketch(unittest.TestCase):
     def test_cms_check_min_called(self):
         ''' test checking number elements using min algorithm called out '''
         cms = CountMinSketch(width=1000, depth=5)
+        cms.query_type = None
         self.assertEqual(cms.add('this is a test', 255), 255)
         self.assertEqual(cms.add('this is another test', 189), 189)
         self.assertEqual(cms.add('this is also a test', 16), 16)
         self.assertEqual(cms.add('this is something to test', 5), 5)
 
-        self.assertEqual(cms.check('this is something to test', 'min'), 5)
-        self.assertEqual(cms.check('this is also a test', 'min'), 16)
-        self.assertEqual(cms.check('this is another test', 'min'), 189)
-        self.assertEqual(cms.check('this is a test', 'min'), 255)
+        self.assertEqual(cms.check('this is something to test'), 5)
+        self.assertEqual(cms.check('this is also a test'), 16)
+        self.assertEqual(cms.check('this is another test'), 189)
+        self.assertEqual(cms.check('this is a test'), 255)
         self.assertEqual(cms.elements_added, 5 + 16 + 189 + 255)
 
     def test_cms_check_mean_called(self):
         ''' test checking number elements using mean algorithm called out '''
         cms = CountMinSketch(width=1000, depth=5)
+        cms.query_type = 'mean'
         self.assertEqual(cms.add('this is a test', 255), 255)
         self.assertEqual(cms.add('this is another test', 189), 189)
         self.assertEqual(cms.add('this is also a test', 16), 16)
         self.assertEqual(cms.add('this is something to test', 5), 5)
 
-        self.assertEqual(cms.check('this is something to test', 'mean'), 5)
-        self.assertEqual(cms.check('this is also a test', 'mean'), 16)
-        self.assertEqual(cms.check('this is another test', 'mean'), 189)
-        self.assertEqual(cms.check('this is a test', 'mean'), 255)
+        self.assertEqual(cms.check('this is something to test'), 5)
+        self.assertEqual(cms.check('this is also a test'), 16)
+        self.assertEqual(cms.check('this is another test'), 189)
+        self.assertEqual(cms.check('this is a test'), 255)
         self.assertEqual(cms.elements_added, 5 + 16 + 189 + 255)
 
     def test_cms_check_mean_min_called(self):
         ''' test checking number elements using mean-min algorithm called
             out '''
         cms = CountMinSketch(width=1000, depth=5)
+        cms.query_type = 'mean-min'
         self.assertEqual(cms.add('this is a test', 255), 255)
         self.assertEqual(cms.add('this is another test', 189), 189)
         self.assertEqual(cms.add('this is also a test', 16), 16)
         self.assertEqual(cms.add('this is something to test', 5), 5)
 
-        self.assertEqual(cms.check('this is something to test', 'mean-min'), 5)
-        self.assertEqual(cms.check('this is also a test', 'mean-min'), 16)
-        self.assertEqual(cms.check('this is another test', 'mean-min'), 189)
-        self.assertEqual(cms.check('this is a test', 'mean-min'), 255)
+        self.assertEqual(cms.check('this is something to test'), 5)
+        self.assertEqual(cms.check('this is also a test'), 16)
+        self.assertEqual(cms.check('this is another test'), 189)
+        self.assertEqual(cms.check('this is a test'), 255)
         self.assertEqual(cms.elements_added, 5 + 16 + 189 + 255)
 
     def test_cms_check_mean_called_even(self):
         ''' test checking number elements using mean algorithm called out when
             the depth is an even number... '''
         cms = CountMinSketch(width=1000, depth=6)
+        cms.query_type = 'mean-min'
         self.assertEqual(cms.add('this is a test', 255), 255)
         self.assertEqual(cms.add('this is another test', 189), 189)
         self.assertEqual(cms.add('this is also a test', 16), 16)
         self.assertEqual(cms.add('this is something to test', 5), 5)
 
-        self.assertEqual(cms.check('this is something to test', 'mean-min'), 5)
-        self.assertEqual(cms.check('this is also a test', 'mean-min'), 16)
-        self.assertEqual(cms.check('this is another test', 'mean-min'), 189)
-        self.assertEqual(cms.check('this is a test', 'mean-min'), 255)
+        self.assertEqual(cms.check('this is something to test'), 5)
+        self.assertEqual(cms.check('this is also a test'), 16)
+        self.assertEqual(cms.check('this is another test'), 189)
+        self.assertEqual(cms.check('this is a test'), 255)
         self.assertEqual(cms.elements_added, 5 + 16 + 189 + 255)
 
     def test_cms_export(self):
@@ -242,22 +255,22 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertEqual(cms.elements_added, 0)
         self.assertEqual(cms.check('this is a test'), 0)
 
-    def test_cms_bad_query(self):
-        ''' test a bad query '''
-        cms = CountMinSketch(width=1000, depth=5)
-        self.assertEqual(cms.add('this is a test', 100), 100)
-        self.assertRaises(NotSupportedError,
-                          lambda: cms.check('this is a test', 'unknown'))
+    # def test_cms_bad_query(self):
+    #     ''' test a bad query '''
+    #     cms = CountMinSketch(width=1000, depth=5)
+    #     self.assertEqual(cms.add('this is a test', 100), 100)
+    #     self.assertRaises(NotSupportedError,
+    #                       lambda: cms.check('this is a test', 'unknown'))
 
-    def test_cms_bad_query_msg(self):
-        ''' test a bad query '''
-        cms = CountMinSketch(width=1000, depth=5)
-        self.assertEqual(cms.add('this is a test', 100), 100)
-        try:
-            cms.check('this is a test', 'unknown')
-        except NotSupportedError as ex:
-            msg = "`check`: Invalid query type"
-            self.assertEqual(str(ex), msg)
+    # def test_cms_bad_query_msg(self):
+    #     ''' test a bad query '''
+    #     cms = CountMinSketch(width=1000, depth=5)
+    #     self.assertEqual(cms.add('this is a test', 100), 100)
+    #     try:
+    #         cms.check('this is a test', 'unknown')
+    #     except NotSupportedError as ex:
+    #         msg = "`check`: Invalid query type"
+    #         self.assertEqual(str(ex), msg)
 
     def test_cms_str(self):
         ''' test the string representation of the count-min sketch '''
