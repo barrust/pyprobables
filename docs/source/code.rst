@@ -54,6 +54,20 @@ CountMinSketch
     :members:
 
 
+CountMeanSketch
++++++++++++++++++++++++++++++++
+
+.. autoclass:: probables.CountMeanSketch
+    :members:
+
+
+CountMeanMinSketch
++++++++++++++++++++++++++++++++
+
+.. autoclass:: probables.CountMeanMinSketch
+    :members:
+
+
 HeavyHitters
 +++++++++++++++++++++++++++++++
 

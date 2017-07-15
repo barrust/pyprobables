@@ -35,7 +35,8 @@ Bloom Filters
 
 Bloom Filters provide set operations of large datasets while being small in
 memory footprint. They provide a zero percent false negative rate and a
-predetermined false positive rate.
+predetermined, or desired, false positive rate.
+`more information <https://en.wikipedia.org/wiki/Bloom_filter>`__
 
 Import, Initialize, and Train
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -104,6 +105,7 @@ data elements. The result is a probabilistic count of elements inserted into
 the data structure. It will always provide a **maximum** number of times
 encountered. Notice that the result may be **more** than the true number
 of times it was inserted, but never fewer.
+`more information <https://en.wikipedia.org/wiki/Count%E2%80%93min_sketch>`__
 
 
 Import, Initialize, and Train
@@ -154,7 +156,8 @@ Count-Mean Sketch and Count-Mean-Min Sketch
 **Count-Mean Sketch** and **Count-Mean-Min Sketch** are identical to the
 Count-Min Sketch for the data structure but both differ in the method of
 calculating the number of times and element has been inserted. These are
-currently supported by specifying at query time which method is desired.
+currently supported by specifying at query time which method is desired
+or by initializing to the desired class: CountMeanSketch or CountMeanMinSketch.
 
 
 Heavy Hitters

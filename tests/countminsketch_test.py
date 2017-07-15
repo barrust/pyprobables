@@ -56,6 +56,8 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertEqual(cms.query_type, 'mean-min')
         cms.query_type = 'mean'
         self.assertEqual(cms.query_type, 'mean')
+        cms.query_type = 'unknown'
+        self.assertEqual(cms.query_type, 'min')
 
     def test_cms_add_single(self):
         ''' test the insertion of a single element at a time '''
