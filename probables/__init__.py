@@ -1,7 +1,8 @@
 ''' pyprobables module '''
 from __future__ import (unicode_literals, absolute_import, print_function)
 from .blooms import (BloomFilter, BloomFilterOnDisk)
-from .countminsketch import (CountMinSketch, HeavyHitters, StreamThreshold)
+from .countminsketch import (CountMinSketch, HeavyHitters, StreamThreshold,
+                             CountMeanSketch, CountMeanMinSketch)
 from .exceptions import (InitializationError, NotSupportedError,
                          ProbablesBaseException)
 
@@ -14,4 +15,5 @@ __credits__ = []
 __url__ = 'https://github.com/barrust/pyprobables'
 
 __all__ = ['BloomFilter', 'BloomFilterOnDisk', 'CountMinSketch',
-           'HeavyHitters', 'StreamThreshold']
+           'HeavyHitters', 'StreamThreshold', 'CountMeanSketch',
+           'CountMeanMinSketch']

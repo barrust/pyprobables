@@ -246,6 +246,26 @@ class CountMinSketch(object):
         return res
 
 
+class CountMeanSketch(CountMinSketch):
+    ''' Default Count-Mean Sketch '''
+    def __init__(self, width=None, depth=None, confidence=None,
+                 error_rate=None, filepath=None, hash_function=None):
+        super(CountMeanSketch, self).__init__(width, depth, confidence,
+                                              error_rate, filepath,
+                                              hash_function)
+        self.query_type = 'mean'
+
+
+class CountMeanMinSketch(CountMinSketch):
+    ''' Default Count-Mean Sketch '''
+    def __init__(self, width=None, depth=None, confidence=None,
+                 error_rate=None, filepath=None, hash_function=None):
+        super(CountMeanMinSketch, self).__init__(width, depth, confidence,
+                                                 error_rate, filepath,
+                                                 hash_function)
+        self.query_type = 'mean-min'
+
+
 class HeavyHitters(CountMinSketch):
     ''' Find those elements that are the most common, up to X elements '''
 

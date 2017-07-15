@@ -3,7 +3,8 @@
 from __future__ import (unicode_literals, absolute_import, print_function)
 import unittest
 import os
-from probables import (CountMinSketch, HeavyHitters, StreamThreshold)
+from probables import (CountMinSketch, HeavyHitters, StreamThreshold,
+                       CountMeanSketch, CountMeanMinSketch)
 from probables.exceptions import (InitializationError, NotSupportedError)
 from . utilities import(calc_file_md5, different_hash)
 
@@ -433,6 +434,23 @@ class TestHeavyHitters(unittest.TestCase):
                '\tNumber Hitters: 2\n'
                '\tNumber Recorded: 1')
         self.assertEqual(str(hh1), msg)
+
+
+class TestCountMeanSketch(unittest.TestCase):
+    ''' test the basic count-mean sketch '''
+
+    def test_default_count_mean_query(self):
+        ''' test the default query of the count-mean sketch '''
+        cms = CountMeanSketch(width=1000, depth=5)
+        self.assertEqual(cms.query_type, 'mean')
+
+class TestCountMeanMinSketch(unittest.TestCase):
+    ''' test the basic count-mean-min sketch '''
+
+    def test_default_count_mean_min_query(self):
+        ''' test the default query of the count-mean-min sketch '''
+        cms = CountMeanMinSketch(width=1000, depth=5)
+        self.assertEqual(cms.query_type, 'mean-min')
 
 
 class TestStreamThreshold(unittest.TestCase):
