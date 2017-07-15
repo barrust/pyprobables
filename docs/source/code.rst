@@ -4,12 +4,12 @@ pyprobables API
 ***************
 
 Here you can find the full developer API for the pyprobables project.
+pyprobables provides a suite of probabilistic data-structures to be used
+in data analytics and data science projects.
 
-Contents:
-=========
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 4
 
    code
 
@@ -20,8 +20,10 @@ Data Structures and Classes
 Bloom Filters
 -------------
 
-Bloom Filters are a class of probabilistic data structures that guarantee a
-zero percent false negative rate and a predetermined false positive rate.
+Bloom Filters are a class of probabilistic data structures used for set
+operations. Bloom Filters guarantee a zero percent false negative rate
+and a predetermined false positive rate.
+
 
 BloomFilter
 +++++++++++++++++++++++++++++++
@@ -41,10 +43,28 @@ BloomFilterOnDisk
 Count-Min Sketches
 ------------------
 
+Count-Min Sketches are a class of probabilistic data structures designed to
+count the number of occurrences of data elements in data streams.
+
+
 CountMinSketch
 +++++++++++++++++++++++++++++++
 
 .. autoclass:: probables.CountMinSketch
+    :members:
+
+
+CountMeanSketch
++++++++++++++++++++++++++++++++
+
+.. autoclass:: probables.CountMeanSketch
+    :members:
+
+
+CountMeanMinSketch
++++++++++++++++++++++++++++++++
+
+.. autoclass:: probables.CountMeanMinSketch
     :members:
 
 
@@ -55,6 +75,7 @@ HeavyHitters
     :members:
     :inherited-members:
 
+
 StreamThreshold
 +++++++++++++++++++++++++++++++
 
@@ -62,11 +83,20 @@ StreamThreshold
     :members:
     :inherited-members:
 
+
 Exceptions
 ===============================
 
 .. automodule:: probables.exceptions
     :members:
+
+
+Hashing Functions
+===============================
+
+.. automodule:: probables.hashes
+    :members:
+
 
 Indices and tables
 ==================

@@ -10,7 +10,7 @@ import math
 from struct import (pack, unpack, calcsize)
 from .. exceptions import (InitializationError, NotSupportedError)
 from .. hashes import (default_fnv_1a)
-from .. utilities import (is_hex_string, is_valid_file)
+from .. utilities import (is_valid_file)
 
 
 class CountMinSketch(object):
@@ -25,6 +25,7 @@ class CountMinSketch(object):
         self.__confidence = 0.0
         self.__error_rate = 0.0
         self.__elements_added = 0
+        self.__query_method = self.__min_query
         # for python2 and python3 support
         self.__int32_t_min = -2147483648
         self.__int32_t_max = 2147483647
@@ -33,7 +34,7 @@ class CountMinSketch(object):
         self.__uint64_t_max = 2 ** 64
 
         if is_valid_file(filepath):
-            self.__load(filepath, hash_function)
+            self.__load(filepath)
         elif width is not None and depth is not None:
             self.__width = width
             self.__depth = depth
@@ -96,6 +97,33 @@ class CountMinSketch(object):
         ''' get elements added '''
         return self.__elements_added
 
+    @property
+    def query_type(self):
+        ''' return the name of the query type being used '''
+        if self.__query_method == self.__min_query:
+            return 'min'
+        elif self.__query_method == self.__mean_query:
+            return 'mean'
+        elif self.__query_method == self.__mean_min_query:
+            return 'mean-min'
+
+    @query_type.setter
+    def query_type(self, val):
+        ''' set to min query Options='min', 'mean', 'mean-min'
+            other values are set to min
+            setting to mean is converting to a Count-Mean Sketch
+            setting to mean-min is converting to a Count-Mean-Min Sketch '''
+        if val is None:
+            self.__query_method = self.__min_query
+            return
+        val = val.lower()
+        if val == 'mean':
+            self.__query_method = self.__mean_query
+        elif val == 'mean-min':
+            self.__query_method = self.__mean_min_query
+        else:
+            self.__query_method = self.__min_query
+
     def clear(self):
         ''' reset the count-min sketch to empty '''
         self.__elements_added = 0
@@ -114,20 +142,18 @@ class CountMinSketch(object):
 
     def add_alt(self, hashes, num_els=1):
         ''' add an element by using the hashes '''
-        res = self.__int32_t_max
+        res = list()
         for i, val in enumerate(hashes):
             t_bin = (val % self.__width) + (i * self.__width)
             self._bins[t_bin] += num_els
             if self._bins[t_bin] > self.__int32_t_max:
                 self._bins[t_bin] = self.__int32_t_max
-            if self._bins[t_bin] < res:
-                res = self._bins[t_bin]
-
+            res.append(self._bins[t_bin])
         self.__elements_added += num_els
+
         if self.__elements_added > self.__int32_t_max:
             self.__elements_added = self.__int32_t_max
-
-        return res
+        return self.__query_method(sorted(res))
 
     def remove(self, key, num_els=1):
         ''' remove element 'key' from the count-min sketch 'x' times '''
@@ -136,48 +162,28 @@ class CountMinSketch(object):
 
     def remove_alt(self, hashes, num_els=1):
         ''' remove an element by using the hashes '''
-        res = self.__int32_t_max
+        res = list()
         for i, val in enumerate(hashes):
             t_bin = (val % self.__width) + (i * self.__width)
             self._bins[t_bin] -= num_els
             if self._bins[t_bin] < self.__int32_t_min:
                 self._bins[t_bin] = self.__int32_t_min
-            if self._bins[t_bin] < res:
-                res = self._bins[t_bin]
+            res.append(self._bins[t_bin])
         self.__elements_added -= num_els
         if self.__elements_added < self.__int32_t_min:
             self.__elements_added = self.__int32_t_max
 
-        return res
+        return self.__query_method(sorted(res))
 
-    def check(self, key, query='min'):
+    def check(self, key):
         ''' check number of times element 'key' is in the count-min sketch '''
         hashes = self.hashes(key)
-        return self.check_alt(hashes, query)
+        return self.check_alt(hashes)
 
-    def check_alt(self, hashes, query='min'):
+    def check_alt(self, hashes):
         ''' check the count-min sketch for an element by using the hashes '''
-        qry = query.lower()
         bins = self.__get_values_sorted(hashes)
-        if qry == 'min' or qry is 'min':
-            res = bins[0]
-        elif qry == 'mean' or qry is 'mean':
-            res = sum(bins) // self.__depth
-        elif qry == 'mean-min' or qry is 'mean-min':
-            meanmin = list()
-            for t_bin in bins:
-                diff = self.__elements_added - t_bin
-                calc = t_bin - diff // (self.__width - 1)
-                meanmin.append(calc)
-            meanmin.sort()
-            if self.__depth % 2 == 0:
-                calc = meanmin[self.__depth//2] + meanmin[self.__depth//2 - 1]
-                res = calc // 2
-            else:
-                res = meanmin[self.__depth//2]
-        else:
-            raise NotSupportedError('`check`: Invalid query type')
-        return res
+        return self.__query_method(bins)
 
     def export(self, filepath):
         ''' export the count-min sketch to file '''
@@ -188,7 +194,7 @@ class CountMinSketch(object):
             filepointer.write(pack('IIq', self.__width, self.__depth,
                                    self.__elements_added))
 
-    def __load(self, filepath, hash_function=None):
+    def __load(self, filepath):
         ''' load the count-min sketch from file '''
         with open(filepath, 'rb') as filepointer:
             offset = calcsize('IIq')
@@ -206,11 +212,6 @@ class CountMinSketch(object):
             offset = calcsize(rep)
             self._bins = list(unpack(rep, filepointer.read(offset)))
 
-        if hash_function is None:
-            self._hash_function = default_fnv_1a
-        else:
-            self._hash_function = hash_function
-
     def __get_values_sorted(self, hashes):
         ''' get the values sorted '''
         bins = list()
@@ -219,6 +220,50 @@ class CountMinSketch(object):
             bins.append(self._bins[t_bin])
         bins.sort()
         return bins
+
+    @staticmethod
+    def __min_query(results):
+        ''' generate the min query; assumes sorted list '''
+        return results[0]
+
+    def __mean_query(self, results):
+        ''' generate the mean query; assumes sorted list '''
+        return sum(results) // self.__depth
+
+    def __mean_min_query(self, results):
+        ''' generate the mean-min query; assumes sorted list '''
+        meanmin = list()
+        for t_bin in results:
+            diff = self.__elements_added - t_bin
+            calc = t_bin - diff // (self.__width - 1)
+            meanmin.append(calc)
+        meanmin.sort()
+        if self.__depth % 2 == 0:
+            calc = meanmin[self.__depth//2] + meanmin[self.__depth//2 - 1]
+            res = calc // 2
+        else:
+            res = meanmin[self.__depth//2]
+        return res
+
+
+class CountMeanSketch(CountMinSketch):
+    ''' Default Count-Mean Sketch '''
+    def __init__(self, width=None, depth=None, confidence=None,
+                 error_rate=None, filepath=None, hash_function=None):
+        super(CountMeanSketch, self).__init__(width, depth, confidence,
+                                              error_rate, filepath,
+                                              hash_function)
+        self.query_type = 'mean'
+
+
+class CountMeanMinSketch(CountMinSketch):
+    ''' Default Count-Mean Sketch '''
+    def __init__(self, width=None, depth=None, confidence=None,
+                 error_rate=None, filepath=None, hash_function=None):
+        super(CountMeanMinSketch, self).__init__(width, depth, confidence,
+                                                 error_rate, filepath,
+                                                 hash_function)
+        self.query_type = 'mean-min'
 
 
 class HeavyHitters(CountMinSketch):
