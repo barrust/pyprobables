@@ -38,9 +38,9 @@ memory footprint. They provide a zero percent false negative rate and a
 predetermined, or desired, false positive rate.
 `more information <https://en.wikipedia.org/wiki/Bloom_filter>`__
 
+
 Import, Initialize, and Train
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 .. code:: python
 
     >>> from probables import (BloomFilter)
@@ -50,6 +50,7 @@ Import, Initialize, and Train
     >>>         for word in line.split():
     >>>             blm.add(word.lower())  # add each word to the bloom filter!
     >>> # end reading in the file
+
 
 Query the Bloom Filter
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -110,7 +111,6 @@ of times it was inserted, but never fewer.
 
 Import, Initialize, and Train
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 .. code:: python
 
     >>> from probables import (CountMinSketch)
@@ -123,7 +123,6 @@ Import, Initialize, and Train
 
 Query the Count-Min Sketch
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 .. code:: python
 
     >>> words_to_check = ['step', 'borzoi', 'diametrically', 'fleches', 'rain']
@@ -133,7 +132,6 @@ Query the Count-Min Sketch
 
 Export Count-Min Sketch
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 .. code:: python
 
     >>> cms.export('war_and_peace.cms')
