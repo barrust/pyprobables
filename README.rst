@@ -1,6 +1,19 @@
 PyProbables
 ===========
 
+.. image:: https://badge.fury.io/py/pyprobables.svg
+    :target: https://badge.fury.io/py/pyprobables
+.. image:: https://coveralls.io/repos/github/barrust/pyprobables/badge.svg
+    :target: https://coveralls.io/github/barrust/pyprobables
+.. image:: https://travis-ci.org/barrust/pyprobables.svg?branch=master
+    :target: https://travis-ci.org/barrust/pyprobables
+.. image:: https://readthedocs.org/projects/pyprobables/badge/?version=latest
+    :target: http://pyprobables.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
+.. image:: https://img.shields.io/badge/license-MIT-blue.svg
+    :target: https://opensource.org/licenses/MIT/
+    :alt: License
+
 **pyprobables** is a python library for probabilistic data structures. The goal
 is to provide the developer with a pure-python implementation of common
 probabilistic data-structures to use in their work.

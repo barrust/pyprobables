@@ -446,6 +446,7 @@ class TestCountMeanSketch(unittest.TestCase):
         cms = CountMeanSketch(width=1000, depth=5)
         self.assertEqual(cms.query_type, 'mean')
 
+
 class TestCountMeanMinSketch(unittest.TestCase):
     ''' test the basic count-mean-min sketch '''
 
