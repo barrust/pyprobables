@@ -1,6 +1,10 @@
 # PyProbables Changelog
 
-### Initial Version:
+### Version 0.0.5:
+* Better on-line documentation
+* Changed access to some public functions
+
+### Version 0.0.4:
 * Probabilistic data structures:
     * Bloom Filter
     * Bloom Filter (on disk)

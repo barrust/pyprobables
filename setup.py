@@ -9,14 +9,17 @@ def read_file(filepath):
         res = filepointer.read()
     return res
 
+KEYWORDS = ['python', 'Probablistic', 'data-structure', 'bloom', 'filter',
+            'count-min', 'sketch']
+
 setuptools.setup(
-    name = 'pyprobables',  # mediawiki was taken
+    name = 'pyprobables',
     version = __version__,
     author = __author__,
     author_email = __email__,
     description = 'Probablistic data structures in python',
     license = __license__,
-    keywords = 'python mediawiki wikipedia API wiki parse',
+    keywords = ' '.join(KEYWORDS),
     url = __url__,
     download_url = '{0}/tarball/v{1}'.format(__url__, __version__),
     install_requires = read_file('./requirements/python').splitlines(),

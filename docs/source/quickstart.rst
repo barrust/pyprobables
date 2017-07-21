@@ -1,16 +1,11 @@
 .. _quickstart:
 
-pyprobables Quickstart
-######################
-
-.. toctree::
-   :maxdepth: 5
-
-   quickstart
+Quickstart
+==========================
 
 
 Install
-**************************
++++++++++++++++++++++++++++++++
 
 The easiest method of installing pyprobables is by using the pip package
 manager:
@@ -23,24 +18,24 @@ Pip Installation:
 
 
 API Documentation
-**************************
++++++++++++++++++++++++++++++++
 
 The full API documentation for the pyprobables package:  :ref:`api`
 
 Example Usage
-**************************
++++++++++++++++++++++++++++++++
 
 Bloom Filters
-==========================
+-------------
 
 Bloom Filters provide set operations of large datasets while being small in
 memory footprint. They provide a zero percent false negative rate and a
 predetermined, or desired, false positive rate.
 `more information <https://en.wikipedia.org/wiki/Bloom_filter>`__
 
+
 Import, Initialize, and Train
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 .. code:: python
 
     >>> from probables import (BloomFilter)
@@ -50,6 +45,7 @@ Import, Initialize, and Train
     >>>         for word in line.split():
     >>>             blm.add(word.lower())  # add each word to the bloom filter!
     >>> # end reading in the file
+
 
 Query the Bloom Filter
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -97,7 +93,7 @@ been added. **currently not supported; planned**
 
 
 Count-Min Sketch
-==========================
+-----------------
 
 Count-Min Sketches, and its derivatives, are good for counting the number of
 occurrences of an element in streaming data while not needing to retain all the
@@ -110,7 +106,6 @@ of times it was inserted, but never fewer.
 
 Import, Initialize, and Train
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 .. code:: python
 
     >>> from probables import (CountMinSketch)
@@ -123,7 +118,6 @@ Import, Initialize, and Train
 
 Query the Count-Min Sketch
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 .. code:: python
 
     >>> words_to_check = ['step', 'borzoi', 'diametrically', 'fleches', 'rain']
@@ -133,7 +127,6 @@ Query the Count-Min Sketch
 
 Export Count-Min Sketch
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 .. code:: python
 
     >>> cms.export('war_and_peace.cms')

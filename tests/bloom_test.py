@@ -266,7 +266,7 @@ class TestBloomFilter(unittest.TestCase):
         blm.clear()
         self.assertEqual(blm.elements_added, 0)
         for idx in range(blm.bloom_length):
-            self.assertEqual(blm.bloom_array[idx], 0)
+            self.assertEqual(blm._get_element(idx), 0)
 
 
 class TestBloomFilterOnDisk(unittest.TestCase):
@@ -464,3 +464,28 @@ class TestBloomFilterOnDisk(unittest.TestCase):
             msg = ('Loading from hex_string is currently not supported by '
                    'the on disk Bloom Filter')
             self.assertEqual(str(ex), msg)
+
+    def test_bfod_clear(self):
+        ''' test clearing out the bloom filter on disk '''
+        filename = 'tmp.blm'
+        blm = BloomFilterOnDisk(filepath=filename, est_elements=10,
+                                false_positive_rate=0.05)
+        self.assertEqual(blm.elements_added, 0)
+        blm.add('this is a test 0')
+        blm.add('this is a test 1')
+        blm.add('this is a test 2')
+        blm.add('this is a test 3')
+        blm.add('this is a test 4')
+        blm.add('this is a test 5')
+        blm.add('this is a test 6')
+        blm.add('this is a test 7')
+        blm.add('this is a test 8')
+        blm.add('this is a test 9')
+        self.assertEqual(blm.elements_added, 10)
+
+        blm.clear()
+        self.assertEqual(blm.elements_added, 0)
+        for idx in range(blm.bloom_length):
+            self.assertEqual(blm._get_element(idx), 0)
+
+        os.remove(filename)

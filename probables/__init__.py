@@ -10,7 +10,7 @@ __author__ = 'Tyler Barrus'
 __maintainer__ = 'Tyler Barrus'
 __email__ = 'barrust@gmail.com'
 __license__ = 'MIT'
-__version__ = '0.0.4'
+__version__ = '0.0.5'
 __credits__ = []
 __url__ = 'https://github.com/barrust/pyprobables'
 

@@ -14,7 +14,31 @@ from .. utilities import (is_valid_file)
 
 
 class CountMinSketch(object):
-    ''' Count-Min Sketch class '''
+    ''' Simple Count-Min Sketch implementation for use in python;
+        It can read and write the same format as the c version
+        (https://github.com/barrust/count-min-sketch)
+
+        Args:
+            width (int): The width of the count-min sketch
+            depth (int): The depth of the count-min sketch
+            confidence (float): The level of confidence desired
+            error_rate (float): The desired error rate
+            filepath (string): Path to file to load
+            hash_function (function): Hashing strategy function to use \
+            `hf(key, number)`
+        Returns:
+            CountMinSketch: A Count-Min Sketch object
+
+        Note:
+            Initialization order of operations:
+                1) From file
+                2) Width and depth
+                3) Confidence and error rate
+        Note:
+            Default query type is `min`
+        Note:
+            For width and depth, width may realistically be in the thousands \
+            while depth is in the single digit to teens '''
 
     def __init__(self, width=None, depth=None, confidence=None,
                  error_rate=None, filepath=None, hash_function=None):
@@ -74,32 +98,54 @@ class CountMinSketch(object):
 
     @property
     def width(self):
-        ''' get width '''
+        ''' int: The width of the count-min sketch
+
+            Note:
+                Not settable '''
         return self.__width
 
     @property
     def depth(self):
-        ''' get depth '''
+        ''' int: The depth of the count-min sketch
+
+            Note:
+                Not settable '''
         return self.__depth
 
     @property
     def confidence(self):
-        ''' get confidence '''
+        ''' float: The confidence of the count-min sketch
+
+            Note:
+                Not settable '''
         return self.__confidence
 
     @property
     def error_rate(self):
-        ''' get error rate '''
+        ''' float: The error rate of the count-min sketch
+
+            Note:
+                Not settable '''
         return self.__error_rate
 
     @property
     def elements_added(self):
-        ''' get elements added '''
+        ''' int: The number of elements added to the count-min sketch
+
+            Note:
+                Not settable '''
         return self.__elements_added
 
     @property
     def query_type(self):
-        ''' return the name of the query type being used '''
+        ''' str: The name of the query type being used
+
+            Note:
+                Valid values:
+                    * 'min' or None
+                    * 'mean'
+                    * 'mean-min'
+        '''
         if self.__query_method == self.__min_query:
             return 'min'
         elif self.__query_method == self.__mean_query:
@@ -125,23 +171,48 @@ class CountMinSketch(object):
             self.__query_method = self.__min_query
 
     def clear(self):
-        ''' reset the count-min sketch to empty '''
+        ''' Reset the count-min sketch to an empty state '''
         self.__elements_added = 0
         for i, _ in enumerate(self._bins):
             self._bins[i] = 0
 
     def hashes(self, key, depth=None):
-        ''' return the hashes for the passed in key '''
+        ''' Return the hashes based on the provided key
+
+            Args:
+                key (str): Description of arg1
+                depth (int): Number of permutations of the hash to generate; \
+                if None, generate `number_hashes`
+
+            Returns:
+                List(int): A list of the hashes for the key in int form
+        '''
         t_depth = self.__depth if depth is None else depth
         return self._hash_function(key, t_depth)
 
     def add(self, key, num_els=1):
-        ''' add element 'key' to the count-min sketch 'x' times '''
+        ''' Insert the element `key` into the count-min sketch
+
+            Args:
+                key (str): The element to insert
+                num_els (int): The number of times to insert the element
+            Returns:
+                int: The number of times the element was likely inserted \
+                after the insertion
+        '''
         hashes = self.hashes(key)
         return self.add_alt(hashes, num_els)
 
     def add_alt(self, hashes, num_els=1):
-        ''' add an element by using the hashes '''
+        ''' Insert an element by using the hash representation
+
+            Args:
+                key (str): The element to insert
+                num_els (int): The number of times to insert the element
+            Returns:
+                int: The number of times the element was likely inserted \
+                after the insertion
+        '''
         res = list()
         for i, val in enumerate(hashes):
             t_bin = (val % self.__width) + (i * self.__width)
@@ -156,12 +227,28 @@ class CountMinSketch(object):
         return self.__query_method(sorted(res))
 
     def remove(self, key, num_els=1):
-        ''' remove element 'key' from the count-min sketch 'x' times '''
+        ''' Remove element 'key' from the count-min sketch
+
+            Args:
+                key (str): The element to remove
+                num_els (int): The number of times to remove the element
+            Returns:
+                int: The number of times the element was likely inserted \
+                after the removal
+        '''
         hashes = self.hashes(key)
         return self.remove_alt(hashes, num_els)
 
     def remove_alt(self, hashes, num_els=1):
-        ''' remove an element by using the hashes '''
+        ''' Remove an element by using the hash representation
+
+            Args:
+                hashes (list): The hashes representing the element to remove
+                num_els (int): The number of times to remove the element
+            Returns:
+                int: The number of times the element was likely inserted \
+                after the removal
+        '''
         res = list()
         for i, val in enumerate(hashes):
             t_bin = (val % self.__width) + (i * self.__width)
@@ -176,17 +263,34 @@ class CountMinSketch(object):
         return self.__query_method(sorted(res))
 
     def check(self, key):
-        ''' check number of times element 'key' is in the count-min sketch '''
+        ''' Check number of times element 'key' is in the count-min sketch
+
+            Args:
+                key (str): The key to check the number of times inserted
+            Returns:
+                int: The number of times the element was likely inserted
+        '''
         hashes = self.hashes(key)
         return self.check_alt(hashes)
 
     def check_alt(self, hashes):
-        ''' check the count-min sketch for an element by using the hashes '''
+        ''' Check the count-min sketch for an element by using the hash \
+            representation
+
+            Args:
+                hashes (list): The hashes representing the element to check
+            Returns:
+                int: The number of times the element was likely inserted
+        '''
         bins = self.__get_values_sorted(hashes)
         return self.__query_method(bins)
 
     def export(self, filepath):
-        ''' export the count-min sketch to file '''
+        ''' Export the count-min sketch to disk
+
+            Args:
+                filename (str): The filename to which the count-min sketch \
+                will be written. '''
         with open(filepath, 'wb') as filepointer:
             # write out the bins
             rep = 'i' * len(self._bins)
@@ -247,7 +351,31 @@ class CountMinSketch(object):
 
 
 class CountMeanSketch(CountMinSketch):
-    ''' Default Count-Mean Sketch '''
+    ''' Simple Count-Mean Sketch implementation for use in python;
+        It can read and write the same format as the c version
+        (https://github.com/barrust/count-min-sketch)
+
+        Args:
+            width (int): The width of the count-min sketch
+            depth (int): The depth of the count-min sketch
+            confidence (float): The level of confidence desired
+            error_rate (float): The desired error rate
+            filepath (string): Path to file to load
+            hash_function (function): Hashing strategy function to use \
+            `hf(key, number)`
+        Returns:
+            CountMinSketch: A Count-Min Sketch object
+
+        Note:
+            Initialization order of operations:
+                1) From file
+                2) Width and depth
+                3) Confidence and error rate
+        Note:
+            Default query type is `mean`
+        Note:
+            For width and depth, width may realistically be in the thousands \
+            while depth is in the single digit to teens  '''
     def __init__(self, width=None, depth=None, confidence=None,
                  error_rate=None, filepath=None, hash_function=None):
         super(CountMeanSketch, self).__init__(width, depth, confidence,
@@ -257,7 +385,31 @@ class CountMeanSketch(CountMinSketch):
 
 
 class CountMeanMinSketch(CountMinSketch):
-    ''' Default Count-Mean Sketch '''
+    ''' Simple Count-Mean-Min Sketch implementation for use in python;
+        It can read and write the same format as the c version
+        (https://github.com/barrust/count-min-sketch)
+
+        Args:
+            width (int): The width of the count-min sketch
+            depth (int): The depth of the count-min sketch
+            confidence (float): The level of confidence desired
+            error_rate (float): The desired error rate
+            filepath (string): Path to file to load
+            hash_function (function): Hashing strategy function to use \
+            `hf(key, number)`
+        Returns:
+            CountMinSketch: A Count-Min Sketch object
+
+        Note:
+            Initialization order of operations:
+                1) From file
+                2) Width and depth
+                3) Confidence and error rate
+        Note:
+            Default query type is `mean-min`
+        Note:
+            For width and depth, width may realistically be in the thousands \
+            while depth is in the single digit to teens  '''
     def __init__(self, width=None, depth=None, confidence=None,
                  error_rate=None, filepath=None, hash_function=None):
         super(CountMeanMinSketch, self).__init__(width, depth, confidence,
@@ -267,7 +419,31 @@ class CountMeanMinSketch(CountMinSketch):
 
 
 class HeavyHitters(CountMinSketch):
-    ''' Find those elements that are the most common, up to X elements '''
+    ''' Find and track those elements that are the most common, or heavy
+        hitters
+
+        Args:
+            num_hitters (int): The maximum number of distinct elements to track
+            width (int): The width of the count-min sketch
+            depth (int): The depth of the count-min sketch
+            confidence (float): The level of confidence desired
+            error_rate (float): The desired error rate
+            filepath (string): Path to file to load
+            hash_function (function): Hashing strategy function to use \
+            `hf(key, number)`
+        Returns:
+            HeavyHitters: A Count-Min Sketch object
+
+        Note:
+            Initialization order of operations:
+                1) From file
+                2) Width and depth
+                3) Confidence and error rate
+        Note:
+            Default query type is `min`
+        Note:
+            For width and depth, width may realistically be in the thousands \
+            while depth is in the single digit to teens  '''
 
     def __init__(self, num_hitters=100, width=None, depth=None,
                  confidence=None, error_rate=None, filepath=None,
@@ -291,22 +467,49 @@ class HeavyHitters(CountMinSketch):
 
     @property
     def heavy_hitters(self):
-        ''' return the heavy hitters '''
+        ''' dict: Return the heavy hitters, or most common elements
+
+            Note:
+                Not settable '''
         return self.__top_x
 
     @property
     def number_heavy_hitters(self):
-        ''' return the heavy hitters '''
+        ''' int: Return the maximum number of heavy hitters being tracked
+
+            Note:
+                Not settable '''
         return self.__num_hitters
 
     def add(self, key, num_els=1):
-        ''' add element to heavy hitters '''
+        ''' Add element to heavy hitters
+
+            Args:
+                key (str): The element to add
+                num_els (int): The number of instances to add
+            Returns:
+                int: Number of times key has been inserted
+            Note:
+                Override function
+        '''
         hashes = self.hashes(key)
         return self.add_alt(key, hashes, num_els)
 
     def add_alt(self, key, hashes, num_els=1):
-        ''' add element key represented by hashes to the HeavyHitters
-            object (hence the different signature on the function!) '''
+        ''' Add the element `key` represented as hashes to the HeavyHitters
+            object (hence the different signature on the function!)
+
+            Args:
+                key (str): The element to add
+                hashes (list): The list of integers representing the key to \
+                insert
+                num_els (int): The number of instances to add
+            Returns:
+                int: Number of times key has been inserted
+            Note:
+                Different key signature than the normal CountMinSketch
+            Note:
+                Override function '''
         res = super(HeavyHitters, self).add_alt(hashes, num_els)
 
         # update the heavy hitters list as necessary
@@ -335,15 +538,21 @@ class HeavyHitters(CountMinSketch):
         return res
 
     def remove_alt(self, hashes, num_els=1):
-        ''' Remove element based on hases provided; not supported in
-            heavy hitters '''
+        ''' Remove element based on hashes provided; not supported in
+            heavy hitters
+
+            Raises:
+                NotSupportedError: This function is not supported by the \
+                HeavyHitters class
+            Note:
+                Override function '''
         msg = ('Unable to remove elements in the HeavyHitters '
                'class as it is an un supported action (and does not'
                'make sense)!')
         raise NotSupportedError(msg)
 
     def clear(self):
-        ''' clear out the heavy hitters! '''
+        ''' Clear out the heavy hitters! '''
         super(HeavyHitters, self).clear()
         self.__top_x = dict()
         self.__top_x_size = 0
@@ -363,7 +572,7 @@ class StreamThreshold(CountMinSketch):
         self.__meets_threshold = dict()
 
     def __str__(self):
-        ''' heavy hitters string rep '''
+        ''' stream threshold string rep '''
         msg = super(StreamThreshold, self).__str__()
         tmp = ('Stream Threshold {0}\n'
                '\tThreshold: {1}\n'
@@ -372,38 +581,80 @@ class StreamThreshold(CountMinSketch):
 
     @property
     def meets_threshold(self):
-        ''' dictionary of those that meet the required threshold '''
+        ''' dict: Those keys that meet the required threshold (with value) '''
         return self.__meets_threshold
 
     @property
     def threshold(self):
-        ''' dictionary of those that meet the required threshold '''
+        ''' int: The threshold at which a key is tracked '''
         return self.__threshold
 
     def clear(self):
-        ''' clear out the heavy hitters! '''
+        ''' Clear out the stream threshold! '''
         super(StreamThreshold, self).clear()
         self.__meets_threshold = dict()
 
     def add(self, key, num_els=1):
-        ''' Add the element for key into the data structure '''
+        ''' Add the element for key into the data structure
+
+            Args:
+                key (str): The element to add
+                num_els (int): The number of instances to add
+            Returns:
+                int: Number of times key has been inserted
+            Note:
+                Override function
+        '''
         hashes = self.hashes(key)
         return self.add_alt(key, hashes, num_els)
 
     def add_alt(self, key, hashes, num_els=1):
-        ''' Add the element for key into the data structure '''
+        ''' Add the element for key into the data structure
+
+            Args:
+                key (str): The element to add
+                hashes (list): The list of integers representing the key to \
+                insert
+                num_els (int): The number of instances to add
+            Returns:
+                int: Number of times key has been inserted
+            Note:
+                Different key signature than the normal CountMinSketch
+            Note:
+                Override function '''
         res = super(StreamThreshold, self).add_alt(hashes, num_els)
         if res >= self.__threshold:
             self.__meets_threshold[key] = res
         return res
 
     def remove(self, key, num_els=1):
-        ''' Remove the element key from the data structure '''
+        ''' Remove element 'key' from the count-min sketch
+
+            Args:
+                key (str): The element to remove
+                num_els (int): The number of times to remove the element
+            Returns:
+                int: The number of times the element was likely inserted \
+                after the removal
+            Note:
+                Override function '''
         hashes = self.hashes(key)
         return self.remove_alt(key, hashes, num_els)
 
     def remove_alt(self, key, hashes, num_els=1):
-        ''' Remove the element for key and hashes from the data structure '''
+        ''' Remove an element by using the hash representation
+
+            Args:
+                key (str): The key that the hashes represent
+                hashes (list): The hashes representing the element to remove
+                num_els (int): The number of times to remove the element
+            Returns:
+                int: The number of times the element was likely inserted \
+                after the removal
+            Note:
+                Different key signature than the normal CountMinSketch
+            Note:
+                Override function '''
         res = super(StreamThreshold, self).remove_alt(hashes, num_els)
         if res < self.__threshold:
             self.__meets_threshold.pop(key, None)
