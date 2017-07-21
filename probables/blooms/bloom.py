@@ -92,8 +92,8 @@ class BloomFilter(object):
     def number_bits(self):
         ''' int: Number of bits in the Bloom Filter
 
-        Note:
-            Not settable '''
+            Note:
+                Not settable '''
         return self.__num_bits
 
     @property
