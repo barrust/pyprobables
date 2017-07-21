@@ -31,7 +31,8 @@ class BloomFilter(object):
             `hf(key, number)`
         Returns:
             BloomFilter: A Bloom Filter object
-        Notes:
+
+        Note:
             Initialization order of operations:
                 1) From file
                 2) From Hex String
@@ -64,42 +65,59 @@ class BloomFilter(object):
 
     @property
     def false_positive_rate(self):
-        ''' desired max false positive rate '''
+        ''' float: The maximum desired false positive rate
+
+            Note:
+                Not settable '''
         return self.__fpr
 
     @property
     def estimated_elements(self):
-        ''' the number of elements estimated to be added when setup '''
+        ''' int: The maximum number of elements estimated to be added at setup
+
+            Note:
+                Not settable '''
         return self.__est_elements
 
     @property
     def number_hashes(self):
-        ''' the number of hashes for the bloom filter '''
+        ''' int: The number of hashes required for the Bloom Filterr hashing
+            strategy
+
+            Note:
+                Not settable '''
         return self.__number_hashes
 
     @property
     def number_bits(self):
-        ''' number of bits used '''
+        ''' int: Number of bits in the Bloom Filter
+
+        Note:
+            Not settable '''
         return self.__num_bits
 
     @property
     def elements_added(self):
-        ''' get the number of elements added '''
-        return self.__els_added
+        ''' int: Number of elements added to the Bloom Filter
 
-    # @elements_added.setter
-    # def elements_added(self, value):
-    #     ''' set the number of elements added '''
-    #     self.__els_added = value
+        Note:
+            Not settable '''
+        return self.__els_added
 
     @property
     def is_on_disk(self):
-        ''' get the number of elements added '''
+        ''' bool: Is the Bloom Filter on Disk or not
+
+        Note:
+            Not settable '''
         return self._on_disk
 
     @property
     def bloom_length(self):
-        ''' get the length of the bloom filter in bytes '''
+        ''' int: Length of the bloom filter array
+
+        Note:
+            Not settable '''
         return self.__bloom_length
 
     def __str__(self):
@@ -134,23 +152,41 @@ class BloomFilter(object):
         return self.check(key)
 
     def clear(self):
-        ''' clear the bloom filter '''
+        ''' Clear or reset the Bloom Filter '''
         self.__els_added = 0
         for idx in range(self.bloom_length):
             self._bloom[idx] = self._get_set_element(0)
 
     def hashes(self, key, depth=None):
-        ''' calculate the hashes for the passed in key '''
+        ''' Return the hashes based on the provided key
+
+            Args:
+                key (str): Description of arg1
+                depth (int): Number of permutations of the hash to generate; \
+                if None, generate `number_hashes`
+
+            Returns:
+                List(int): A list of the hashes for the key in int form
+        '''
         tmp = depth if depth is not None else self.number_hashes
         return self.__hash_func(key, tmp)
 
     def add(self, key):
-        ''' add the key to the bloom filter '''
+        ''' Add the key to the Bloom Filter
+
+            Args:
+                key (str): the element to be inserted
+        '''
         hashes = self.hashes(key)
         self.add_alt(hashes)
 
     def add_alt(self, hashes):
-        ''' add the element represented by hashes into the bloom filter '''
+        ''' Add the element represented by hashes into the Bloom Filter
+
+            Args:
+                hashes (list): a list of integers representing the key to \
+                insert
+        '''
         for i in list(range(0, self.number_hashes)):
             k = int(hashes[i]) % self.number_bits
             idx = k // 8
@@ -160,12 +196,26 @@ class BloomFilter(object):
         self.__els_added += 1
 
     def check(self, key):
-        ''' check if the key is likely in the bloom filter '''
+        ''' Check if the key is likely in the Bloom Filter
+
+            Args:
+                key (str): the element to be checked
+
+            Returns:
+                bool: True if likely encountered, False if definately not
+        '''
         hashes = self.hashes(key)
         return self.check_alt(hashes)
 
     def check_alt(self, hashes):
-        ''' check if the element represented by hashes is in the bloom filter
+        ''' Check if the element represented by hashes is in the Bloom Filter
+
+            Args:
+                hashes (list): a list of integers representing the key to \
+                check
+
+            Returns:
+                bool: True if likely encountered, False if definately not
         '''
         for i in list(range(0, self.number_hashes)):
             k = int(hashes[i]) % self.number_bits
@@ -174,8 +224,19 @@ class BloomFilter(object):
         return True
 
     def intersection(self, second):
-        ''' return a new Bloom Filter that contains the intersection of the
-            two '''
+        ''' Return a new Bloom Filter that contains the intersection of the
+            two
+
+            Args:
+                second (BloomFilter): The Bloom Filter with which to take \
+                the intersection
+
+            Returns:
+                BloomFilter: The new Bloom Filter containing the intersection
+
+            Note:
+                second may be a BloomFilterOnDisk object
+        '''
         if self.__verify_bloom_similarity(second) is False:
             return None
         res = BloomFilter(self.estimated_elements, self.false_positive_rate,
@@ -187,7 +248,18 @@ class BloomFilter(object):
         return res
 
     def union(self, second):
-        ''' return a new Bloom Filter that contains the union of the two '''
+        ''' Return a new Bloom Filter that contains the union of the two
+
+            Args:
+                second (BloomFilter): The Bloom Filter with which to \
+                calculate the union
+
+            Returns:
+                BloomFilter: The new Bloom Filter containing the union
+
+            Note:
+                second may be a BloomFilterOnDisk object
+        '''
         if self.__verify_bloom_similarity(second) is False:
             return None
         res = BloomFilter(self.estimated_elements, self.false_positive_rate,
@@ -199,7 +271,14 @@ class BloomFilter(object):
         return res
 
     def jaccard_index(self, second):
-        ''' calculate the jaccard similarity score '''
+        ''' Calculate the jaccard similarity score between two Bloom Filters
+
+            Args:
+                second (BloomFilter): the Bloom Filter to compare with
+
+            Note:
+                second may be a BloomFilterOnDisk object
+        '''
         if self.__verify_bloom_similarity(second) is False:
             return None
         count_union = 0
@@ -214,7 +293,12 @@ class BloomFilter(object):
         return count_int / count_union
 
     def export(self, filename):
-        ''' export the bloom filter to disk '''
+        ''' Export the Bloom Filter to disk
+
+            Args:
+                filename (str): The filename to which the Bloom Filter will \
+                be written.
+        '''
         with open(filename, 'wb') as filepointer:
             rep = 'B' * self.bloom_length
             filepointer.write(pack(rep, *self._bloom))
@@ -223,7 +307,7 @@ class BloomFilter(object):
                                    self.false_positive_rate))
 
     def __load(self, filename, hash_function=None):
-        ''' load the bloom filter from file '''
+        ''' load the Bloom Filter from file '''
         # read in the needed information, and then call _set_optimized_params
         # to set everything correctly
         with open(filename, 'rb') as filepointer:
@@ -245,7 +329,11 @@ class BloomFilter(object):
             self._bloom = list(unpack(rep, filepointer.read(offset)))
 
     def export_hex(self):
-        ''' export Bloom Filter to hex string '''
+        ''' Export the Bloom Filter as a hex string
+
+            Return:
+                str: Hex representation of the Bloom Filter
+        '''
         mybytes = pack('>QQf', self.estimated_elements,
                        self.elements_added, self.false_positive_rate)
         bytes_string = hexlify(bytearray(self._bloom)) + hexlify(mybytes)
@@ -265,19 +353,30 @@ class BloomFilter(object):
         self._bloom = list(unpack(rep, tmp_bloom))
 
     def export_size(self):
-        ''' calculate the size of the bloom on disk '''
+        ''' Calculate the size of the bloom on disk
+
+            Returns: int: size of the Bloom Filter when exported to disk
+        '''
         tmp_b = calcsize('B')
         return (self.bloom_length * tmp_b) + calcsize('QQf')
 
     def estimate_elements(self):
-        ''' estimate the number of elements added '''
+        ''' Estimate the number of elements added
+
+            Returns:
+                int: Number of elements estimated to be inserted
+        '''
         setbits = self.__cnt_number_bits_set()
         log_n = math.log(1 - (float(setbits) / float(self.number_bits)))
         tmp = float(self.number_bits) / float(self.number_hashes)
         return int(-1 * tmp * log_n)
 
     def current_false_positive_rate(self):
-        ''' calculate the current false positive rate '''
+        ''' Calculate the current false positive rate based on elements added
+
+            Return:
+                float: The current false positive rate
+        '''
         num = self.number_hashes * -1 * self.elements_added
         dbl = num / float(self.number_bits)
         exp = math.exp(dbl)
@@ -312,12 +411,12 @@ class BloomFilter(object):
         return True
 
     def _get_element(self, idx):
-        ''' wrappper '''
+        ''' wrappper for getting an element from the bloom filter! '''
         return self._bloom[idx]
 
     @staticmethod
     def __cnt_set_bits(i):
-        ''' count number of bits set '''
+        ''' count number of bits set in this int '''
         return bin(i).count("1")
 
     def __cnt_number_bits_set(self):
@@ -334,11 +433,25 @@ class BloomFilter(object):
 
 
 class BloomFilterOnDisk(BloomFilter):
-    ''' Bloom Filter on disk implementation
-        Init order of opperations:
-        1) esimated elements and false positive rate
-        2) hex string
-        3) only filepath provided '''
+    ''' Simple Bloom Filter implementation directly on disk for use in python;
+        It can read and write the same format as the c version
+        (https://github.com/barrust/bloom)
+
+        Args:
+            filepath (string): Path to file to load
+            est_elements (int): The number of estimated elements to be added
+            false_positive_rate (float): The desired false positive rate
+            hex_string (string): Hex based representation to be loaded
+            hash_function (function): Hashing strategy function to use \
+            `hf(key, number)`
+        Returns:
+            BloomFilterOnDisk: A Bloom Filter object
+
+        Note:
+            Initialization order of operations:
+                1) Esimated elements and false positive rate
+                2) From Hex String
+                3) Only filepath provided '''
 
     def __init__(self, filepath, est_elements=None, false_positive_rate=None,
                  hex_string=None, hash_function=None):
@@ -384,7 +497,7 @@ class BloomFilterOnDisk(BloomFilter):
         self.close()
 
     def close(self):
-        ''' clean up the memory '''
+        ''' Clean up the BloomFilterOnDisk object '''
         if self.__file_pointer is not None:
             self.__update()
             self._bloom.close()  # close the mmap
@@ -410,7 +523,18 @@ class BloomFilterOnDisk(BloomFilter):
         self.__filename = filepath
 
     def export(self, filename):
-        ''' export to disk if a different location '''
+        ''' Export to disk if a different location
+
+            Args:
+                filename (str): the filename to which the Bloom Filter will \
+                be exported
+
+            Note:
+                Only exported if the filename is not the original filename
+
+            Note:
+                Override function
+        '''
         self.__update()
         if filename != self.__filename:
             # setup the new bloom filter
@@ -418,25 +542,66 @@ class BloomFilterOnDisk(BloomFilter):
         # otherwise, nothing to do!
 
     def add_alt(self, hashes):
-        ''' add the element represented by the hashes to the Bloom Filter
-            on disk '''
+        ''' Add the element represented by hashes into the Bloom Filter
+
+            Args:
+                hashes (list): a list of integers representing the key to \
+                insert
+
+            Note:
+                Override function
+        '''
         super(BloomFilterOnDisk, self).add_alt(hashes)
         self.__update()
 
     def union(self, second):
-        ''' union using an on disk bloom filter '''
+        ''' Return a new Bloom Filter that contains the union of the two
+
+            Args:
+                second (BloomFilter): The Bloom Filter with which to \
+                calculate the union
+
+            Returns:
+                BloomFilter: The new Bloom Filter containing the union
+
+            Note:
+                second may be a BloomFilterOnDisk object
+
+            Note:
+                Override function
+        '''
         res = super(BloomFilterOnDisk, self).union(second)
         self.__update()
         return res
 
     def intersection(self, second):
-        ''' intersection using an on disk bloom filter '''
+        ''' Return a new Bloom Filter that contains the intersection of the
+            two
+
+            Args:
+                second (BloomFilter): The Bloom Filter with which to take \
+                the intersection
+
+            Returns:
+                BloomFilter: The new Bloom Filter containing the intersection
+
+            Note:
+                second may be a BloomFilterOnDisk object
+
+            Note:
+                Override function
+        '''
         res = super(BloomFilterOnDisk, self).intersection(second)
         self.__update()
         return res
 
     def export_hex(self):
-        ''' export to a hex string '''
+        ''' Export to a hex string
+
+            Raises:
+                NotSupportedError: This functionality is currently not \
+                supported
+        '''
         msg = ('`export_hex` is currently not supported by the on disk '
                'Bloom Filter')
         raise NotSupportedError(msg)
