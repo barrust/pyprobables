@@ -446,6 +446,8 @@ class BloomFilterOnDisk(BloomFilter):
             `hf(key, number)`
         Returns:
             BloomFilterOnDisk: A Bloom Filter object
+        Raises:
+            NotSupportedError: Loading using a hex string is not supported
 
         Note:
             Initialization order of operations:

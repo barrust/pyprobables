@@ -8,7 +8,12 @@ UIN64_MAX = 2 ** 64
 
 
 def default_fnv_1a(key, depth):
-    ''' the default fnv-1a hashing routine '''
+    ''' The default fnv-1a hashing routine
+
+        Args:
+            key (str): The element to be hashed
+            depth (int): The number of hash permutations to compute
+    '''
     res = list()
     tmp = key
     for _ in range(depth):
@@ -21,7 +26,11 @@ def default_fnv_1a(key, depth):
 
 
 def fnv_1a(key):
-    ''' 64 bit fnv-1a hash '''
+    ''' 64 bit fnv-1a hash
+
+        Args:
+            key (str): The element to be hashed
+    '''
     hval = 14695981039346656073
     fnv_64_prime = 1099511628211
     for t_str in key:
@@ -31,7 +40,12 @@ def fnv_1a(key):
 
 
 def default_md5(key, depth):
-    ''' the defualt md5 hashing routine '''
+    ''' The defualt md5 hashing routine
+
+        Args:
+            key (str): The element to be hashed
+            depth (int): The number of hash permutations to compute
+    '''
     res = list()
     tmp = key.encode('utf-8')
     for _ in range(depth):
@@ -41,7 +55,12 @@ def default_md5(key, depth):
 
 
 def default_sha256(key, depth):
-    ''' the defualt sha256 hashing routine '''
+    ''' The defualt sha256 hashing routine
+
+        Args:
+            key (str): The element to be hashed
+            depth (int): The number of hash permutations to compute
+    '''
     res = list()
     tmp = key.encode('utf-8')
     for _ in range(depth):
