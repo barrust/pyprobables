@@ -164,7 +164,6 @@ class BloomFilter(object):
                 key (str): Description of arg1
                 depth (int): Number of permutations of the hash to generate; \
                 if None, generate `number_hashes`
-
             Returns:
                 List(int): A list of the hashes for the key in int form
         '''
@@ -175,7 +174,7 @@ class BloomFilter(object):
         ''' Add the key to the Bloom Filter
 
             Args:
-                key (str): the element to be inserted
+                key (str): The element to be inserted
         '''
         hashes = self.hashes(key)
         self.add_alt(hashes)
@@ -184,7 +183,7 @@ class BloomFilter(object):
         ''' Add the element represented by hashes into the Bloom Filter
 
             Args:
-                hashes (list): a list of integers representing the key to \
+                hashes (list): A list of integers representing the key to \
                 insert
         '''
         for i in list(range(0, self.number_hashes)):
@@ -199,8 +198,7 @@ class BloomFilter(object):
         ''' Check if the key is likely in the Bloom Filter
 
             Args:
-                key (str): the element to be checked
-
+                key (str): The element to be checked
             Returns:
                 bool: True if likely encountered, False if definately not
         '''
@@ -211,9 +209,8 @@ class BloomFilter(object):
         ''' Check if the element represented by hashes is in the Bloom Filter
 
             Args:
-                hashes (list): a list of integers representing the key to \
+                hashes (list): A list of integers representing the key to \
                 check
-
             Returns:
                 bool: True if likely encountered, False if definately not
         '''
@@ -235,7 +232,7 @@ class BloomFilter(object):
                 BloomFilter: The new Bloom Filter containing the intersection
 
             Note:
-                second may be a BloomFilterOnDisk object
+                `second` may be a BloomFilterOnDisk object
         '''
         if self.__verify_bloom_similarity(second) is False:
             return None
@@ -258,7 +255,7 @@ class BloomFilter(object):
                 BloomFilter: The new Bloom Filter containing the union
 
             Note:
-                second may be a BloomFilterOnDisk object
+                `second` may be a BloomFilterOnDisk object
         '''
         if self.__verify_bloom_similarity(second) is False:
             return None
@@ -274,10 +271,12 @@ class BloomFilter(object):
         ''' Calculate the jaccard similarity score between two Bloom Filters
 
             Args:
-                second (BloomFilter): the Bloom Filter to compare with
-
+                second (BloomFilter): The Bloom Filter to compare with
+            Returns:
+                float: A numeric value between 0 and 1 where 1 is identical \
+                and 0 means completely different
             Note:
-                second may be a BloomFilterOnDisk object
+                `second` may be a BloomFilterOnDisk object
         '''
         if self.__verify_bloom_similarity(second) is False:
             return None
@@ -355,7 +354,8 @@ class BloomFilter(object):
     def export_size(self):
         ''' Calculate the size of the bloom on disk
 
-            Returns: int: size of the Bloom Filter when exported to disk
+            Returns:
+                int: Size of the Bloom Filter when exported to disk
         '''
         tmp_b = calcsize('B')
         return (self.bloom_length * tmp_b) + calcsize('QQf')
@@ -448,7 +448,6 @@ class BloomFilterOnDisk(BloomFilter):
             BloomFilterOnDisk: A Bloom Filter object
         Raises:
             NotSupportedError: Loading using a hex string is not supported
-
         Note:
             Initialization order of operations:
                 1) Esimated elements and false positive rate
@@ -528,15 +527,12 @@ class BloomFilterOnDisk(BloomFilter):
         ''' Export to disk if a different location
 
             Args:
-                filename (str): the filename to which the Bloom Filter will \
+                filename (str): The filename to which the Bloom Filter will \
                 be exported
-
             Note:
                 Only exported if the filename is not the original filename
-
             Note:
-                Override function
-        '''
+                Override function '''
         self.__update()
         if filename != self.__filename:
             # setup the new bloom filter
@@ -547,9 +543,8 @@ class BloomFilterOnDisk(BloomFilter):
         ''' Add the element represented by hashes into the Bloom Filter
 
             Args:
-                hashes (list): a list of integers representing the key to \
+                hashes (list): A list of integers representing the key to \
                 insert
-
             Note:
                 Override function
         '''
@@ -562,13 +557,10 @@ class BloomFilterOnDisk(BloomFilter):
             Args:
                 second (BloomFilter): The Bloom Filter with which to \
                 calculate the union
-
             Returns:
                 BloomFilter: The new Bloom Filter containing the union
-
             Note:
-                second may be a BloomFilterOnDisk object
-
+                `second` may be a BloomFilterOnDisk object
             Note:
                 Override function
         '''
@@ -583,13 +575,10 @@ class BloomFilterOnDisk(BloomFilter):
             Args:
                 second (BloomFilter): The Bloom Filter with which to take \
                 the intersection
-
             Returns:
                 BloomFilter: The new Bloom Filter containing the intersection
-
             Note:
-                second may be a BloomFilterOnDisk object
-
+                `second` may be a BloomFilterOnDisk object
             Note:
                 Override function
         '''
