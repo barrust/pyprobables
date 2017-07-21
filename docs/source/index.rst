@@ -1,6 +1,12 @@
 .. _home:
 .. include:: ../../README.rst
 
+.. toctree::
+
+    code
+    quickstart
+
+
 Read More
 ==================
 

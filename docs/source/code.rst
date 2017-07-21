@@ -1,21 +1,15 @@
 .. _api:
 
 pyprobables API
-***************
+====================
 
 Here you can find the full developer API for the pyprobables project.
 pyprobables provides a suite of probabilistic data-structures to be used
 in data analytics and data science projects.
 
 
-.. toctree::
-   :maxdepth: 4
-
-   code
-
-
 Data Structures and Classes
-===============================
+============================
 
 Bloom Filters
 -------------
@@ -103,21 +97,21 @@ For more information of all methods and properties, see `CountMinSketch`_.
 
 
 Exceptions
-===============================
+============================
 
 .. automodule:: probables.exceptions
     :members:
 
 
 Hashing Functions
-===============================
+============================
 
 .. automodule:: probables.hashes
     :members:
 
 
 Indices and tables
-==================
+============================
 
 * :ref:`home`
 * :ref:`quickstart`

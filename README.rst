@@ -46,7 +46,7 @@ API Documentation
 The documentation of is hosted on
 `readthedocs.io <http://pyprobables.readthedocs.io/en/latest/code.html#api>`__
 
-You can build the documentation yourself by running:
+You can build the documentation locally by running:
 
 ::
 

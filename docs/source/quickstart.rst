@@ -1,16 +1,11 @@
 .. _quickstart:
 
-pyprobables Quickstart
-######################
-
-.. toctree::
-   :maxdepth: 5
-
-   quickstart
+Quickstart
+==========================
 
 
 Install
-**************************
++++++++++++++++++++++++++++++++
 
 The easiest method of installing pyprobables is by using the pip package
 manager:
@@ -23,15 +18,15 @@ Pip Installation:
 
 
 API Documentation
-**************************
++++++++++++++++++++++++++++++++
 
 The full API documentation for the pyprobables package:  :ref:`api`
 
 Example Usage
-**************************
++++++++++++++++++++++++++++++++
 
 Bloom Filters
-==========================
+-------------
 
 Bloom Filters provide set operations of large datasets while being small in
 memory footprint. They provide a zero percent false negative rate and a
@@ -98,7 +93,7 @@ been added. **currently not supported; planned**
 
 
 Count-Min Sketch
-==========================
+-----------------
 
 Count-Min Sketches, and its derivatives, are good for counting the number of
 occurrences of an element in streaming data while not needing to retain all the
