@@ -313,13 +313,8 @@ class BloomFilter(object):
             offset = calcsize('QQf')
             filepointer.seek(offset * -1, os.SEEK_END)
             mybytes = unpack('QQf', filepointer.read(offset))
-            self.__est_elements = mybytes[0]
-            self.__els_added = mybytes[1]
-            self.__fpr = mybytes[2]
-
-            self._set_optimized_params(self.estimated_elements,
-                                       self.false_positive_rate,
-                                       self.elements_added, hash_function)
+            self._set_optimized_params(mybytes[0], mybytes[2],
+                                       mybytes[1], hash_function)
 
             # now read in the bit array!
             filepointer.seek(0, os.SEEK_SET)
@@ -513,9 +508,6 @@ class BloomFilterOnDisk(BloomFilter):
             offset = calcsize('QQf')
             filepointer.seek(offset * -1, os.SEEK_END)
             mybytes = unpack('QQf', filepointer.read(offset))
-            self.__est_elements = mybytes[0]
-            self.__els_added = mybytes[1]
-            self.__fpr = mybytes[2]
             self._set_optimized_params(mybytes[0], mybytes[2], mybytes[1],
                                        hash_function)
         self.__file_pointer = open(filepath, 'r+b')
