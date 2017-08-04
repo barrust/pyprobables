@@ -135,6 +135,54 @@ class TestBloomFilter(unittest.TestCase):
         blm3 = blm.jaccard_index(blm2)
         self.assertEqual(blm3, None)
 
+    def test_bf_jaccard_invalid(self):
+        ''' use an invalid type in a jaccard index '''
+        blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm.add('this is a test')
+        self.assertRaises(TypeError, lambda: blm.jaccard_index(1))
+
+    def test_bf_jaccard_invalid_msg(self):
+        ''' check invalid type in a jaccard index message '''
+        msg = 'The parameter second must be of type BloomFilter'
+        blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm.add('this is a test')
+        try:
+            blm.jaccard_index(1)
+        except TypeError as ex:
+            self.assertEqual(str(ex), msg)
+
+    def test_bf_union_invalid(self):
+        ''' use an invalid type in a union '''
+        blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm.add('this is a test')
+        self.assertRaises(TypeError, lambda: blm.jaccard_index(1))
+
+    def test_bf_union_invalid_msg(self):
+        ''' check invalid type in a union message '''
+        msg = 'The parameter second must be of type BloomFilter'
+        blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm.add('this is a test')
+        try:
+            blm.union(1)
+        except TypeError as ex:
+            self.assertEqual(str(ex), msg)
+
+    def test_bf_intersection_invalid(self):
+        ''' use an invalid type in a intersection '''
+        blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm.add('this is a test')
+        self.assertRaises(TypeError, lambda: blm.jaccard_index(1))
+
+    def test_bf_intersec_invalid_msg(self):
+        ''' check invalid type in a intersection message '''
+        msg = 'The parameter second must be of type BloomFilter'
+        blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm.add('this is a test')
+        try:
+            blm.intersection(1)
+        except TypeError as ex:
+            self.assertEqual(str(ex), msg)
+
     def test_bf_jaccard_empty(self):
         ''' make sure checking for different bloom filters works jaccard '''
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)

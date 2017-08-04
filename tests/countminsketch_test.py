@@ -450,7 +450,7 @@ class TestCountMeanSketch(unittest.TestCase):
 class TestCountMeanMinSketch(unittest.TestCase):
     ''' test the basic count-mean-min sketch '''
 
-    def test_default_count_mean_min_query(self):
+    def test_def_count_mean_min_query(self):
         ''' test the default query of the count-mean-min sketch '''
         cms = CountMeanMinSketch(width=1000, depth=5)
         self.assertEqual(cms.query_type, 'mean-min')

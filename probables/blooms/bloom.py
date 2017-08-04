@@ -48,7 +48,7 @@ class BloomFilter(object):
         self.__number_hashes = 0
         self.__bloom_length = self.number_bits // 8
         self.__hash_func = default_fnv_1a
-        self.__els_added = 0
+        self._els_added = 0
         self._on_disk = False  # not on disk
 
         if is_valid_file(filepath):
@@ -102,7 +102,7 @@ class BloomFilter(object):
 
         Note:
             Not settable '''
-        return self.__els_added
+        return self._els_added
 
     @property
     def is_on_disk(self):
@@ -153,7 +153,7 @@ class BloomFilter(object):
 
     def clear(self):
         ''' Clear or reset the Bloom Filter '''
-        self.__els_added = 0
+        self._els_added = 0
         for idx in range(self.bloom_length):
             self._bloom[idx] = self._get_set_element(0)
 
@@ -192,7 +192,7 @@ class BloomFilter(object):
             j = self._get_element(idx)
             tmp_bit = int(j) | int((1 << (k % 8)))
             self._bloom[idx] = self._get_set_element(tmp_bit)
-        self.__els_added += 1
+        self._els_added += 1
 
     def check(self, key):
         ''' Check if the key is likely in the Bloom Filter
@@ -234,6 +234,9 @@ class BloomFilter(object):
             Note:
                 `second` may be a BloomFilterOnDisk object
         '''
+        if not isinstance(second, BloomFilter):
+            raise TypeError('The parameter second must be of type BloomFilter')
+
         if self.__verify_bloom_similarity(second) is False:
             return None
         res = BloomFilter(self.estimated_elements, self.false_positive_rate,
@@ -241,7 +244,7 @@ class BloomFilter(object):
 
         for i in list(range(0, self.bloom_length)):
             res._bloom[i] = self._get_element(i) & second._get_element(i)
-        res.__els_added = res.estimate_elements()
+        res._els_added = res.estimate_elements()
         return res
 
     def union(self, second):
@@ -257,6 +260,9 @@ class BloomFilter(object):
             Note:
                 `second` may be a BloomFilterOnDisk object
         '''
+        if not isinstance(second, BloomFilter):
+            raise TypeError('The parameter second must be of type BloomFilter')
+
         if self.__verify_bloom_similarity(second) is False:
             return None
         res = BloomFilter(self.estimated_elements, self.false_positive_rate,
@@ -264,7 +270,7 @@ class BloomFilter(object):
 
         for i in list(range(0, self.bloom_length)):
             res._bloom[i] = self._get_element(i) | second._get_element(i)
-        res.__els_added = res.estimate_elements()
+        res._els_added = res.estimate_elements()
         return res
 
     def jaccard_index(self, second):
@@ -278,6 +284,9 @@ class BloomFilter(object):
             Note:
                 `second` may be a BloomFilterOnDisk object
         '''
+        if not isinstance(second, BloomFilter):
+            raise TypeError('The parameter second must be of type BloomFilter')
+
         if self.__verify_bloom_similarity(second) is False:
             return None
         count_union = 0
@@ -387,7 +396,7 @@ class BloomFilter(object):
         self.__est_elements = estimated_elements
         fpr = pack('f', float(false_positive_rate))
         self.__fpr = unpack('f', fpr)[0]  # to mimic the c version!
-        self.__els_added = elements_added
+        self._els_added = elements_added
         # optimal caluclations
         n_els = self.estimated_elements
         fpr = float(self.__fpr)
