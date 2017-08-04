@@ -413,6 +413,7 @@ class BloomFilter(object):
 
     @staticmethod
     def __verify_not_type_mismatch(second):
+        ''' verify that there is not a type mismatch '''
         if not isinstance(second, BloomFilter):
             raise TypeError('The parameter second must be of type BloomFilter')
 
