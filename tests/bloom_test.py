@@ -246,6 +246,15 @@ class TestBloomFilter(unittest.TestCase):
         self.assertRaises(InitializationError,
                           lambda: BloomFilter(filepath=filename))
 
+    def test_bf_invalid_params_msg(self):
+        ''' test importing a bloom filter from an invalid filepath msg '''
+        filename = 'invalid.blm'
+        msg = ('Insufecient parameters to set up the Bloom Filter')
+        try:
+            BloomFilter(filepath=filename)
+        except InitializationError as ex:
+            self.assertEqual(str(ex), msg)
+
     def test_bf_clear(self):
         ''' test clearing out the bloom filter '''
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
@@ -391,11 +400,21 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         blmd.close()
         os.remove(filename)
 
-    def test_bf_load_invalid_file(self):
+    def test_bfod_load_invalid_file(self):
         ''' test importing a bloom filter on disk from an invalid filepath '''
         filename = 'invalid.blm'
         self.assertRaises(InitializationError,
                           lambda: BloomFilterOnDisk(filepath=filename))
+
+    def test_bfod_invalid_params_msg(self):
+        ''' test importing a bloom filter on disk from an invalid filepath msg
+        '''
+        filename = 'invalid.blm'
+        msg = ('Insufecient parameters to set up the On Disk Bloom Filter')
+        try:
+            BloomFilterOnDisk(filepath=filename)
+        except InitializationError as ex:
+            self.assertEqual(str(ex), msg)
 
     def test_bfod_close_del(self):
         ''' close an on disk bloom using the del syntax '''

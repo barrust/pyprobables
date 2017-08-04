@@ -2,15 +2,15 @@
 import setuptools
 import io
 from probables import (__version__, __url__, __author__, __email__,
-                       __license__)
+                       __license__, __bugtrack_url__)
 
 def read_file(filepath):
     with io.open(filepath, 'r') as filepointer:
         res = filepointer.read()
     return res
 
-KEYWORDS = ['python', 'Probablistic', 'data-structure', 'bloom', 'filter',
-            'count-min', 'sketch']
+KEYWORDS = ['python', 'probablistic', 'data-structure', 'bloom', 'filter',
+            'count-min', 'sketch', 'bloom-filter', 'count-min-sketch']
 
 setuptools.setup(
     name = 'pyprobables',
@@ -22,6 +22,7 @@ setuptools.setup(
     keywords = ' '.join(KEYWORDS),
     url = __url__,
     download_url = '{0}/tarball/v{1}'.format(__url__, __version__),
+    bugtrack_url = __bugtrack_url__,
     install_requires = read_file('./requirements/python').splitlines(),
     packages = ['probables'],
     long_description = read_file('README.rst'),

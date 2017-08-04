@@ -490,7 +490,7 @@ class BloomFilterOnDisk(BloomFilter):
         elif is_valid_file(filepath):
             self.__load(filepath, hash_function)
         else:
-            msg = ('Insufecient parameters to set up the Bloom Filter')
+            msg = ('Insufecient parameters to set up the On Disk Bloom Filter')
             raise InitializationError(msg)
 
     def __del__(self):
