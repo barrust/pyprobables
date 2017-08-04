@@ -234,8 +234,7 @@ class BloomFilter(object):
             Note:
                 `second` may be a BloomFilterOnDisk object
         '''
-        if not isinstance(second, BloomFilter):
-            raise TypeError('The parameter second must be of type BloomFilter')
+        self.__verify_not_type_mismatch(second)
 
         if self.__verify_bloom_similarity(second) is False:
             return None
@@ -260,8 +259,7 @@ class BloomFilter(object):
             Note:
                 `second` may be a BloomFilterOnDisk object
         '''
-        if not isinstance(second, BloomFilter):
-            raise TypeError('The parameter second must be of type BloomFilter')
+        self.__verify_not_type_mismatch(second)
 
         if self.__verify_bloom_similarity(second) is False:
             return None
@@ -284,8 +282,7 @@ class BloomFilter(object):
             Note:
                 `second` may be a BloomFilterOnDisk object
         '''
-        if not isinstance(second, BloomFilter):
-            raise TypeError('The parameter second must be of type BloomFilter')
+        self.__verify_not_type_mismatch(second)
 
         if self.__verify_bloom_similarity(second) is False:
             return None
@@ -413,6 +410,11 @@ class BloomFilter(object):
         if hash_match or same_bits or next_hash:
             return False
         return True
+
+    @staticmethod
+    def __verify_not_type_mismatch(second):
+        if not isinstance(second, BloomFilter):
+            raise TypeError('The parameter second must be of type BloomFilter')
 
     def _get_element(self, idx):
         ''' wrappper for getting an element from the bloom filter! '''
