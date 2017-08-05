@@ -154,7 +154,7 @@ class CountingBloomFilter(object):
                  '\telements added: {4}\n'
                  '\tcurrent false positive rate: {5:.6f}\n'
                  '\tis on disk: {6}\n'
-                 '\tindex fullness: {7}\n'
+                 '\tindex fullness: {7:.6}\n'
                  '\tmax index usage: {8}\n'
                  '\tmax index id: {9}\n'
                  '\tcalculated elements: {10}\n')
@@ -352,37 +352,37 @@ class CountingBloomFilter(object):
         self.__num_bits = int(m_bt)
         self.__bloom_length = self.__num_bits  # shortcut!
 
-    def __verify_bloom_similarity(self, second):
-        ''' can the blooms be used in intersection, union, or jaccard index '''
-        hash_match = self.number_hashes != second.number_hashes
-        same_bits = self.number_bits != second.number_bits
-        next_hash = self.hashes("test") != second.hashes("test")
-        if hash_match or same_bits or next_hash:
-            return False
-        return True
-
-    @staticmethod
-    def __verify_not_type_mismatch(second):
-        ''' verify that there is not a type mismatch '''
-        if not isinstance(second, CountingBloomFilter):
-            raise TypeError('The parameter second must be of type '
-                            'CountingBloomFilter')
+    # def __verify_bloom_similarity(self, second):
+    #     ''' can the blooms be used in intersection, union, or jaccard index '''
+    #     hash_match = self.number_hashes != second.number_hashes
+    #     same_bits = self.number_bits != second.number_bits
+    #     next_hash = self.hashes("test") != second.hashes("test")
+    #     if hash_match or same_bits or next_hash:
+    #         return False
+    #     return True
+    #
+    # @staticmethod
+    # def __verify_not_type_mismatch(second):
+    #     ''' verify that there is not a type mismatch '''
+    #     if not isinstance(second, CountingBloomFilter):
+    #         raise TypeError('The parameter second must be of type '
+    #                         'CountingBloomFilter')
 
     def _get_element(self, idx):
         ''' wrappper for getting an element from the bloom filter! '''
         return self._bloom[idx]
 
-    @staticmethod
-    def __cnt_set_bits(i):
-        ''' count number of bits set in this int '''
-        return bin(i).count("1")
-
-    def __cnt_number_bits_set(self):
-        ''' calculate the total number of set bits in the bloom '''
-        setbits = 0
-        for i in list(range(0, self.bloom_length)):
-            setbits += self.__cnt_set_bits(self._get_element(i))
-        return setbits
+    # @staticmethod
+    # def __cnt_set_bits(i):
+    #     ''' count number of bits set in this int '''
+    #     return bin(i).count("1")
+    #
+    # def __cnt_number_bits_set(self):
+    #     ''' calculate the total number of set bits in the bloom '''
+    #     setbits = 0
+    #     for i in list(range(0, self.bloom_length)):
+    #         setbits += self.__cnt_set_bits(self._get_element(i))
+    #     return setbits
 
     @staticmethod
     def _get_set_element(tmp_bit):
