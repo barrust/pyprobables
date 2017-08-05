@@ -87,8 +87,8 @@ class CountingBloomFilter(object):
 
     @property
     def number_hashes(self):
-        ''' int: The number of hashes required for the Bloom Filter hashing
-            strategy
+        ''' int: The number of hashes required for the Counting Bloom Filter \
+            hashing strategy
 
             Note:
                 Not settable '''
@@ -96,7 +96,7 @@ class CountingBloomFilter(object):
 
     @property
     def number_bits(self):
-        ''' int: Number of bits in the Bloom Filter
+        ''' int: Number of bits in the Counting Bloom Filter
 
             Note:
                 Not settable '''
@@ -104,7 +104,7 @@ class CountingBloomFilter(object):
 
     @property
     def elements_added(self):
-        ''' int: Number of elements added to the Bloom Filter
+        ''' int: Number of elements added to the Counting Bloom Filter
 
         Note:
             Not settable '''
@@ -112,7 +112,7 @@ class CountingBloomFilter(object):
 
     @property
     def is_on_disk(self):
-        ''' bool: Is the Bloom Filter on Disk or not
+        ''' bool: Is the Counting Bloom Filter on Disk or not
 
         Note:
             Not settable '''
@@ -120,7 +120,7 @@ class CountingBloomFilter(object):
 
     @property
     def bloom_length(self):
-        ''' int: Length of the Bloom Filter array
+        ''' int: Length of the Counting Bloom Filter array
 
         Note:
             Not settable '''
@@ -171,7 +171,7 @@ class CountingBloomFilter(object):
         return self.check(key)
 
     def clear(self):
-        ''' Clear or reset the Bloom Filter '''
+        ''' Clear or reset the Counting Bloom Filter '''
         self._els_added = 0
         for idx in range(self.bloom_length):
             self._bloom[idx] = self._get_set_element(0)
@@ -190,7 +190,7 @@ class CountingBloomFilter(object):
         return self.__hash_func(key, tmp)
 
     def add(self, key, num_els=1):
-        ''' Add the key to the Bloom Filter
+        ''' Add the key to the Counting Bloom Filter
 
             Args:
                 key (str): The element to be inserted
@@ -202,7 +202,8 @@ class CountingBloomFilter(object):
         return self.add_alt(hashes, num_els)
 
     def add_alt(self, hashes, num_els=1):
-        ''' Add the element represented by hashes into the Bloom Filter
+        ''' Add the element represented by hashes into the Counting Bloom
+            Filter
 
             Args:
                 hashes (list): A list of integers representing the key to \
@@ -224,7 +225,7 @@ class CountingBloomFilter(object):
         return res
 
     def check(self, key):
-        ''' Check if the key is likely in the Bloom Filter
+        ''' Check if the key is likely in the Counting Bloom Filter
 
             Args:
                 key (str): The element to be checked
@@ -235,7 +236,8 @@ class CountingBloomFilter(object):
         return self.check_alt(hashes)
 
     def check_alt(self, hashes):
-        ''' Check if the element represented by hashes is in the Bloom Filter
+        ''' Check if the element represented by hashes is in the Counting
+            Bloom Filter
 
             Args:
                 hashes (list): A list of integers representing the key to \
@@ -252,7 +254,7 @@ class CountingBloomFilter(object):
         return res
 
     def export(self, filename):
-        ''' Export the Bloom Filter to disk
+        ''' Export the Counting Bloom Filter to disk
 
             Args:
                 filename (str): The filename to which the Bloom Filter will \
@@ -266,7 +268,7 @@ class CountingBloomFilter(object):
                                    self.false_positive_rate))
 
     def __load(self, filename, hash_function=None):
-        ''' load the Bloom Filter from file '''
+        ''' load the Counting Bloom Filter from file '''
         # read in the needed information, and then call _set_optimized_params
         # to set everything correctly
         with open(filename, 'rb') as filepointer:
@@ -281,50 +283,39 @@ class CountingBloomFilter(object):
             offset = calcsize('I') * self.bloom_length
             rep = 'I' * self.bloom_length
             self._bloom = list(unpack(rep, filepointer.read(offset)))
-    #
-    # def export_hex(self):
-    #     ''' Export the Bloom Filter as a hex string
-    #
-    #         Return:
-    #             str: Hex representation of the Bloom Filter
-    #     '''
-    #     mybytes = pack('>QQf', self.estimated_elements,
-    #                    self.elements_added, self.false_positive_rate)
-    #     bytes_string = hexlify(bytearray(self._bloom)) + hexlify(mybytes)
-    #     if sys.version_info > (3, 0):  # python 3 gives us bytes
-    #         return str(bytes_string, 'utf-8')
-    #     return bytes_string
-    #
-    # def _load_hex(self, hex_string, hash_function=None):
-    #     ''' placeholder for loading from hex string '''
-    #     offset = calcsize('>QQf') * 2
-    #     stct = Struct('>QQf')
-    #     tmp_data = stct.unpack_from(unhexlify(hex_string[-offset:]))
-    #     self._set_optimized_params(tmp_data[0], tmp_data[2], tmp_data[1],
-    #                                hash_function)
-    #     tmp_bloom = unhexlify(hex_string[:-offset])
-    #     rep = 'B' * self.bloom_length
-    #     self._bloom = list(unpack(rep, tmp_bloom))
-    #
-    # def export_size(self):
-    #     ''' Calculate the size of the bloom on disk
-    #
-    #         Returns:
-    #             int: Size of the Bloom Filter when exported to disk
-    #     '''
-    #     tmp_b = calcsize('B')
-    #     return (self.bloom_length * tmp_b) + calcsize('QQf')
-    #
-    # def estimate_elements(self):
-    #     ''' Estimate the number of unique elements added
-    #
-    #         Returns:
-    #             int: Number of elements estimated to be inserted
-    #     '''
-    #     setbits = self.__cnt_number_bits_set()
-    #     log_n = math.log(1 - (float(setbits) / float(self.number_bits)))
-    #     tmp = float(self.number_bits) / float(self.number_hashes)
-    #     return int(-1 * tmp * log_n)
+
+    def export_hex(self):
+        ''' Export the Bloom Filter as a hex string
+
+            Return:
+                str: Hex representation of the Counting Bloom Filter
+        '''
+        mybytes = pack('>QQf', self.estimated_elements,
+                       self.elements_added, self.false_positive_rate)
+        bytes_string = hexlify(bytearray(self._bloom)) + hexlify(mybytes)
+        if sys.version_info > (3, 0):  # python 3 gives us bytes
+            return str(bytes_string, 'utf-8')
+        return bytes_string
+
+    def _load_hex(self, hex_string, hash_function=None):
+        ''' placeholder for loading from hex string '''
+        offset = calcsize('>QQf') * 2
+        stct = Struct('>QQf')
+        tmp_data = stct.unpack_from(unhexlify(hex_string[-offset:]))
+        self._set_optimized_params(tmp_data[0], tmp_data[2], tmp_data[1],
+                                   hash_function)
+        tmp_bloom = unhexlify(hex_string[:-offset])
+        rep = 'B' * self.bloom_length
+        self._bloom = list(unpack(rep, tmp_bloom))
+
+    def export_size(self):
+        ''' Calculate the size of the counting bloom on disk
+
+            Returns:
+                int: Size of the Bloom Filter when exported to disk in bytes
+        '''
+        tmp_b = calcsize('I')
+        return (self.bloom_length * tmp_b) + calcsize('QQf')
 
     def current_false_positive_rate(self):
         ''' Calculate the current false positive rate based on elements added
@@ -356,38 +347,9 @@ class CountingBloomFilter(object):
         self.__num_bits = int(m_bt)
         self.__bloom_length = self.__num_bits  # shortcut!
 
-    # def __verify_bloom_similarity(self, second):
-    #     ''' can the blooms be used in intersection, union, or jaccard index
-    #     '''
-    #     hash_match = self.number_hashes != second.number_hashes
-    #     same_bits = self.number_bits != second.number_bits
-    #     next_hash = self.hashes("test") != second.hashes("test")
-    #     if hash_match or same_bits or next_hash:
-    #         return False
-    #     return True
-    #
-    # @staticmethod
-    # def __verify_not_type_mismatch(second):
-    #     ''' verify that there is not a type mismatch '''
-    #     if not isinstance(second, CountingBloomFilter):
-    #         raise TypeError('The parameter second must be of type '
-    #                         'CountingBloomFilter')
-
     def _get_element(self, idx):
         ''' wrappper for getting an element from the bloom filter! '''
         return self._bloom[idx]
-
-    # @staticmethod
-    # def __cnt_set_bits(i):
-    #     ''' count number of bits set in this int '''
-    #     return bin(i).count("1")
-    #
-    # def __cnt_number_bits_set(self):
-    #     ''' calculate the total number of set bits in the bloom '''
-    #     setbits = 0
-    #     for i in list(range(0, self.bloom_length)):
-    #         setbits += self.__cnt_set_bits(self._get_element(i))
-    #     return setbits
 
     @staticmethod
     def _get_set_element(tmp_bit):

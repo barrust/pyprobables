@@ -58,7 +58,7 @@ class TestCountingBloomFilter(unittest.TestCase):
         self.assertEqual('this is yet another test' in blm, False)
         self.assertEqual('this is not another test' in blm, False)
 
-    def test_bf_stats(self):
+    def test_cbf_stats(self):
         ''' test that the information in the stats is correct '''
         msg = ('CountingBloom:\n'
                '\tbits: 63\n'
@@ -86,7 +86,7 @@ class TestCountingBloomFilter(unittest.TestCase):
         stats = str(blm)
         self.assertEqual(stats, msg)
 
-    def test_bf_clear(self):
+    def test_cbf_clear(self):
         ''' test clearing out the bloom filter '''
         blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
         self.assertEqual(blm.elements_added, 0)
@@ -130,7 +130,7 @@ class TestCountingBloomFilter(unittest.TestCase):
         self.assertEqual(md5_out, md5_val)
         os.remove(filename)
 
-    def test_bf_load_file(self):
+    def test_cbf_load_file(self):
         ''' test loading bloom filter from file '''
         filename = 'test.cbm'
         blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
@@ -142,13 +142,13 @@ class TestCountingBloomFilter(unittest.TestCase):
         self.assertEqual('this is not a test' in blm2, False)
         os.remove(filename)
 
-    def test_bf_load_invalid_file(self):
+    def test_cbf_load_invalid_file(self):
         ''' test importing a bloom filter from an invalid filepath '''
         filename = 'invalid.cbm'
         self.assertRaises(InitializationError,
                           lambda: CountingBloomFilter(filepath=filename))
 
-    def test_bf_invalid_params_msg(self):
+    def test_cbf_invalid_params_msg(self):
         ''' test importing a bloom filter from an invalid filepath msg '''
         filename = 'invalid.cbm'
         msg = ('Insufecient parameters to set up the Counting Bloom Filter')
@@ -156,3 +156,59 @@ class TestCountingBloomFilter(unittest.TestCase):
             CountingBloomFilter(filepath=filename)
         except InitializationError as ex:
             self.assertEqual(str(ex), msg)
+
+    def test_cbf_export_hex(self):
+        ''' test the exporting of the bloom filter to a hex string '''
+        h_val = ('01000300000000010002000002010102000000000000010000010000000'
+                 '10100020100010101000002000101000201000000020001000001010000'
+                 '01020002000000000000000a000000000000000a3d4ccccd')
+
+        blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm.add('this is a test 0')
+        blm.add('this is a test 1')
+        blm.add('this is a test 2')
+        blm.add('this is a test 3')
+        blm.add('this is a test 4')
+        blm.add('this is a test 5')
+        blm.add('this is a test 6')
+        blm.add('this is a test 7')
+        blm.add('this is a test 8')
+        blm.add('this is a test 9')
+        hex_out = blm.export_hex()
+
+        self.assertEqual(hex_out, h_val)
+
+    def test_cbf_load_hex(self):
+        ''' test importing a bloom filter from hex value '''
+        h_val = ('01000300000000010002000002010102000000000000010000010000000'
+                 '10100020100010101000002000101000201000000020001000001010000'
+                 '01020002000000000000000a000000000000000a3d4ccccd')
+        blm = CountingBloomFilter(hex_string=h_val)
+
+        self.assertEqual('this is a test 0' in blm, True)
+        self.assertEqual('this is a test 1' in blm, True)
+        self.assertEqual('this is a test 2' in blm, True)
+        self.assertEqual('this is a test 3' in blm, True)
+        self.assertEqual('this is a test 4' in blm, True)
+        self.assertEqual('this is a test 5' in blm, True)
+        self.assertEqual('this is a test 6' in blm, True)
+        self.assertEqual('this is a test 7' in blm, True)
+        self.assertEqual('this is a test 8' in blm, True)
+        self.assertEqual('this is a test 9' in blm, True)
+
+        self.assertEqual('this is a test 10' in blm, False)
+        self.assertEqual('this is a test 11' in blm, False)
+        self.assertEqual('this is a test 12' in blm, False)
+
+    def test_cbf_load_invalid_hex(self):
+        ''' test importing a bloom filter from an invalid hex value '''
+        h_val = ('01000300000000010002000002010102000000000000010000010000000'
+                 '10100020100010101000002000101000201000000020001000001010000'
+                 '01020002000000000000000a000000000000000a3d4ccccQ')
+        self.assertRaises(InitializationError,
+                          lambda: CountingBloomFilter(hex_string=h_val))
+
+    def test_cbf_export_size(self):
+        ''' test the size of the exported file '''
+        blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        self.assertEqual(404, blm.export_size())
