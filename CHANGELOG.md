@@ -1,6 +1,9 @@
 # PyProbables Changelog
 
 ### Version 0.0.6:
+* Probabilistic data structures added:
+    * Counting Bloom Filter
+* Minor code clean-up
 
 ### Version 0.0.5:
 * Better on-line documentation
