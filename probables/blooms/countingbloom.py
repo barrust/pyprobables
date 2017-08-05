@@ -16,6 +16,7 @@ from .. exceptions import (InitializationError, NotSupportedError)
 from .. hashes import (default_fnv_1a)
 from .. utilities import (is_hex_string, is_valid_file)
 
+
 class CountingBloomFilter(object):
     ''' Simple Counting Bloom Filter implementation for use in python;
         It can read and write the same format as the c version
@@ -154,9 +155,9 @@ class CountingBloomFilter(object):
                  '\tcurrent false positive rate: {5:.6f}\n'
                  '\tis on disk: {6}\n'
                  '\tindex fullness: {7}\n'
-	             '\tmax index usage: {8}\n'
-	             '\tmax index id: {9}\n'
-	             '\tcalculated elements: {10}\n')
+                 '\tmax index usage: {8}\n'
+                 '\tmax index id: {9}\n'
+                 '\tcalculated elements: {10}\n')
         return stats.format(self.number_bits, self.estimated_elements,
                             self.number_hashes, self.false_positive_rate,
                             self.elements_added,
@@ -314,7 +315,7 @@ class CountingBloomFilter(object):
     #     log_n = math.log(1 - (float(setbits) / float(self.number_bits)))
     #     tmp = float(self.number_bits) / float(self.number_hashes)
     #     return int(-1 * tmp * log_n)
-    #
+
     def current_false_positive_rate(self):
         ''' Calculate the current false positive rate based on elements added
 
@@ -358,7 +359,8 @@ class CountingBloomFilter(object):
     def __verify_not_type_mismatch(second):
         ''' verify that there is not a type mismatch '''
         if not isinstance(second, CountingBloomFilter):
-            raise TypeError('The parameter second must be of type CountingBloomFilter')
+            raise TypeError('The parameter second must be of type '
+                            'CountingBloomFilter')
 
     def _get_element(self, idx):
         ''' wrappper for getting an element from the bloom filter! '''
