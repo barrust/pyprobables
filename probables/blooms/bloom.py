@@ -256,7 +256,6 @@ class BloomFilterOnDisk(BaseBloom):
         for i in list(range(0, self.bloom_length)):
             res._bloom[i] = self._get_element(i) | second._get_element(i)
         res._els_added = res.estimate_elements()
-        self.__update()
         return res
 
     def intersection(self, second):
@@ -278,7 +277,6 @@ class BloomFilterOnDisk(BaseBloom):
         for i in list(range(0, self.bloom_length)):
             res._bloom[i] = self._get_element(i) & second._get_element(i)
         res._els_added = res.estimate_elements()
-        self.__update()
         return res
 
     def export_hex(self):

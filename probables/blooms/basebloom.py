@@ -126,7 +126,10 @@ class BaseBloom(object):
 
     @property
     def hash_function(self):
-        ''' function: the hash function used '''
+        ''' function: The hash function used
+
+        Note:
+            Not settable '''
         return self.__hash_func
 
     def hashes(self, key, depth=None):

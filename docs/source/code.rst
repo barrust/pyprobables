@@ -29,6 +29,7 @@ BloomFilter
 
 .. autoclass:: probables.BloomFilter
     :members:
+    :inherited-members:
 
 
 BloomFilterOnDisk
@@ -44,6 +45,7 @@ CountingBloomFilter
 
 .. autoclass:: probables.CountingBloomFilter
     :members:
+    :inherited-members:
 
 
 Count-Min Sketches
