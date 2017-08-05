@@ -29,6 +29,15 @@ class TestCountingBloomFilter(unittest.TestCase):
         blm.add('this is a test')
         self.assertEqual(blm.elements_added, 1)
 
+    def test_cbf_ea_diff_hash(self):
+        ''' test elements added is correct '''
+        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.05,
+                                   hash_function=different_hash)
+        hsh1 = blm1.hashes('this is a test')
+        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        hsh2 = blm2.hashes('this is a test')
+        self.assertNotEqual(hsh1, hsh2)
+
     def test_cbf_check(self):
         ''' ensure that checking the bloom filter works '''
         blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
@@ -98,3 +107,52 @@ class TestCountingBloomFilter(unittest.TestCase):
         self.assertEqual(blm.elements_added, 0)
         for idx in range(blm.bloom_length):
             self.assertEqual(blm._get_element(idx), 0)
+
+    def test_cbf_export_file(self):
+        ''' test exporting bloom filter to file '''
+        filename = 'test.cbm'
+        md5_val = '941b499746dd72d36658399b209d4869'
+        blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        blm.add('test')
+        blm.add('out')
+        blm.add('the')
+        blm.add('counting')
+        blm.add('bloom')
+        blm.add('filter')
+
+        blm.add('test')
+        blm.add('Test')
+        blm.add('out')
+        blm.add('test')
+        blm.export(filename)
+
+        md5_out = calc_file_md5(filename)
+        self.assertEqual(md5_out, md5_val)
+        os.remove(filename)
+
+    def test_bf_load_file(self):
+        ''' test loading bloom filter from file '''
+        filename = 'test.cbm'
+        blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm.add('this is a test')
+        blm.export(filename)
+
+        blm2 = CountingBloomFilter(filepath=filename)
+        self.assertEqual('this is a test' in blm2, True)
+        self.assertEqual('this is not a test' in blm2, False)
+        os.remove(filename)
+
+    def test_bf_load_invalid_file(self):
+        ''' test importing a bloom filter from an invalid filepath '''
+        filename = 'invalid.cbm'
+        self.assertRaises(InitializationError,
+                          lambda: CountingBloomFilter(filepath=filename))
+
+    def test_bf_invalid_params_msg(self):
+        ''' test importing a bloom filter from an invalid filepath msg '''
+        filename = 'invalid.cbm'
+        msg = ('Insufecient parameters to set up the Counting Bloom Filter')
+        try:
+            CountingBloomFilter(filepath=filename)
+        except InitializationError as ex:
+            self.assertEqual(str(ex), msg)

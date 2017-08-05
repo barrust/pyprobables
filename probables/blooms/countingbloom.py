@@ -65,7 +65,8 @@ class CountingBloomFilter(object):
                                        hash_function)
             self._bloom = [0] * self.bloom_length
         else:
-            msg = ('Insufecient parameters to set up the Bloom Filter')
+            msg = ('Insufecient parameters to set up the Counting Bloom '
+                   'Filter')
             raise InitializationError(msg)
 
     @property
@@ -250,36 +251,36 @@ class CountingBloomFilter(object):
                 res = tmp
         return res
 
-    # def export(self, filename):
-    #     ''' Export the Bloom Filter to disk
-    #
-    #         Args:
-    #             filename (str): The filename to which the Bloom Filter will \
-    #             be written.
-    #     '''
-    #     with open(filename, 'wb') as filepointer:
-    #         rep = 'B' * self.bloom_length
-    #         filepointer.write(pack(rep, *self._bloom))
-    #         filepointer.write(pack('QQf', self.estimated_elements,
-    #                                self.elements_added,
-    #                                self.false_positive_rate))
-    #
-    # def __load(self, filename, hash_function=None):
-    #     ''' load the Bloom Filter from file '''
-    #     # read in the needed information, and then call _set_optimized_params
-    #     # to set everything correctly
-    #     with open(filename, 'rb') as filepointer:
-    #         offset = calcsize('QQf')
-    #         filepointer.seek(offset * -1, os.SEEK_END)
-    #         mybytes = unpack('QQf', filepointer.read(offset))
-    #         self._set_optimized_params(mybytes[0], mybytes[2],
-    #                                    mybytes[1], hash_function)
-    #
-    #         # now read in the bit array!
-    #         filepointer.seek(0, os.SEEK_SET)
-    #         offset = calcsize('B') * self.bloom_length
-    #         rep = 'B' * self.bloom_length
-    #         self._bloom = list(unpack(rep, filepointer.read(offset)))
+    def export(self, filename):
+        ''' Export the Bloom Filter to disk
+
+            Args:
+                filename (str): The filename to which the Bloom Filter will \
+                be written.
+        '''
+        with open(filename, 'wb') as filepointer:
+            rep = 'I' * self.bloom_length
+            filepointer.write(pack(rep, *self._bloom))
+            filepointer.write(pack('QQf', self.estimated_elements,
+                                   self.elements_added,
+                                   self.false_positive_rate))
+
+    def __load(self, filename, hash_function=None):
+        ''' load the Bloom Filter from file '''
+        # read in the needed information, and then call _set_optimized_params
+        # to set everything correctly
+        with open(filename, 'rb') as filepointer:
+            offset = calcsize('QQf')
+            filepointer.seek(offset * -1, os.SEEK_END)
+            mybytes = unpack('QQf', filepointer.read(offset))
+            self._set_optimized_params(mybytes[0], mybytes[2],
+                                       mybytes[1], hash_function)
+
+            # now read in the bit array!
+            filepointer.seek(0, os.SEEK_SET)
+            offset = calcsize('I') * self.bloom_length
+            rep = 'I' * self.bloom_length
+            self._bloom = list(unpack(rep, filepointer.read(offset)))
     #
     # def export_hex(self):
     #     ''' Export the Bloom Filter as a hex string
