@@ -4,7 +4,7 @@ from __future__ import (unicode_literals, absolute_import, print_function)
 import unittest
 import os
 from probables import (CountingBloomFilter)
-from probables.exceptions import (InitializationError, NotSupportedError)
+from probables.exceptions import (InitializationError)
 from . utilities import(calc_file_md5, different_hash)
 
 
