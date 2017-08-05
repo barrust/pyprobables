@@ -89,7 +89,7 @@ Counting Bloom Filter
 **Counting Bloom Filters** are another specialized version of the standard
 Bloom Filter. Instead of using a bit array to track added elements, a
 Counting Bloom uses integers to track the number of times the element has
-been added. **currently not supported; planned**
+been added.
 
 
 Count-Min Sketch

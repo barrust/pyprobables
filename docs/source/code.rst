@@ -39,6 +39,11 @@ BloomFilterOnDisk
 
 For more information of all methods and properties, see `BloomFilter`_.
 
+CountingBloomFilter
++++++++++++++++++++++++++++++++
+
+.. autoclass:: probables.CountingBloomFilter
+    :members:
 
 
 Count-Min Sketches
