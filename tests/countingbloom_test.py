@@ -59,7 +59,7 @@ class TestCountingBloomFilter(unittest.TestCase):
                '\telements added: 10\n'
                '\tcurrent false positive rate: 0.048806\n'
                '\tis on disk: no\n'
-               '\tindex fullness: 0.634920634921\n'
+               '\tindex fullness: 0.634921\n'
                '\tmax index usage: 3\n'
                '\tmax index id: 2\n'
                '\tcalculated elements: 10\n')
