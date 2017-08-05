@@ -1,5 +1,7 @@
 # PyProbables Changelog
 
+### Version 0.0.6:
+
 ### Version 0.0.5:
 * Better on-line documentation
 * Changed access to some public functions
