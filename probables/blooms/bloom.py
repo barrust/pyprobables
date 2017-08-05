@@ -81,7 +81,7 @@ class BloomFilter(object):
 
     @property
     def number_hashes(self):
-        ''' int: The number of hashes required for the Bloom Filterr hashing
+        ''' int: The number of hashes required for the Bloom Filter hashing
             strategy
 
             Note:
@@ -114,7 +114,7 @@ class BloomFilter(object):
 
     @property
     def bloom_length(self):
-        ''' int: Length of the bloom filter array
+        ''' int: Length of the Bloom Filter array
 
         Note:
             Not settable '''
@@ -125,7 +125,7 @@ class BloomFilter(object):
         return self.__unicode__()
 
     def __unicode__(self):
-        ''' string / unicode representation of the bloom filter '''
+        ''' string / unicode representation of the Bloom Filter '''
         on_disk = "no" if self.is_on_disk is False else "yes"
         stats = ('BloomFilter:\n'
                  '\tbits: {0}\n'
@@ -418,7 +418,7 @@ class BloomFilter(object):
             raise TypeError('The parameter second must be of type BloomFilter')
 
     def _get_element(self, idx):
-        ''' wrappper for getting an element from the bloom filter! '''
+        ''' wrappper for getting an element from the Bloom Filter! '''
         return self._bloom[idx]
 
     @staticmethod
@@ -501,7 +501,7 @@ class BloomFilterOnDisk(BloomFilter):
             raise InitializationError(msg)
 
     def __del__(self):
-        ''' handle if user doesn't close the on disk bloom filter '''
+        ''' handle if user doesn't close the on disk Bloom Filter '''
         self.close()
 
     def close(self):
@@ -513,7 +513,7 @@ class BloomFilterOnDisk(BloomFilter):
             self.__file_pointer = None
 
     def __load(self, filepath, hash_function=None):
-        ''' load the bloom filter on disk '''
+        ''' load the Bloom Filter on disk '''
         # read the file, set the optimal params
         # mmap everything
         with open(filepath, 'r+b') as filepointer:
@@ -622,7 +622,7 @@ class BloomFilterOnDisk(BloomFilter):
         return pack('B', tmp_bit)
 
     def __update(self):
-        ''' update the on disk bloom filter and ensure everything is out
+        ''' update the on disk Bloom Filter and ensure everything is out
             to disk '''
         self._bloom.flush()
         self.__file_pointer.seek(-self.__export_offset, os.SEEK_END)
