@@ -4,7 +4,7 @@ from __future__ import (unicode_literals, absolute_import, print_function)
 import unittest
 import os
 from probables import (CountingBloomFilter)
-from probables.exceptions import (InitializationError)
+from probables.exceptions import (InitializationError, NotSupportedError)
 from . utilities import(calc_file_md5, different_hash)
 
 
@@ -212,3 +212,51 @@ class TestCountingBloomFilter(unittest.TestCase):
         ''' test the size of the exported file '''
         blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
         self.assertEqual(404, blm.export_size())
+
+    def test_cbf_union(self):
+        ''' test union of two counting bloom filters '''
+        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        self.assertRaises(NotSupportedError, lambda: blm1.union(blm2))
+
+    def test_cbf_union_msg(self):
+        ''' test union of two counting bloom filters msg '''
+        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        msg = ('Union is not supported for counting blooms')
+        try:
+            blm1.union(blm2)
+        except NotSupportedError as ex:
+            self.assertEqual(str(ex), msg)
+
+    def test_cbf_intersection(self):
+        ''' test intersection of two counting bloom filters '''
+        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        self.assertRaises(NotSupportedError, lambda: blm1.intersection(blm2))
+
+    def test_cbf_intersection_msg(self):
+        ''' test intersection of two counting bloom filters msg '''
+        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        msg = ('Intersection is not supported for counting blooms')
+        try:
+            blm1.intersection(blm2)
+        except NotSupportedError as ex:
+            self.assertEqual(str(ex), msg)
+
+    def test_cbf_jaccard(self):
+        ''' test jaccard of two counting bloom filters '''
+        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        self.assertRaises(NotSupportedError, lambda: blm1.jaccard_index(blm2))
+
+    def test_cbf_jaccard_msg(self):
+        ''' test jaccard of two counting bloom filters msg '''
+        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        msg = ('Jaccard Index is not supported for counting blooms')
+        try:
+            blm1.jaccard_index(blm2)
+        except NotSupportedError as ex:
+            self.assertEqual(str(ex), msg)
