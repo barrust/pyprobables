@@ -192,6 +192,9 @@ class CountingBloomFilter(object):
 
             Args:
                 key (str): The element to be inserted
+                num_els (int): Number of times to insert the element
+            Returns:
+                int: Maximum number of insertions
         '''
         hashes = self.hashes(key)
         return self.add_alt(hashes, num_els)
@@ -202,6 +205,9 @@ class CountingBloomFilter(object):
             Args:
                 hashes (list): A list of integers representing the key to \
                 insert
+                num_els (int): Number of times to insert the element
+            Returns:
+                int: Maximum number of insertions
         '''
         res = self.__int32_t_max
         for i in list(range(0, self.number_hashes)):
@@ -219,7 +225,7 @@ class CountingBloomFilter(object):
             Args:
                 key (str): The element to be checked
             Returns:
-                bool: True if likely encountered, False if definately not
+                int: Maximum number of insertions
         '''
         hashes = self.hashes(key)
         return self.check_alt(hashes)
@@ -231,7 +237,7 @@ class CountingBloomFilter(object):
                 hashes (list): A list of integers representing the key to \
                 check
             Returns:
-                bool: True if likely encountered, False if definately not
+                int: Maximum number of insertions
         '''
         res = self.__int32_t_max
         for i in list(range(0, self.number_hashes)):
