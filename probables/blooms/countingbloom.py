@@ -8,11 +8,9 @@ from __future__ import (unicode_literals, absolute_import, print_function,
 import sys
 import math
 import os
-import mmap
 from struct import (pack, unpack, calcsize, Struct)
-from shutil import (copyfile)
 from binascii import (hexlify, unhexlify)
-from .. exceptions import (InitializationError, NotSupportedError)
+from .. exceptions import (InitializationError)
 from .. hashes import (default_fnv_1a)
 from .. utilities import (is_hex_string, is_valid_file)
 
