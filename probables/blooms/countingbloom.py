@@ -5,9 +5,6 @@
 '''
 from __future__ import (unicode_literals, absolute_import, print_function,
                         division)
-import sys
-import math
-import os
 from struct import (pack, unpack, calcsize, Struct)
 from binascii import (hexlify, unhexlify)
 from . basebloom import (BaseBloom)

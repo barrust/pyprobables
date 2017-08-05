@@ -7,6 +7,7 @@ from __future__ import (unicode_literals, absolute_import, print_function,
 import sys
 import math
 import os
+from abc import (abstractmethod)
 from struct import (pack, unpack, calcsize, Struct)
 from binascii import (hexlify, unhexlify)
 from .. exceptions import (InitializationError, NotSupportedError)
@@ -139,7 +140,6 @@ class BaseBloom(object):
         tmp = depth if depth is not None else self.number_hashes
         return self.__hash_func(key, tmp)
 
-
     def _set_optimized_params(self, estimated_elements, false_positive_rate,
                               elements_added, hash_function):
         ''' set the parameters to the optimal sizes '''
@@ -166,8 +166,8 @@ class BaseBloom(object):
             offset = calcsize('QQf')
             filepointer.seek(offset * -1, os.SEEK_END)
             mybytes = unpack('QQf', filepointer.read(offset))
-            vals =  self._set_optimized_params(mybytes[0], mybytes[2],
-                                               mybytes[1], hash_function)
+            vals = self._set_optimized_params(mybytes[0], mybytes[2],
+                                              mybytes[1], hash_function)
             self.__hash_func = vals[0]
             self.__fpr = vals[1]
             self.__number_hashes = vals[2]
@@ -250,7 +250,6 @@ class BaseBloom(object):
         tmp_b = calcsize(impt_type)
         return (self.bloom_length * tmp_b) + calcsize('QQf')
 
-
     def current_false_positive_rate(self):
         ''' Calculate the current false positive rate based on elements added
 
@@ -261,3 +260,91 @@ class BaseBloom(object):
         dbl = num / float(self.number_bits)
         exp = math.exp(dbl)
         return math.pow((1 - exp), self.number_hashes)
+
+    def estimate_elements(self):
+        ''' Estimate the number of elements added
+
+            Returns:
+                int: Number of elements estimated to be inserted
+        '''
+        setbits = self._cnt_number_bits_set()
+        log_n = math.log(1 - (float(setbits) / float(self.number_bits)))
+        tmp = float(self.number_bits) / float(self.number_hashes)
+        return int(-1 * tmp * log_n)
+
+    @staticmethod
+    def __cnt_set_bits(i):
+        ''' count number of bits set in this int '''
+        return bin(i).count("1")
+
+    def _cnt_number_bits_set(self):
+        ''' calculate the total number of set bits in the bloom '''
+        setbits = 0
+        for i in list(range(0, self.bloom_length)):
+            setbits += self.__cnt_set_bits(self._get_element(i))
+        return setbits
+
+    @abstractmethod
+    def add(self, key):
+        pass
+
+    @abstractmethod
+    def add_alt(self, hashes):
+        pass
+
+    @abstractmethod
+    def check(self, key):
+        pass
+
+    @abstractmethod
+    def check_alt(self, hashes):
+        pass
+
+    @abstractmethod
+    def union(self, second):
+        pass
+
+    @abstractmethod
+    def intersection(self, second):
+        pass
+
+    def jaccard_index(self, second):
+        ''' Calculate the jaccard similarity score between two Bloom Filters
+
+            Args:
+                second (BloomFilter): The Bloom Filter to compare with
+            Returns:
+                float: A numeric value between 0 and 1 where 1 is identical \
+                and 0 means completely different
+            Note:
+                `second` may be a BloomFilterOnDisk object
+        '''
+        self._verify_not_type_mismatch(second)
+
+        if self._verify_bloom_similarity(second) is False:
+            return None
+        count_union = 0
+        count_int = 0
+        for i in list(range(0, self.bloom_length)):
+            t_union = self._get_element(i) | second._get_element(i)
+            t_intersection = self._get_element(i) & second._get_element(i)
+            count_union += self.__cnt_set_bits(t_union)
+            count_int += self.__cnt_set_bits(t_intersection)
+        if count_union == 0:
+            return 1.0
+        return count_int / count_union
+
+    def _verify_bloom_similarity(self, second):
+        ''' can the blooms be used in intersection, union, or jaccard index '''
+        hash_match = self.number_hashes != second.number_hashes
+        same_bits = self.number_bits != second.number_bits
+        next_hash = self.hashes("test") != second.hashes("test")
+        if hash_match or same_bits or next_hash:
+            return False
+        return True
+
+    @staticmethod
+    def _verify_not_type_mismatch(second):
+        ''' verify that there is not a type mismatch '''
+        if not isinstance(second, BaseBloom):
+            raise TypeError('The parameter second must be of type BloomFilter')

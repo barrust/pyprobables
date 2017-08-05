@@ -69,7 +69,8 @@ class BloomFilter(BaseBloom):
                             self.bloom_length, self.elements_added,
                             self.estimate_elements(),
                             self.current_false_positive_rate(),
-                            self.export_size(), self.__cnt_number_bits_set(),
+                            self.export_size(),
+                            super(BloomFilter, self)._cnt_number_bits_set(),
                             on_disk)
 
     def add(self, key):
@@ -136,9 +137,9 @@ class BloomFilter(BaseBloom):
             Note:
                 `second` may be a BloomFilterOnDisk object
         '''
-        self.__verify_not_type_mismatch(second)
+        super(BloomFilter, self)._verify_not_type_mismatch(second)
 
-        if self.__verify_bloom_similarity(second) is False:
+        if super(BloomFilter, self)._verify_bloom_similarity(second) is False:
             return None
         res = BloomFilter(self.estimated_elements, self.false_positive_rate,
                           hash_function=self.hash_function)
@@ -161,9 +162,9 @@ class BloomFilter(BaseBloom):
             Note:
                 `second` may be a BloomFilterOnDisk object
         '''
-        self.__verify_not_type_mismatch(second)
+        super(BloomFilter, self)._verify_not_type_mismatch(second)
 
-        if self.__verify_bloom_similarity(second) is False:
+        if super(BloomFilter, self)._verify_bloom_similarity(second) is False:
             return None
         res = BloomFilter(self.estimated_elements, self.false_positive_rate,
                           hash_function=self.hash_function)
@@ -172,43 +173,6 @@ class BloomFilter(BaseBloom):
             res._bloom[i] = self._get_element(i) | second._get_element(i)
         res._els_added = res.estimate_elements()
         return res
-
-    def jaccard_index(self, second):
-        ''' Calculate the jaccard similarity score between two Bloom Filters
-
-            Args:
-                second (BloomFilter): The Bloom Filter to compare with
-            Returns:
-                float: A numeric value between 0 and 1 where 1 is identical \
-                and 0 means completely different
-            Note:
-                `second` may be a BloomFilterOnDisk object
-        '''
-        self.__verify_not_type_mismatch(second)
-
-        if self.__verify_bloom_similarity(second) is False:
-            return None
-        count_union = 0
-        count_int = 0
-        for i in list(range(0, self.bloom_length)):
-            t_union = self._get_element(i) | second._get_element(i)
-            t_intersection = self._get_element(i) & second._get_element(i)
-            count_union += self.__cnt_set_bits(t_union)
-            count_int += self.__cnt_set_bits(t_intersection)
-        if count_union == 0:
-            return 1.0
-        return count_int / count_union
-
-    def estimate_elements(self):
-        ''' Estimate the number of elements added
-
-            Returns:
-                int: Number of elements estimated to be inserted
-        '''
-        setbits = self.__cnt_number_bits_set()
-        log_n = math.log(1 - (float(setbits) / float(self.number_bits)))
-        tmp = float(self.number_bits) / float(self.number_hashes)
-        return int(-1 * tmp * log_n)
 
     def current_false_positive_rate(self):
         ''' Calculate the current false positive rate based on elements added
@@ -221,36 +185,9 @@ class BloomFilter(BaseBloom):
         exp = math.exp(dbl)
         return math.pow((1 - exp), self.number_hashes)
 
-    def __verify_bloom_similarity(self, second):
-        ''' can the blooms be used in intersection, union, or jaccard index '''
-        hash_match = self.number_hashes != second.number_hashes
-        same_bits = self.number_bits != second.number_bits
-        next_hash = self.hashes("test") != second.hashes("test")
-        if hash_match or same_bits or next_hash:
-            return False
-        return True
-
-    @staticmethod
-    def __verify_not_type_mismatch(second):
-        ''' verify that there is not a type mismatch '''
-        if not isinstance(second, BloomFilter):
-            raise TypeError('The parameter second must be of type BloomFilter')
-
     def _get_element(self, idx):
         ''' wrappper for getting an element from the Bloom Filter! '''
         return self._bloom[idx]
-
-    @staticmethod
-    def __cnt_set_bits(i):
-        ''' count number of bits set in this int '''
-        return bin(i).count("1")
-
-    def __cnt_number_bits_set(self):
-        ''' calculate the total number of set bits in the bloom '''
-        setbits = 0
-        for i in list(range(0, self.bloom_length)):
-            setbits += self.__cnt_set_bits(self._get_element(i))
-        return setbits
 
     @staticmethod
     def _get_set_element(tmp_bit):
@@ -258,7 +195,7 @@ class BloomFilter(BaseBloom):
         return tmp_bit
 
 
-class BloomFilterOnDisk(BloomFilter):
+class BloomFilterOnDisk(BaseBloom):
     ''' Simple Bloom Filter implementation directly on disk for use in python;
         It can read and write the same format as the c version
         (https://github.com/barrust/bloom)
@@ -287,8 +224,8 @@ class BloomFilterOnDisk(BloomFilter):
         # any exception thrown
         try:
             super(BloomFilterOnDisk,
-                  self).__init__(est_elements, false_positive_rate,
-                                 hash_function)
+                  self).__init__('reg-ondisk', est_elements,
+                                 false_positive_rate, hash_function)
         except InitializationError:
             pass
 
@@ -303,10 +240,9 @@ class BloomFilterOnDisk(BloomFilter):
             vals = super(BloomFilterOnDisk,
                          self)._set_optimized_params(est_elements, fpr, 0,
                                                      hash_function)
-            self.__hash_func = vals[0]
-            self.__fpr = vals[1]
-            self.__number_hashes = vals[2]
-            self.__num_bits = vals[3]
+            super(BloomFilterOnDisk,
+                  self).__init__('reg-ondisk', est_elements, vals[1],
+                                 hash_function=vals[0])
             # do the on disk things
             with open(filepath, 'wb') as filepointer:
                 for _ in range(self.bloom_length):
@@ -346,16 +282,13 @@ class BloomFilterOnDisk(BloomFilter):
             vals = super(BloomFilterOnDisk,
                          self)._set_optimized_params(mybytes[0], mybytes[2],
                                                      mybytes[1], hash_function)
-        self.__hash_func = vals[0]
-        self.__fpr = vals[1]
-        self.__number_hashes = vals[2]
-        self.__num_bits = vals[3]
+        super(BloomFilterOnDisk,
+              self).__init__('reg-ondisk', mybytes[0], vals[1],
+                             hash_function=vals[0])
         self.__file_pointer = open(filepath, 'r+b')
         self._bloom = mmap.mmap(self.__file_pointer.fileno(), 0)
         self._on_disk = True
         self.__filename = filepath
-        print(self.false_positive_rate, self.number_hashes, self.number_bits)
-        print(vals[1:])
 
     def export(self, filename):
         ''' Export to disk if a different location
@@ -373,6 +306,15 @@ class BloomFilterOnDisk(BloomFilter):
             copyfile(self.__filename, filename)
         # otherwise, nothing to do!
 
+    def add(self, key):
+        ''' Add the key to the Bloom Filter
+
+            Args:
+                key (str): The element to be inserted
+        '''
+        hashes = self.hashes(key)
+        self.add_alt(hashes)
+
     def add_alt(self, hashes):
         ''' Add the element represented by hashes into the Bloom Filter
 
@@ -382,8 +324,40 @@ class BloomFilterOnDisk(BloomFilter):
             Note:
                 Override function
         '''
-        super(BloomFilterOnDisk, self).add_alt(hashes)
+        for i in list(range(0, self.number_hashes)):
+            k = int(hashes[i]) % self.number_bits
+            idx = k // 8
+            j = self._get_element(idx)
+            tmp_bit = int(j) | int((1 << (k % 8)))
+            self._bloom[idx] = self._get_set_element(tmp_bit)
+        self._els_added += 1
         self.__update()
+
+    def check(self, key):
+        ''' Check if the key is likely in the Bloom Filter
+
+            Args:
+                key (str): The element to be checked
+            Returns:
+                bool: True if likely encountered, False if definately not
+        '''
+        hashes = self.hashes(key)
+        return self.check_alt(hashes)
+
+    def check_alt(self, hashes):
+        ''' Check if the element represented by hashes is in the Bloom Filter
+
+            Args:
+                hashes (list): A list of integers representing the key to \
+                check
+            Returns:
+                bool: True if likely encountered, False if definately not
+        '''
+        for i in list(range(0, self.number_hashes)):
+            k = int(hashes[i]) % self.number_bits
+            if (int(self._get_element(k // 8)) & int((1 << (k % 8)))) == 0:
+                return False
+        return True
 
     def union(self, second):
         ''' Return a new Bloom Filter that contains the union of the two
@@ -398,7 +372,11 @@ class BloomFilterOnDisk(BloomFilter):
             Note:
                 Override function
         '''
-        res = super(BloomFilterOnDisk, self).union(second)
+        res = BloomFilter(self.estimated_elements, self.false_positive_rate,
+                          hash_function=self.hash_function)
+        for i in list(range(0, self.bloom_length)):
+            res._bloom[i] = self._get_element(i) | second._get_element(i)
+        res._els_added = res.estimate_elements()
         self.__update()
         return res
 
@@ -416,7 +394,11 @@ class BloomFilterOnDisk(BloomFilter):
             Note:
                 Override function
         '''
-        res = super(BloomFilterOnDisk, self).intersection(second)
+        res = BloomFilter(self.estimated_elements, self.false_positive_rate,
+                          hash_function=self.hash_function)
+        for i in list(range(0, self.bloom_length)):
+            res._bloom[i] = self._get_element(i) & second._get_element(i)
+        res._els_added = res.estimate_elements()
         self.__update()
         return res
 
