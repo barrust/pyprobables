@@ -4,6 +4,7 @@
 * Probabilistic data structures added:
     * Counting Bloom Filter
 * Minor code clean-up
+* Re-factored Bloom Filters 
 
 ### Version 0.0.5:
 * Better on-line documentation
