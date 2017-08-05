@@ -49,11 +49,12 @@ class CountingBloomFilter(object):
         self.__hash_func = default_fnv_1a
         self._els_added = 0
         self._on_disk = False  # not on disk
-        self.__int32_t_min = -2147483648
-        self.__int32_t_max = 2147483647
-        self.__int64_t_min = -9223372036854775808
-        self.__int64_t_max = 9223372036854775807
+        # self.__int32_t_min = -2147483648
+        # self.__int32_t_max = 2147483647
+        # self.__int64_t_min = -9223372036854775808
+        # self.__int64_t_max = 9223372036854775807
         self.__uint64_t_max = 2 ** 64
+        self.__uint32_t_max = 2 ** 32
 
         if is_valid_file(filepath):
             self.__load(filepath, hash_function)
@@ -209,11 +210,13 @@ class CountingBloomFilter(object):
             Returns:
                 int: Maximum number of insertions
         '''
-        res = self.__int32_t_max
+        res = self.__uint32_t_max
         for i in list(range(0, self.number_hashes)):
             k = int(hashes[i]) % self.number_bits
             j = self._get_element(k)
-            self._bloom[k] = self._get_set_element(j + num_els)
+            tmp = j + num_els
+            if tmp <= self.__uint32_t_max:
+                self._bloom[k] = self._get_set_element(j + num_els)
             if self._bloom[k] < res:
                 res = self._bloom[k]
         self._els_added += num_els
@@ -239,14 +242,14 @@ class CountingBloomFilter(object):
             Returns:
                 int: Maximum number of insertions
         '''
-        res = self.__int32_t_max
+        res = self.__uint32_t_max
         for i in list(range(0, self.number_hashes)):
             k = int(hashes[i]) % self.number_bits
             tmp = self._get_element(k)
             if tmp < res:
                 res = tmp
         return res
-    #
+
     # def export(self, filename):
     #     ''' Export the Bloom Filter to disk
     #
@@ -353,7 +356,8 @@ class CountingBloomFilter(object):
         self.__bloom_length = self.__num_bits  # shortcut!
 
     # def __verify_bloom_similarity(self, second):
-    #     ''' can the blooms be used in intersection, union, or jaccard index '''
+    #     ''' can the blooms be used in intersection, union, or jaccard index
+    #     '''
     #     hash_match = self.number_hashes != second.number_hashes
     #     same_bits = self.number_bits != second.number_bits
     #     next_hash = self.hashes("test") != second.hashes("test")
