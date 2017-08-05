@@ -6,14 +6,12 @@
 from __future__ import (unicode_literals, absolute_import, print_function,
                         division)
 import sys
-import math
 import os
 import mmap
-from struct import (pack, unpack, calcsize, Struct)
+from struct import (pack, unpack, calcsize)
 from shutil import (copyfile)
 from . basebloom import (BaseBloom)
 from .. exceptions import (InitializationError, NotSupportedError)
-from .. hashes import (default_fnv_1a)
 from .. utilities import (is_hex_string, is_valid_file)
 
 
@@ -73,56 +71,6 @@ class BloomFilter(BaseBloom):
                             super(BloomFilter, self)._cnt_number_bits_set(),
                             on_disk)
 
-    def add(self, key):
-        ''' Add the key to the Bloom Filter
-
-            Args:
-                key (str): The element to be inserted
-        '''
-        hashes = self.hashes(key)
-        self.add_alt(hashes)
-
-    def add_alt(self, hashes):
-        ''' Add the element represented by hashes into the Bloom Filter
-
-            Args:
-                hashes (list): A list of integers representing the key to \
-                insert
-        '''
-        for i in list(range(0, self.number_hashes)):
-            k = int(hashes[i]) % self.number_bits
-            idx = k // 8
-            j = self._get_element(idx)
-            tmp_bit = int(j) | int((1 << (k % 8)))
-            self._bloom[idx] = self._get_set_element(tmp_bit)
-        self._els_added += 1
-
-    def check(self, key):
-        ''' Check if the key is likely in the Bloom Filter
-
-            Args:
-                key (str): The element to be checked
-            Returns:
-                bool: True if likely encountered, False if definately not
-        '''
-        hashes = self.hashes(key)
-        return self.check_alt(hashes)
-
-    def check_alt(self, hashes):
-        ''' Check if the element represented by hashes is in the Bloom Filter
-
-            Args:
-                hashes (list): A list of integers representing the key to \
-                check
-            Returns:
-                bool: True if likely encountered, False if definately not
-        '''
-        for i in list(range(0, self.number_hashes)):
-            k = int(hashes[i]) % self.number_bits
-            if (int(self._get_element(k // 8)) & int((1 << (k % 8)))) == 0:
-                return False
-        return True
-
     def intersection(self, second):
         ''' Return a new Bloom Filter that contains the intersection of the
             two
@@ -174,26 +122,6 @@ class BloomFilter(BaseBloom):
         res._els_added = res.estimate_elements()
         return res
 
-    def current_false_positive_rate(self):
-        ''' Calculate the current false positive rate based on elements added
-
-            Return:
-                float: The current false positive rate
-        '''
-        num = self.number_hashes * -1 * self.elements_added
-        dbl = num / float(self.number_bits)
-        exp = math.exp(dbl)
-        return math.pow((1 - exp), self.number_hashes)
-
-    def _get_element(self, idx):
-        ''' wrappper for getting an element from the Bloom Filter! '''
-        return self._bloom[idx]
-
-    @staticmethod
-    def _get_set_element(tmp_bit):
-        ''' wrappper to use similar functions always! '''
-        return tmp_bit
-
 
 class BloomFilterOnDisk(BaseBloom):
     ''' Simple Bloom Filter implementation directly on disk for use in python;
@@ -238,7 +166,7 @@ class BloomFilterOnDisk(BaseBloom):
             # no need to check the file since this will over write it
             fpr = false_positive_rate
             vals = super(BloomFilterOnDisk,
-                         self)._set_optimized_params(est_elements, fpr, 0,
+                         self)._set_optimized_params(est_elements, fpr,
                                                      hash_function)
             super(BloomFilterOnDisk,
                   self).__init__('reg-ondisk', est_elements, vals[1],
@@ -281,7 +209,7 @@ class BloomFilterOnDisk(BaseBloom):
             mybytes = unpack('QQf', filepointer.read(offset))
             vals = super(BloomFilterOnDisk,
                          self)._set_optimized_params(mybytes[0], mybytes[2],
-                                                     mybytes[1], hash_function)
+                                                     hash_function)
         super(BloomFilterOnDisk,
               self).__init__('reg-ondisk', mybytes[0], vals[1],
                              hash_function=vals[0])
@@ -306,58 +234,9 @@ class BloomFilterOnDisk(BaseBloom):
             copyfile(self.__filename, filename)
         # otherwise, nothing to do!
 
-    def add(self, key):
-        ''' Add the key to the Bloom Filter
-
-            Args:
-                key (str): The element to be inserted
-        '''
-        hashes = self.hashes(key)
-        self.add_alt(hashes)
-
     def add_alt(self, hashes):
-        ''' Add the element represented by hashes into the Bloom Filter
-
-            Args:
-                hashes (list): A list of integers representing the key to \
-                insert
-            Note:
-                Override function
-        '''
-        for i in list(range(0, self.number_hashes)):
-            k = int(hashes[i]) % self.number_bits
-            idx = k // 8
-            j = self._get_element(idx)
-            tmp_bit = int(j) | int((1 << (k % 8)))
-            self._bloom[idx] = self._get_set_element(tmp_bit)
-        self._els_added += 1
+        super(BloomFilterOnDisk, self).add_alt(hashes)
         self.__update()
-
-    def check(self, key):
-        ''' Check if the key is likely in the Bloom Filter
-
-            Args:
-                key (str): The element to be checked
-            Returns:
-                bool: True if likely encountered, False if definately not
-        '''
-        hashes = self.hashes(key)
-        return self.check_alt(hashes)
-
-    def check_alt(self, hashes):
-        ''' Check if the element represented by hashes is in the Bloom Filter
-
-            Args:
-                hashes (list): A list of integers representing the key to \
-                check
-            Returns:
-                bool: True if likely encountered, False if definately not
-        '''
-        for i in list(range(0, self.number_hashes)):
-            k = int(hashes[i]) % self.number_bits
-            if (int(self._get_element(k // 8)) & int((1 << (k % 8)))) == 0:
-                return False
-        return True
 
     def union(self, second):
         ''' Return a new Bloom Filter that contains the union of the two

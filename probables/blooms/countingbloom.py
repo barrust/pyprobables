@@ -5,12 +5,8 @@
 '''
 from __future__ import (unicode_literals, absolute_import, print_function,
                         division)
-from struct import (pack, unpack, calcsize, Struct)
-from binascii import (hexlify, unhexlify)
+from .. exceptions import (NotSupportedError)
 from . basebloom import (BaseBloom)
-from .. exceptions import (InitializationError)
-from .. hashes import (default_fnv_1a)
-from .. utilities import (is_hex_string, is_valid_file)
 
 
 class CountingBloomFilter(BaseBloom):
@@ -147,11 +143,14 @@ class CountingBloomFilter(BaseBloom):
                 res = tmp
         return res
 
-    def _get_element(self, idx):
-        ''' wrappper for getting an element from the bloom filter! '''
-        return self._bloom[idx]
+    def union(self, second):
+        msg = 'Union is not supported for counting blooms'
+        raise NotSupportedError(msg)
 
-    @staticmethod
-    def _get_set_element(tmp_bit):
-        ''' wrappper to use similar functions always! '''
-        return tmp_bit
+    def intersection(self, second):
+        msg = 'Intersection is not supported for counting blooms'
+        raise NotSupportedError(msg)
+
+    def jaccard_index(self, second):
+        msg = 'Jaccard Index is not supported for counting blooms'
+        raise NotSupportedError(msg)

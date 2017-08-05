@@ -10,12 +10,13 @@ import os
 from abc import (abstractmethod)
 from struct import (pack, unpack, calcsize, Struct)
 from binascii import (hexlify, unhexlify)
-from .. exceptions import (InitializationError, NotSupportedError)
+from .. exceptions import (InitializationError)
 from .. hashes import (default_fnv_1a)
 from .. utilities import (is_hex_string, is_valid_file)
 
 
 class BaseBloom(object):
+    ''' basic bloom filter object '''
     def __init__(self, blm_type, est_elements=None, false_positive_rate=None,
                  filepath=None, hex_string=None, hash_function=None):
         ''' setup the basic values needed '''
@@ -38,10 +39,10 @@ class BaseBloom(object):
         if is_valid_file(filepath):
             self.__load(blm_type, filepath, hash_function)
         elif is_hex_string(hex_string):
-            self._load_hex(blm_type, hex_string, hash_function)
+            self._load_hex(hex_string, hash_function)
         elif est_elements is not None and false_positive_rate is not None:
             vals = self._set_optimized_params(est_elements,
-                                              false_positive_rate, 0,
+                                              false_positive_rate,
                                               hash_function)
             self.__hash_func = vals[0]
             self.__fpr = vals[1]
@@ -125,6 +126,7 @@ class BaseBloom(object):
 
     @property
     def hash_function(self):
+        ''' function: the hash function used '''
         return self.__hash_func
 
     def hashes(self, key, depth=None):
@@ -140,8 +142,9 @@ class BaseBloom(object):
         tmp = depth if depth is not None else self.number_hashes
         return self.__hash_func(key, tmp)
 
-    def _set_optimized_params(self, estimated_elements, false_positive_rate,
-                              elements_added, hash_function):
+    @staticmethod
+    def _set_optimized_params(estimated_elements, false_positive_rate,
+                              hash_function):
         ''' set the parameters to the optimal sizes '''
         if hash_function is None:
             tmp_hash = default_fnv_1a
@@ -167,7 +170,7 @@ class BaseBloom(object):
             filepointer.seek(offset * -1, os.SEEK_END)
             mybytes = unpack('QQf', filepointer.read(offset))
             vals = self._set_optimized_params(mybytes[0], mybytes[2],
-                                              mybytes[1], hash_function)
+                                              hash_function)
             self.__hash_func = vals[0]
             self.__fpr = vals[1]
             self.__number_hashes = vals[2]
@@ -184,18 +187,18 @@ class BaseBloom(object):
             rep = impt_type * self.bloom_length
             self._bloom = list(unpack(rep, filepointer.read(offset)))
 
-    def _load_hex(self, blm_type, hex_string, hash_function=None):
+    def _load_hex(self, hex_string, hash_function=None):
         ''' placeholder for loading from hex string '''
         offset = calcsize('>QQf') * 2
         stct = Struct('>QQf')
         tmp_data = stct.unpack_from(unhexlify(hex_string[-offset:]))
         vals = self._set_optimized_params(tmp_data[0], tmp_data[2],
-                                          tmp_data[1], hash_function)
+                                          hash_function)
         self.__hash_func = vals[0]
         self.__fpr = vals[1]
         self.__number_hashes = vals[2]
         self.__num_bits = vals[3]
-        if blm_type in ['regular', 'reg-ondisk']:
+        if self.__blm_type in ['regular', 'reg-ondisk']:
             impt_type = 'B'
             self.__bloom_length = int(math.ceil(self.__num_bits / 8.0))
         else:
@@ -284,28 +287,74 @@ class BaseBloom(object):
             setbits += self.__cnt_set_bits(self._get_element(i))
         return setbits
 
-    @abstractmethod
+    def _get_element(self, idx):
+        ''' wrappper for getting an element from the Bloom Filter! '''
+        return self._bloom[idx]
+
+    @staticmethod
+    def _get_set_element(tmp_bit):
+        ''' wrappper to use similar functions always! '''
+        return tmp_bit
+
     def add(self, key):
-        pass
+        ''' Add the key to the Bloom Filter
 
-    @abstractmethod
+            Args:
+                key (str): The element to be inserted
+        '''
+        hashes = self.hashes(key)
+        self.add_alt(hashes)
+
     def add_alt(self, hashes):
-        pass
+        ''' Add the element represented by hashes into the Bloom Filter
 
-    @abstractmethod
+            Args:
+                hashes (list): A list of integers representing the key to \
+                insert
+        '''
+        for i in list(range(0, self.number_hashes)):
+            k = int(hashes[i]) % self.number_bits
+            idx = k // 8
+            j = self._get_element(idx)
+            tmp_bit = int(j) | int((1 << (k % 8)))
+            self._bloom[idx] = self._get_set_element(tmp_bit)
+        self._els_added += 1
+
     def check(self, key):
-        pass
+        ''' Check if the key is likely in the Bloom Filter
 
-    @abstractmethod
+            Args:
+                key (str): The element to be checked
+            Returns:
+                bool: True if likely encountered, False if definately not
+        '''
+        hashes = self.hashes(key)
+        return self.check_alt(hashes)
+
     def check_alt(self, hashes):
-        pass
+        ''' Check if the element represented by hashes is in the Bloom Filter
+
+            Args:
+                hashes (list): A list of integers representing the key to \
+                check
+            Returns:
+                bool: True if likely encountered, False if definately not
+        '''
+        for i in list(range(0, self.number_hashes)):
+            k = int(hashes[i]) % self.number_bits
+            if (int(self._get_element(k // 8)) & int((1 << (k % 8)))) == 0:
+                return False
+        return True
 
     @abstractmethod
     def union(self, second):
+        ''' Return a new Bloom Filter that contains the union of the two '''
         pass
 
     @abstractmethod
     def intersection(self, second):
+        ''' Return a new Bloom Filter that contains the intersection of the
+            two '''
         pass
 
     def jaccard_index(self, second):
