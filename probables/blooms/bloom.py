@@ -14,6 +14,22 @@ from . basebloom import (BaseBloom)
 from .. exceptions import (InitializationError, NotSupportedError)
 from .. utilities import (is_hex_string, is_valid_file)
 
+MISMATCH_MSG = ('The parameter second must be of type BloomFilter or '
+                'a BloomFilterOnDisk')
+
+
+def verify_not_type_mismatch(second):
+    ''' verify that there is not a type mismatch '''
+    if not isinstance(second, (BloomFilter, BloomFilterOnDisk)):
+        return False
+    else:
+        return True
+
+
+def cnt_set_bits(i):
+    ''' count number of bits set in this int '''
+    return bin(i).count("1")
+
 
 class BloomFilter(BaseBloom):
     ''' Simple Bloom Filter implementation for use in python;
@@ -85,7 +101,8 @@ class BloomFilter(BaseBloom):
             Note:
                 `second` may be a BloomFilterOnDisk object
         '''
-        super(BloomFilter, self)._verify_not_type_mismatch(second)
+        if not verify_not_type_mismatch(second):
+            raise TypeError(MISMATCH_MSG)
 
         if super(BloomFilter, self)._verify_bloom_similarity(second) is False:
             return None
@@ -110,7 +127,8 @@ class BloomFilter(BaseBloom):
             Note:
                 `second` may be a BloomFilterOnDisk object
         '''
-        super(BloomFilter, self)._verify_not_type_mismatch(second)
+        if not verify_not_type_mismatch(second):
+            raise TypeError(MISMATCH_MSG)
 
         if super(BloomFilter, self)._verify_bloom_similarity(second) is False:
             return None
@@ -121,6 +139,41 @@ class BloomFilter(BaseBloom):
             res.bloom[i] = self._get_element(i) | second._get_element(i)
         res.elements_added = res.estimate_elements()
         return res
+
+    def jaccard_index(self, second):
+        ''' Calculate the jaccard similarity score between two Bloom Filters
+
+            Args:
+                second (BloomFilter): The Bloom Filter to compare with
+            Returns:
+                float: A numeric value between 0 and 1 where 1 is identical \
+                and 0 means completely different
+            Note:
+                `second` may be a BloomFilterOnDisk object
+        '''
+        if not verify_not_type_mismatch(second):
+            raise TypeError(MISMATCH_MSG)
+
+        if super(BloomFilter,
+                 self)._verify_bloom_similarity(second) is False:
+            return None
+        count_union = 0
+        count_int = 0
+        for i in list(range(0, self.bloom_length)):
+            t_union = self._get_element(i) | second._get_element(i)
+            t_intersection = self._get_element(i) & second._get_element(i)
+            count_union += cnt_set_bits(t_union)
+            count_int += cnt_set_bits(t_intersection)
+        if count_union == 0:
+            return 1.0
+        return count_int / count_union
+
+    def _cnt_number_bits_set(self):
+        ''' calculate the total number of set bits in the bloom '''
+        setbits = 0
+        for i in list(range(0, self.bloom_length)):
+            setbits += cnt_set_bits(self._get_element(i))
+        return setbits
 
 
 class BloomFilterOnDisk(BaseBloom):
@@ -226,8 +279,7 @@ class BloomFilterOnDisk(BaseBloom):
                 be exported
             Note:
                 Only exported if the filename is not the original filename
-            Note:
-                Override function '''
+        '''
         self.__update()
         if filename != self.__filename:
             # setup the new bloom filter
@@ -247,10 +299,15 @@ class BloomFilterOnDisk(BaseBloom):
             Returns:
                 BloomFilter: The new Bloom Filter containing the union
             Note:
-                `second` may be a BloomFilterOnDisk object
-            Note:
-                Override function
+                `second` may be a BloomFilter object
         '''
+        if not verify_not_type_mismatch(second):
+            raise TypeError(MISMATCH_MSG)
+
+        if super(BloomFilterOnDisk,
+                 self)._verify_bloom_similarity(second) is False:
+            return None
+
         res = BloomFilter(self.estimated_elements, self.false_positive_rate,
                           hash_function=self.hash_function)
         for i in list(range(0, self.bloom_length)):
@@ -268,16 +325,49 @@ class BloomFilterOnDisk(BaseBloom):
             Returns:
                 BloomFilter: The new Bloom Filter containing the intersection
             Note:
-                `second` may be a BloomFilterOnDisk object
-            Note:
-                Override function
+                `second` may be a BloomFilter object
         '''
+        if not verify_not_type_mismatch(second):
+            raise TypeError(MISMATCH_MSG)
+
+        if super(BloomFilterOnDisk,
+                 self)._verify_bloom_similarity(second) is False:
+            return None
+
         res = BloomFilter(self.estimated_elements, self.false_positive_rate,
                           hash_function=self.hash_function)
         for i in list(range(0, self.bloom_length)):
             res.bloom[i] = self._get_element(i) & second._get_element(i)
         res.elements_added = res.estimate_elements()
         return res
+
+    def jaccard_index(self, second):
+        ''' Calculate the jaccard similarity score between two Bloom Filters
+
+            Args:
+                second (BloomFilter): The Bloom Filter to compare with
+            Returns:
+                float: A numeric value between 0 and 1 where 1 is identical \
+                and 0 means completely different
+            Note:
+                `second` may be a BloomFilter object
+        '''
+        if not verify_not_type_mismatch(second):
+            raise TypeError(MISMATCH_MSG)
+
+        if super(BloomFilterOnDisk,
+                 self)._verify_bloom_similarity(second) is False:
+            return None
+        count_union = 0
+        count_int = 0
+        for i in list(range(0, self.bloom_length)):
+            t_union = self._get_element(i) | second._get_element(i)
+            t_intersection = self._get_element(i) & second._get_element(i)
+            count_union += cnt_set_bits(t_union)
+            count_int += cnt_set_bits(t_intersection)
+        if count_union == 0:
+            return 1.0
+        return count_int / count_union
 
     def export_hex(self):
         ''' Export to a hex string
@@ -317,3 +407,10 @@ class BloomFilterOnDisk(BaseBloom):
         self.__file_pointer.seek(-self.__export_offset, os.SEEK_END)
         self.__file_pointer.write(pack('Q', self.elements_added))
         self.__file_pointer.flush()
+
+    def _cnt_number_bits_set(self):
+        ''' calculate the total number of set bits in the bloom '''
+        setbits = 0
+        for i in list(range(0, self.bloom_length)):
+            setbits += cnt_set_bits(self._get_element(i))
+        return setbits

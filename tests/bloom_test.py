@@ -143,7 +143,8 @@ class TestBloomFilter(unittest.TestCase):
 
     def test_bf_jaccard_invalid_msg(self):
         ''' check invalid type in a jaccard index message '''
-        msg = 'The parameter second must be of type BloomFilter'
+        msg = ('The parameter second must be of type BloomFilter or '
+               'a BloomFilterOnDisk')
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         blm.add('this is a test')
         try:
@@ -159,7 +160,8 @@ class TestBloomFilter(unittest.TestCase):
 
     def test_bf_union_invalid_msg(self):
         ''' check invalid type in a union message '''
-        msg = 'The parameter second must be of type BloomFilter'
+        msg = ('The parameter second must be of type BloomFilter or '
+               'a BloomFilterOnDisk')
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         blm.add('this is a test')
         try:
@@ -175,7 +177,8 @@ class TestBloomFilter(unittest.TestCase):
 
     def test_bf_intersec_invalid_msg(self):
         ''' check invalid type in a intersection message '''
-        msg = 'The parameter second must be of type BloomFilter'
+        msg = ('The parameter second must be of type BloomFilter or '
+               'a BloomFilterOnDisk')
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         blm.add('this is a test')
         try:

@@ -274,3 +274,34 @@ class TestCountingBloomFilter(unittest.TestCase):
             blm1.jaccard_index(blm2)
         except NotSupportedError as ex:
             self.assertEqual(str(ex), msg)
+
+    def test_cbf_remove(self):
+        ''' test to see if the remove functionality works correctly '''
+        blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        self.assertEqual(blm.elements_added, 0)
+        blm.add('this is a test 0')
+        blm.add('this is a test 1')
+        blm.add('this is a test 2')
+        blm.add('this is a test 3')
+        blm.add('this is a test 4')
+        self.assertEqual(blm.elements_added, 5)
+        res = blm.remove('this is a test 0')
+        self.assertEqual(blm.elements_added, 4)
+        self.assertEqual(res, 0)
+        blm.remove('this is a test 0')
+        self.assertEqual(blm.elements_added, 4)
+        self.assertEqual(res, 0)
+
+    def test_cbf_remove_mult(self):
+        ''' test to see if the remove multiples functionality works correctly
+        '''
+        blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        self.assertEqual(blm.elements_added, 0)
+        blm.add('this is a test 0', 15)
+        self.assertEqual(blm.elements_added, 15)
+        res = blm.remove('this is a test 0', 11)
+        self.assertEqual(blm.elements_added, 4)
+        self.assertEqual(res, 4)
+        res = blm.remove('this is a test 0', 10)
+        self.assertEqual(blm.elements_added, 0)
+        self.assertEqual(res, 0)

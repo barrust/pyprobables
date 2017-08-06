@@ -369,31 +369,9 @@ class BaseBloom(object):
             two '''
         pass
 
+    @abstractmethod
     def jaccard_index(self, second):
-        ''' Calculate the jaccard similarity score between two Bloom Filters
-
-            Args:
-                second (BloomFilter): The Bloom Filter to compare with
-            Returns:
-                float: A numeric value between 0 and 1 where 1 is identical \
-                and 0 means completely different
-            Note:
-                `second` may be a BloomFilterOnDisk object
-        '''
-        self._verify_not_type_mismatch(second)
-
-        if self._verify_bloom_similarity(second) is False:
-            return None
-        count_union = 0
-        count_int = 0
-        for i in list(range(0, self.bloom_length)):
-            t_union = self._get_element(i) | second._get_element(i)
-            t_intersection = self._get_element(i) & second._get_element(i)
-            count_union += self.__cnt_set_bits(t_union)
-            count_int += self.__cnt_set_bits(t_intersection)
-        if count_union == 0:
-            return 1.0
-        return count_int / count_union
+        ''' Return a the Jaccard Similarity score between two bloom filters '''
 
     def _verify_bloom_similarity(self, second):
         ''' can the blooms be used in intersection, union, or jaccard index '''
@@ -403,9 +381,3 @@ class BaseBloom(object):
         if hash_match or same_bits or next_hash:
             return False
         return True
-
-    @staticmethod
-    def _verify_not_type_mismatch(second):
-        ''' verify that there is not a type mismatch '''
-        if not isinstance(second, BaseBloom):
-            raise TypeError('The parameter second must be of type BloomFilter')
