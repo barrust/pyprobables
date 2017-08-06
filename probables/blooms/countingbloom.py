@@ -113,6 +113,8 @@ class CountingBloomFilter(BaseBloom):
             if self._bloom[k] < res:
                 res = self._bloom[k]
         self.elements_added += num_els
+        if self.elements_added > self.__uint32_t_max:
+            self.elements_added = self.__uint32_t_max
         return res
 
     def check(self, key):

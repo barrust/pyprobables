@@ -372,6 +372,7 @@ class BaseBloom(object):
     @abstractmethod
     def jaccard_index(self, second):
         ''' Return a the Jaccard Similarity score between two bloom filters '''
+        pass
 
     def _verify_bloom_similarity(self, second):
         ''' can the blooms be used in intersection, union, or jaccard index '''

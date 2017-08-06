@@ -559,3 +559,44 @@ class TestBloomFilterOnDisk(unittest.TestCase):
             self.assertEqual(blm._get_element(idx), 0)
 
         os.remove(filename)
+
+    def test_bfod_union_diff(self):
+        ''' make sure checking for different bloom filters on disk works union
+        '''
+        filename = 'tmp.blm'
+        blm = BloomFilterOnDisk(filename, est_elements=10, false_positive_rate=0.05)
+        blm.add('this is a test')
+        blm2 = BloomFilter(est_elements=10, false_positive_rate=0.05,
+                           hash_function=different_hash)
+
+        blm3 = blm.union(blm2)
+        self.assertEqual(blm3, None)
+        os.remove(filename)
+
+    def test_bfod_intersection_diff(self):
+        ''' make sure checking for different bloom filters on disk works
+            intersection
+        '''
+        filename = 'tmp.blm'
+        blm = BloomFilterOnDisk(filename, est_elements=10, false_positive_rate=0.05)
+        blm.add('this is a test')
+        blm2 = BloomFilter(est_elements=10, false_positive_rate=0.05,
+                           hash_function=different_hash)
+
+        blm3 = blm.intersection(blm2)
+        self.assertEqual(blm3, None)
+        os.remove(filename)
+
+    def test_bfod_jaccard_diff(self):
+        ''' make sure checking for different bloom filters on disk works
+            jaccard
+        '''
+        filename = 'tmp.blm'
+        blm = BloomFilterOnDisk(filename, est_elements=10, false_positive_rate=0.05)
+        blm.add('this is a test')
+        blm2 = BloomFilter(est_elements=10, false_positive_rate=0.05,
+                           hash_function=different_hash)
+
+        blm3 = blm.jaccard_index(blm2)
+        self.assertEqual(blm3, None)
+        os.remove(filename)
