@@ -36,7 +36,6 @@ class CountingBloomFilter(BaseBloom):
                                                   false_positive_rate,
                                                   filepath, hex_string,
                                                   hash_function)
-        self.__uint64_t_max = 2 ** 64 - 1
         self.__uint32_t_max = 2 ** 32 - 1
 
     def __str__(self):
