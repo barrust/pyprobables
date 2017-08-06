@@ -93,8 +93,8 @@ class BloomFilter(BaseBloom):
                           hash_function=self.hash_function)
 
         for i in list(range(0, self.bloom_length)):
-            res._bloom[i] = self._get_element(i) & second._get_element(i)
-        res._els_added = res.estimate_elements()
+            res.bloom[i] = self._get_element(i) & second._get_element(i)
+        res.elements_added = res.estimate_elements()
         return res
 
     def union(self, second):
@@ -118,8 +118,8 @@ class BloomFilter(BaseBloom):
                           hash_function=self.hash_function)
 
         for i in list(range(0, self.bloom_length)):
-            res._bloom[i] = self._get_element(i) | second._get_element(i)
-        res._els_added = res.estimate_elements()
+            res.bloom[i] = self._get_element(i) | second._get_element(i)
+        res.elements_added = res.estimate_elements()
         return res
 
 
@@ -254,8 +254,8 @@ class BloomFilterOnDisk(BaseBloom):
         res = BloomFilter(self.estimated_elements, self.false_positive_rate,
                           hash_function=self.hash_function)
         for i in list(range(0, self.bloom_length)):
-            res._bloom[i] = self._get_element(i) | second._get_element(i)
-        res._els_added = res.estimate_elements()
+            res.bloom[i] = self._get_element(i) | second._get_element(i)
+        res.elements_added = res.estimate_elements()
         return res
 
     def intersection(self, second):
@@ -275,8 +275,8 @@ class BloomFilterOnDisk(BaseBloom):
         res = BloomFilter(self.estimated_elements, self.false_positive_rate,
                           hash_function=self.hash_function)
         for i in list(range(0, self.bloom_length)):
-            res._bloom[i] = self._get_element(i) & second._get_element(i)
-        res._els_added = res.estimate_elements()
+            res.bloom[i] = self._get_element(i) & second._get_element(i)
+        res.elements_added = res.estimate_elements()
         return res
 
     def export_hex(self):

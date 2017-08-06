@@ -109,8 +109,14 @@ class BaseBloom(object):
         ''' int: Number of elements added to the Bloom Filter
 
         Note:
-            Not settable '''
+            Changing this can cause the current false positive rate to \
+            be reported incorrectly '''
         return self._els_added
+
+    @elements_added.setter
+    def elements_added(self, val):
+        ''' set the els added '''
+        self._els_added = val
 
     @property
     def is_on_disk(self):
@@ -127,6 +133,11 @@ class BaseBloom(object):
         Note:
             Not settable '''
         return self.__bloom_length
+
+    @property
+    def bloom(self):
+        ''' list(int): The bit/int array '''
+        return self._bloom
 
     @property
     def hash_function(self):
@@ -221,10 +232,10 @@ class BaseBloom(object):
         mybytes = pack('>QQf', self.estimated_elements,
                        self.elements_added, self.false_positive_rate)
         if self.__blm_type in ['regular', 'reg-ondisk']:
-            bytes_string = hexlify(bytearray(self._bloom)) + hexlify(mybytes)
+            bytes_string = hexlify(bytearray(self.bloom)) + hexlify(mybytes)
         else:
             bytes_string = b''
-            for val in self._bloom:
+            for val in self.bloom:
                 bytes_string += hexlify(pack(self.__impt_type, val))
             bytes_string += hexlify(mybytes)
         if sys.version_info > (3, 0):  # python 3 gives us bytes
@@ -240,7 +251,7 @@ class BaseBloom(object):
         '''
         with open(filename, 'wb') as filepointer:
             rep = self.__impt_type * self.bloom_length
-            filepointer.write(pack(rep, *self._bloom))
+            filepointer.write(pack(rep, *self.bloom))
             filepointer.write(pack('QQf', self.estimated_elements,
                                    self.elements_added,
                                    self.false_positive_rate))
