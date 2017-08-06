@@ -55,7 +55,7 @@ class CountMinSketch(object):
         self.__int32_t_max = 2147483647
         self.__int64_t_min = -9223372036854775808
         self.__int64_t_max = 9223372036854775807
-        self.__uint64_t_max = 2 ** 64
+        self.__uint64_t_max = 2 ** 64 - 1
 
         if is_valid_file(filepath):
             self.__load(filepath)

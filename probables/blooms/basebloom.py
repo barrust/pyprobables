@@ -29,6 +29,10 @@ class BaseBloom(object):
         self._els_added = 0
         self._on_disk = False  # not on disk
         self.__blm_type = blm_type
+        if self.__blm_type in ['regular', 'reg-ondisk']:
+            self.__impt_type = 'B'
+        else:
+            self.__impt_type = 'I'
 
         if blm_type in ['regular', 'reg-ondisk']:
             msg = ('Insufecient parameters to set up the Bloom Filter')
@@ -179,15 +183,13 @@ class BaseBloom(object):
             self.__number_hashes = vals[2]
             self.__num_bits = vals[3]
             if blm_type in ['regular', 'reg-ondisk']:
-                impt_type = 'B'
                 self.__bloom_length = int(math.ceil(self.__num_bits / 8.0))
             else:
-                impt_type = 'I'
                 self.__bloom_length = self.number_bits
             # now read in the bit array!
             filepointer.seek(0, os.SEEK_SET)
-            offset = calcsize(impt_type) * self.bloom_length
-            rep = impt_type * self.bloom_length
+            offset = calcsize(self.__impt_type) * self.bloom_length
+            rep = self.__impt_type * self.bloom_length
             self._bloom = list(unpack(rep, filepointer.read(offset)))
 
     def _load_hex(self, hex_string, hash_function=None):
@@ -202,14 +204,12 @@ class BaseBloom(object):
         self.__number_hashes = vals[2]
         self.__num_bits = vals[3]
         if self.__blm_type in ['regular', 'reg-ondisk']:
-            impt_type = 'B'
             self.__bloom_length = int(math.ceil(self.__num_bits / 8.0))
         else:
-            impt_type = 'B'
             self.__bloom_length = self.number_bits
 
         tmp_bloom = unhexlify(hex_string[:-offset])
-        rep = impt_type * self.bloom_length
+        rep = self.__impt_type * self.bloom_length
         self._bloom = list(unpack(rep, tmp_bloom))
 
     def export_hex(self):
@@ -220,7 +220,13 @@ class BaseBloom(object):
         '''
         mybytes = pack('>QQf', self.estimated_elements,
                        self.elements_added, self.false_positive_rate)
-        bytes_string = hexlify(bytearray(self._bloom)) + hexlify(mybytes)
+        if self.__blm_type in ['regular', 'reg-ondisk']:
+            bytes_string = hexlify(bytearray(self._bloom)) + hexlify(mybytes)
+        else:
+            bytes_string = b''
+            for val in self._bloom:
+                bytes_string += hexlify(pack(self.__impt_type, val))
+            bytes_string += hexlify(mybytes)
         if sys.version_info > (3, 0):  # python 3 gives us bytes
             return str(bytes_string, 'utf-8')
         return bytes_string
@@ -233,11 +239,7 @@ class BaseBloom(object):
                 be written.
         '''
         with open(filename, 'wb') as filepointer:
-            if self.__blm_type == 'regular' or self.__blm_type is 'regular':
-                impt_type = 'B'
-            else:
-                impt_type = 'I'
-            rep = impt_type * self.bloom_length
+            rep = self.__impt_type * self.bloom_length
             filepointer.write(pack(rep, *self._bloom))
             filepointer.write(pack('QQf', self.estimated_elements,
                                    self.elements_added,
@@ -249,11 +251,7 @@ class BaseBloom(object):
             Returns:
                 int: Size of the Bloom Filter when exported to disk
         '''
-        if self.__blm_type == 'regular' or self.__blm_type is 'regular':
-            impt_type = 'B'
-        else:
-            impt_type = 'I'
-        tmp_b = calcsize(impt_type)
+        tmp_b = calcsize(self.__impt_type)
         return (self.bloom_length * tmp_b) + calcsize('QQf')
 
     def current_false_positive_rate(self):

@@ -36,8 +36,8 @@ class CountingBloomFilter(BaseBloom):
                                                   false_positive_rate,
                                                   filepath, hex_string,
                                                   hash_function)
-        self.__uint64_t_max = 2 ** 64
-        self.__uint32_t_max = 2 ** 32
+        self.__uint64_t_max = 2 ** 64 - 1
+        self.__uint32_t_max = 2 ** 32 - 1
 
     def __str__(self):
         ''' correctly handle python 3 vs python2 encoding if necessary '''
@@ -109,6 +109,8 @@ class CountingBloomFilter(BaseBloom):
             tmp = j + num_els
             if tmp <= self.__uint32_t_max:
                 self._bloom[k] = self._get_set_element(j + num_els)
+            else:
+                self._bloom[k] = self.__uint32_t_max
             if self._bloom[k] < res:
                 res = self._bloom[k]
         self._els_added += num_els
