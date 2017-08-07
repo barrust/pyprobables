@@ -1,8 +1,10 @@
 # PyProbables Changelog
 
 ### Version 0.0.7:
-* Fix counting bloom hex export / import
-* Fix for overflow issue in counting bloom export
+* Counting Bloom Filter
+    * Fix counting bloom hex export / import
+    * Fix for overflow issue in counting bloom export
+    * Added ability to remove from counting bloom
 
 ### Version 0.0.6:
 * Probabilistic data structures added:
