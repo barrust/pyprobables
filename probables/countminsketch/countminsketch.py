@@ -53,6 +53,8 @@ class CountMinSketch(object):
         # for python2 and python3 support
         self.__int32_t_min = -2147483648
         self.__int32_t_max = 2147483647
+        self.__int64_t_min = -9223372036854775808
+        self.__int64_t_max = 9223372036854775807
 
         if is_valid_file(filepath):
             self.__load(filepath)
@@ -219,8 +221,8 @@ class CountMinSketch(object):
             res.append(self._bins[t_bin])
         self.__elements_added += num_els
 
-        if self.__elements_added > self.__int32_t_max:
-            self.__elements_added = self.__int32_t_max
+        if self.__elements_added > self.__int64_t_max:
+            self.__elements_added = self.__int64_t_max
         return self.__query_method(sorted(res))
 
     def remove(self, key, num_els=1):
@@ -254,8 +256,8 @@ class CountMinSketch(object):
                 self._bins[t_bin] = self.__int32_t_min
             res.append(self._bins[t_bin])
         self.__elements_added -= num_els
-        if self.__elements_added < self.__int32_t_min:
-            self.__elements_added = self.__int32_t_max
+        if self.__elements_added < self.__int64_t_min:
+            self.__elements_added = self.__int64_t_min
 
         return self.__query_method(sorted(res))
 

@@ -5,6 +5,8 @@
     * Fix counting bloom hex export / import
     * Fix for overflow issue in counting bloom export
     * Added ability to remove from counting bloom
+* Count-Min Sketch
+    * Fix for not recording large numbers of inserts and deletions correctly
 
 ### Version 0.0.6:
 * Probabilistic data structures added:

@@ -235,18 +235,20 @@ class TestCountMinSketch(unittest.TestCase):
     def test_cms_min_val(self):
         ''' test when we come to the bottom of the 32 bit int
             (stop overflow) '''
+        too_large = 2 ** 31
         cms = CountMinSketch(width=1000, depth=5)
-        cms.remove('this is a test', 2147483648 + 1)
-        self.assertEqual(cms.check('this is a test'), -2147483648)
-        self.assertEqual(cms.elements_added, 2147483647)
+        cms.remove('this is a test', too_large + 1)
+        self.assertEqual(cms.check('this is a test'), -too_large)
+        self.assertEqual(cms.elements_added, -too_large - 1)
 
     def test_cms_max_val(self):
         ''' test when we come to the top of the 32 bit int
             (stop overflow) '''
+        too_large = 2 ** 31
         cms = CountMinSketch(width=1000, depth=5)
-        cms.add('this is a test', 2147483647 + 1)
-        self.assertEqual(cms.check('this is a test'), 2147483647)
-        self.assertEqual(cms.elements_added, 2147483647)
+        cms.add('this is a test', too_large)
+        self.assertEqual(cms.check('this is a test'), too_large - 1)
+        self.assertEqual(cms.elements_added, too_large)
 
     def test_cms_clear(self):
         ''' test the clear functionality '''
