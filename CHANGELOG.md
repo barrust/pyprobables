@@ -1,10 +1,18 @@
 # PyProbables Changelog
 
+### Version 0.0.7:
+* Counting Bloom Filter
+    * Fix counting bloom hex export / import
+    * Fix for overflow issue in counting bloom export
+    * Added ability to remove from counting bloom
+* Count-Min Sketch
+    * Fix for not recording large numbers of inserts and deletions correctly
+
 ### Version 0.0.6:
 * Probabilistic data structures added:
     * Counting Bloom Filter
 * Minor code clean-up
-* Re-factored Bloom Filters 
+* Re-factored Bloom Filters
 
 ### Version 0.0.5:
 * Better on-line documentation

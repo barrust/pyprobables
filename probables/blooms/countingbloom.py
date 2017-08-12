@@ -36,8 +36,8 @@ class CountingBloomFilter(BaseBloom):
                                                   false_positive_rate,
                                                   filepath, hex_string,
                                                   hash_function)
-        self.__uint64_t_max = 2 ** 64
-        self.__uint32_t_max = 2 ** 32
+        self.__uint32_t_max = 2**32 - 1
+        self.__uint64_t_max = 2**64 - 1
 
     def __str__(self):
         ''' correctly handle python 3 vs python2 encoding if necessary '''
@@ -109,9 +109,13 @@ class CountingBloomFilter(BaseBloom):
             tmp = j + num_els
             if tmp <= self.__uint32_t_max:
                 self._bloom[k] = self._get_set_element(j + num_els)
+            else:
+                self._bloom[k] = self.__uint32_t_max
             if self._bloom[k] < res:
                 res = self._bloom[k]
-        self._els_added += num_els
+        self.elements_added += num_els
+        if self.elements_added > self.__uint64_t_max:
+            self.elements_added = self.__uint64_t_max
         return res
 
     def check(self, key):
@@ -143,14 +147,82 @@ class CountingBloomFilter(BaseBloom):
                 res = tmp
         return res
 
+    def remove(self, key, num_els=1):
+        ''' Remove the element from the counting bloom
+
+            Args:
+                key (str): The element to be removed
+                num_els (int): Number of times to remove the element
+            Returns:
+                int: Maximum number of insertions after the removal
+        '''
+        hashes = self.hashes(key)
+        return self.remove_alt(hashes, num_els)
+
+    def remove_alt(self, hashes, num_els=1):
+        ''' Remvoe the element represented by hashes from the Counting Bloom \
+            Filter
+
+            Args:
+                hashes (list): A list of integers representing the key to \
+                remove
+                num_els (int): Number of times to remove the element
+            Returns:
+                int: Maximum number of insertions after the removal
+        '''
+        tmp = self.check_alt(hashes)
+        if tmp == self.__uint32_t_max:  # cannot remove if we have hit the max
+            return self.__uint32_t_max
+        elif tmp == 0:
+            return 0
+
+        # determine how many we can actually remove
+        if tmp - num_els < 0:
+            t_num_els = tmp
+        else:
+            t_num_els = num_els
+        for i in list(range(self.number_hashes)):
+            k = int(hashes[i]) % self.number_bits
+            j = self._get_element(k)
+            self._bloom[k] = self._get_set_element(j - t_num_els)
+        self.elements_added -= t_num_els
+        return tmp - t_num_els
+
     def union(self, second):
+        ''' Union two Counting Bloom Filters together
+
+            Args:
+                second (CountingBloomFilter): The Bloom Filter with which to \
+                take the union
+            Raises:
+                NotSupportedError: This functionality is currently not \
+                supported
+        '''
         msg = 'Union is not supported for counting blooms'
         raise NotSupportedError(msg)
 
     def intersection(self, second):
+        ''' Take the intersection of two Counting Bloom Filters
+
+            Args:
+                second (CountingBloomFilter): The Bloom Filter with which to \
+                take the intersection
+            Raises:
+                NotSupportedError: This functionality is currently not \
+                supported
+        '''
         msg = 'Intersection is not supported for counting blooms'
         raise NotSupportedError(msg)
 
     def jaccard_index(self, second):
+        ''' Take the Jaccard Index of two Counting Bloom Filters
+
+            Args:
+                second (CountingBloomFilter): The Bloom Filter with which to \
+                take the jaccard index
+            Raises:
+                NotSupportedError: This functionality is currently not \
+                supported
+        '''
         msg = 'Jaccard Index is not supported for counting blooms'
         raise NotSupportedError(msg)

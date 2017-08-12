@@ -29,6 +29,10 @@ class BaseBloom(object):
         self._els_added = 0
         self._on_disk = False  # not on disk
         self.__blm_type = blm_type
+        if self.__blm_type in ['regular', 'reg-ondisk']:
+            self.__impt_type = 'B'
+        else:
+            self.__impt_type = 'I'
 
         if blm_type in ['regular', 'reg-ondisk']:
             msg = ('Insufecient parameters to set up the Bloom Filter')
@@ -105,8 +109,14 @@ class BaseBloom(object):
         ''' int: Number of elements added to the Bloom Filter
 
         Note:
-            Not settable '''
+            Changing this can cause the current false positive rate to \
+            be reported incorrectly '''
         return self._els_added
+
+    @elements_added.setter
+    def elements_added(self, val):
+        ''' set the els added '''
+        self._els_added = val
 
     @property
     def is_on_disk(self):
@@ -123,6 +133,11 @@ class BaseBloom(object):
         Note:
             Not settable '''
         return self.__bloom_length
+
+    @property
+    def bloom(self):
+        ''' list(int): The bit/int array '''
+        return self._bloom
 
     @property
     def hash_function(self):
@@ -179,15 +194,13 @@ class BaseBloom(object):
             self.__number_hashes = vals[2]
             self.__num_bits = vals[3]
             if blm_type in ['regular', 'reg-ondisk']:
-                impt_type = 'B'
                 self.__bloom_length = int(math.ceil(self.__num_bits / 8.0))
             else:
-                impt_type = 'I'
                 self.__bloom_length = self.number_bits
             # now read in the bit array!
             filepointer.seek(0, os.SEEK_SET)
-            offset = calcsize(impt_type) * self.bloom_length
-            rep = impt_type * self.bloom_length
+            offset = calcsize(self.__impt_type) * self.bloom_length
+            rep = self.__impt_type * self.bloom_length
             self._bloom = list(unpack(rep, filepointer.read(offset)))
 
     def _load_hex(self, hex_string, hash_function=None):
@@ -202,14 +215,12 @@ class BaseBloom(object):
         self.__number_hashes = vals[2]
         self.__num_bits = vals[3]
         if self.__blm_type in ['regular', 'reg-ondisk']:
-            impt_type = 'B'
             self.__bloom_length = int(math.ceil(self.__num_bits / 8.0))
         else:
-            impt_type = 'B'
             self.__bloom_length = self.number_bits
 
         tmp_bloom = unhexlify(hex_string[:-offset])
-        rep = impt_type * self.bloom_length
+        rep = self.__impt_type * self.bloom_length
         self._bloom = list(unpack(rep, tmp_bloom))
 
     def export_hex(self):
@@ -220,7 +231,13 @@ class BaseBloom(object):
         '''
         mybytes = pack('>QQf', self.estimated_elements,
                        self.elements_added, self.false_positive_rate)
-        bytes_string = hexlify(bytearray(self._bloom)) + hexlify(mybytes)
+        if self.__blm_type in ['regular', 'reg-ondisk']:
+            bytes_string = hexlify(bytearray(self.bloom)) + hexlify(mybytes)
+        else:
+            bytes_string = b''
+            for val in self.bloom:
+                bytes_string += hexlify(pack(self.__impt_type, val))
+            bytes_string += hexlify(mybytes)
         if sys.version_info > (3, 0):  # python 3 gives us bytes
             return str(bytes_string, 'utf-8')
         return bytes_string
@@ -233,12 +250,8 @@ class BaseBloom(object):
                 be written.
         '''
         with open(filename, 'wb') as filepointer:
-            if self.__blm_type == 'regular' or self.__blm_type is 'regular':
-                impt_type = 'B'
-            else:
-                impt_type = 'I'
-            rep = impt_type * self.bloom_length
-            filepointer.write(pack(rep, *self._bloom))
+            rep = self.__impt_type * self.bloom_length
+            filepointer.write(pack(rep, *self.bloom))
             filepointer.write(pack('QQf', self.estimated_elements,
                                    self.elements_added,
                                    self.false_positive_rate))
@@ -249,11 +262,7 @@ class BaseBloom(object):
             Returns:
                 int: Size of the Bloom Filter when exported to disk
         '''
-        if self.__blm_type == 'regular' or self.__blm_type is 'regular':
-            impt_type = 'B'
-        else:
-            impt_type = 'I'
-        tmp_b = calcsize(impt_type)
+        tmp_b = calcsize(self.__impt_type)
         return (self.bloom_length * tmp_b) + calcsize('QQf')
 
     def current_false_positive_rate(self):
@@ -360,31 +369,10 @@ class BaseBloom(object):
             two '''
         pass
 
+    @abstractmethod
     def jaccard_index(self, second):
-        ''' Calculate the jaccard similarity score between two Bloom Filters
-
-            Args:
-                second (BloomFilter): The Bloom Filter to compare with
-            Returns:
-                float: A numeric value between 0 and 1 where 1 is identical \
-                and 0 means completely different
-            Note:
-                `second` may be a BloomFilterOnDisk object
-        '''
-        self._verify_not_type_mismatch(second)
-
-        if self._verify_bloom_similarity(second) is False:
-            return None
-        count_union = 0
-        count_int = 0
-        for i in list(range(0, self.bloom_length)):
-            t_union = self._get_element(i) | second._get_element(i)
-            t_intersection = self._get_element(i) & second._get_element(i)
-            count_union += self.__cnt_set_bits(t_union)
-            count_int += self.__cnt_set_bits(t_intersection)
-        if count_union == 0:
-            return 1.0
-        return count_int / count_union
+        ''' Return a the Jaccard Similarity score between two bloom filters '''
+        pass
 
     def _verify_bloom_similarity(self, second):
         ''' can the blooms be used in intersection, union, or jaccard index '''
@@ -394,9 +382,3 @@ class BaseBloom(object):
         if hash_match or same_bits or next_hash:
             return False
         return True
-
-    @staticmethod
-    def _verify_not_type_mismatch(second):
-        ''' verify that there is not a type mismatch '''
-        if not isinstance(second, BaseBloom):
-            raise TypeError('The parameter second must be of type BloomFilter')

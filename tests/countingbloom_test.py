@@ -159,9 +159,16 @@ class TestCountingBloomFilter(unittest.TestCase):
 
     def test_cbf_export_hex(self):
         ''' test the exporting of the bloom filter to a hex string '''
-        h_val = ('01000300000000010002000002010102000000000000010000010000000'
-                 '10100020100010101000002000101000201000000020001000001010000'
-                 '01020002000000000000000a000000000000000a3d4ccccd')
+        h_val = ('01000000000000000300000000000000000000000000000000000000010'
+                 '00000000000000200000000000000000000000200000001000000010000'
+                 '00020000000000000000000000000000000000000000000000000000000'
+                 '10000000000000000000000010000000000000000000000000000000100'
+                 '00000100000000000000020000000100000000000000010000000100000'
+                 '00100000000000000000000000200000000000000010000000100000000'
+                 '00000002000000010000000000000000000000000000000200000000000'
+                 '00001000000000000000000000001000000010000000000000000000000'
+                 '01000000020000000000000002000000000000000000000a00000000000'
+                 '0000a3d4ccccd')
 
         blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
         blm.add('this is a test 0')
@@ -180,9 +187,16 @@ class TestCountingBloomFilter(unittest.TestCase):
 
     def test_cbf_load_hex(self):
         ''' test importing a bloom filter from hex value '''
-        h_val = ('01000300000000010002000002010102000000000000010000010000000'
-                 '10100020100010101000002000101000201000000020001000001010000'
-                 '01020002000000000000000a000000000000000a3d4ccccd')
+        h_val = ('01000000000000000300000000000000000000000000000000000000010'
+                 '00000000000000200000000000000000000000200000001000000010000'
+                 '00020000000000000000000000000000000000000000000000000000000'
+                 '10000000000000000000000010000000000000000000000000000000100'
+                 '00000100000000000000020000000100000000000000010000000100000'
+                 '00100000000000000000000000200000000000000010000000100000000'
+                 '00000002000000010000000000000000000000000000000200000000000'
+                 '00001000000000000000000000001000000010000000000000000000000'
+                 '01000000020000000000000002000000000000000000000a00000000000'
+                 '0000a3d4ccccd')
         blm = CountingBloomFilter(hex_string=h_val)
 
         self.assertEqual('this is a test 0' in blm, True)
@@ -260,3 +274,56 @@ class TestCountingBloomFilter(unittest.TestCase):
             blm1.jaccard_index(blm2)
         except NotSupportedError as ex:
             self.assertEqual(str(ex), msg)
+
+    def test_cbf_remove(self):
+        ''' test to see if the remove functionality works correctly '''
+        blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        self.assertEqual(blm.elements_added, 0)
+        blm.add('this is a test 0')
+        blm.add('this is a test 1')
+        blm.add('this is a test 2')
+        blm.add('this is a test 3')
+        blm.add('this is a test 4')
+        self.assertEqual(blm.elements_added, 5)
+        res = blm.remove('this is a test 0')
+        self.assertEqual(blm.elements_added, 4)
+        self.assertEqual(res, 0)
+        blm.remove('this is a test 0')
+        self.assertEqual(blm.elements_added, 4)
+        self.assertEqual(res, 0)
+
+    def test_cbf_remove_mult(self):
+        ''' test to see if the remove multiples functionality works correctly
+        '''
+        blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        self.assertEqual(blm.elements_added, 0)
+        blm.add('this is a test 0', 15)
+        self.assertEqual(blm.elements_added, 15)
+        res = blm.remove('this is a test 0', 11)
+        self.assertEqual(blm.elements_added, 4)
+        self.assertEqual(res, 4)
+        res = blm.remove('this is a test 0', 10)
+        self.assertEqual(blm.elements_added, 0)
+        self.assertEqual(res, 0)
+
+    def test_cbf_very_large_add(self):
+        ''' test adding a very large number of elements '''
+        large = 2 ** 32
+        blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        self.assertEqual(blm.elements_added, 0)
+        res = blm.add('this is a test 0', large)
+        self.assertEqual(blm.elements_added, large)
+        self.assertEqual(res, large - 1)
+
+    def test_cbf_remove_from_large(self):
+        ''' test adding a very large number of elements '''
+        large = 2**32
+        blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        self.assertEqual(blm.elements_added, 0)
+        res = blm.add('this is a test 0', large)
+        self.assertEqual(blm.elements_added, large)
+        self.assertEqual(res, large - 1)
+
+        res = blm.remove('this is a test 0', large)
+        self.assertEqual(blm.elements_added, large)
+        self.assertEqual(res, large - 1)
