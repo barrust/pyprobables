@@ -600,3 +600,65 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         blm3 = blm.jaccard_index(blm2)
         self.assertEqual(blm3, None)
         os.remove(filename)
+
+    def test_cbf_jaccard_invalid(self):
+        ''' use an invalid type in a jaccard index cbf '''
+        filename = 'tmp.blm'
+        blm = BloomFilterOnDisk(filename, est_elements=10, false_positive_rate=0.05)
+        blm.add('this is a test')
+        self.assertRaises(TypeError, lambda: blm.jaccard_index(1))
+
+    def test_cbf_jaccard_invalid_msg(self):
+        ''' check invalid type in a jaccard index message cbf '''
+        msg = ('The parameter second must be of type BloomFilter or '
+               'a BloomFilterOnDisk')
+        filename = 'tmp.blm'
+        blm = BloomFilterOnDisk(filename, est_elements=10, false_positive_rate=0.05)
+        blm.add('this is a test')
+        try:
+            blm.jaccard_index(1)
+        except TypeError as ex:
+            self.assertEqual(str(ex), msg)
+        os.remove(filename)
+
+    def test_cbf_union_invalid(self):
+        ''' use an invalid type in a union cbf '''
+        filename = 'tmp.blm'
+        blm = BloomFilterOnDisk(filename, est_elements=10, false_positive_rate=0.05)
+        blm.add('this is a test')
+        self.assertRaises(TypeError, lambda: blm.jaccard_index(1))
+        os.remove(filename)
+
+    def test_cbf_union_invalid_msg(self):
+        ''' check invalid type in a union message cbf '''
+        msg = ('The parameter second must be of type BloomFilter or '
+               'a BloomFilterOnDisk')
+        filename = 'tmp.blm'
+        blm = BloomFilterOnDisk(filename, est_elements=10, false_positive_rate=0.05)
+        blm.add('this is a test')
+        try:
+            blm.union(1)
+        except TypeError as ex:
+            self.assertEqual(str(ex), msg)
+        os.remove(filename)
+
+    def test_cbf_intersection_invalid(self):
+        ''' use an invalid type in a intersection cbf '''
+        filename = 'tmp.blm'
+        blm = BloomFilterOnDisk(filename, est_elements=10, false_positive_rate=0.05)
+        blm.add('this is a test')
+        self.assertRaises(TypeError, lambda: blm.jaccard_index(1))
+        os.remove(filename)
+
+    def test_cbf_intersec_invalid_msg(self):
+        ''' check invalid type in a intersection message cbf '''
+        msg = ('The parameter second must be of type BloomFilter or '
+               'a BloomFilterOnDisk')
+        filename = 'tmp.blm'
+        blm = BloomFilterOnDisk(filename, est_elements=10, false_positive_rate=0.05)
+        blm.add('this is a test')
+        try:
+            blm.intersection(1)
+        except TypeError as ex:
+            self.assertEqual(str(ex), msg)
+        os.remove(filename)
