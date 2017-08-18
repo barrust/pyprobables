@@ -512,19 +512,14 @@ class HeavyHitters(CountMinSketch):
         res = super(HeavyHitters, self).add_alt(hashes, num_els)
 
         # update the heavy hitters list as necessary
-
-        # still have room in top x
-        if self.__top_x_size < self.__num_hitters:
+        if self.__top_x_size < self.__num_hitters:  # still have room in top x
             tmp = self.__top_x.get(key, None)
             self.__top_x[key] = res
             if tmp is None:
                 self.__top_x_size = len(self.__top_x)
-            return res
-
-        if key in self.__top_x:  # easy update
+        elif key in self.__top_x:  # easy update as it is already there
             self.__top_x[key] = res
-            return res
-        if res > self.__smallest:  # something in there is smaller
+        elif res > self.__smallest:  # something in there is smaller
             self.__top_x[key] = res
             # get the key with the smallest element
             tmp_key = min(self.__top_x, key=self.__top_x.get)
@@ -532,8 +527,6 @@ class HeavyHitters(CountMinSketch):
             self.__top_x.pop(tmp_key, None)
             new_min = min(self.__top_x, key=self.__top_x.get)
             self.__smallest = self.__top_x[new_min]
-
-            return res
         return res
 
     def remove_alt(self, hashes, num_els=1):

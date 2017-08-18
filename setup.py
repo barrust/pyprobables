@@ -9,7 +9,7 @@ def read_file(filepath):
         res = filepointer.read()
     return res
 
-KEYWORDS = ['python', 'probablistic', 'data-structure', 'bloom', 'filter',
+KEYWORDS = ['python', 'probabilistic', 'data-structure', 'bloom', 'filter',
             'count-min', 'sketch', 'bloom-filter', 'count-min-sketch']
 
 setuptools.setup(
@@ -17,7 +17,7 @@ setuptools.setup(
     version = __version__,
     author = __author__,
     author_email = __email__,
-    description = 'Probablistic data structures in python',
+    description = 'Probabilistic data structures in python',
     license = __license__,
     keywords = ' '.join(KEYWORDS),
     url = __url__,
