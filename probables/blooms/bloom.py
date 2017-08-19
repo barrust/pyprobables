@@ -315,6 +315,9 @@ class BloomFilterOnDisk(BaseBloom):
                 calculate the union
             Returns:
                 BloomFilter: The new Bloom Filter containing the union
+            Raises:
+                TypeError: When second is not a BloomFilter or \
+                BloomFilterOnDisk
             Note:
                 `second` may be a BloomFilter object
         '''
@@ -336,6 +339,9 @@ class BloomFilterOnDisk(BaseBloom):
                 the intersection
             Returns:
                 BloomFilter: The new Bloom Filter containing the intersection
+            Raises:
+                TypeError: When second is not a BloomFilter or \
+                BloomFilterOnDisk
             Note:
                 `second` may be a BloomFilter object
         '''
@@ -356,6 +362,9 @@ class BloomFilterOnDisk(BaseBloom):
             Returns:
                 float: A numeric value between 0 and 1 where 1 is identical \
                 and 0 means completely different
+            Raises:
+                TypeError: When second is not a BloomFilter or \
+                BloomFilterOnDisk
             Note:
                 `second` may be a BloomFilter object
         '''

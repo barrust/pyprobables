@@ -8,6 +8,16 @@ from __future__ import (unicode_literals, absolute_import, print_function,
 from .. exceptions import (NotSupportedError)
 from . basebloom import (BaseBloom)
 
+MISMATCH_MSG = ('The parameter second must be of type CountingBloomFilter')
+
+
+def _verify_not_type_mismatch(second):
+    ''' verify that there is not a type mismatch '''
+    if not isinstance(second, (CountingBloomFilter)):
+        return False
+    else:
+        return True
+
 
 class CountingBloomFilter(BaseBloom):
     ''' Simple Counting Bloom Filter implementation for use in python;
@@ -220,9 +230,41 @@ class CountingBloomFilter(BaseBloom):
             Args:
                 second (CountingBloomFilter): The Bloom Filter with which to \
                 take the jaccard index
+            Returns:
+                float: A numeric value between 0 and 1 where 1 is identical \
+                and 0 means completely different
+            Raises:
+                TypeError: When second is not a CountingBloomFilter
+            Note:
+                The Jaccard Index is based on the set of elements added \
+                and not the number of each element added
+        '''
+        if not _verify_not_type_mismatch(second):
+            raise TypeError(MISMATCH_MSG)
+
+        if super(CountingBloomFilter,
+                 self)._verify_bloom_similarity(second) is False:
+            return None
+        count_union = 0
+        count_inter = 0
+        for i in list(range(self.bloom_length)):
+            if self._get_element(i) > 0 or second._get_element(i) > 0:
+                count_union += 1
+            if self._get_element(i) > 0 and second._get_element(i) > 0:
+                count_inter += 1
+        if count_union == 0:
+            return 1.0
+        return count_inter / count_union
+
+    def estimate_elements(self):
+        ''' Estimate the number of elements added
+
+            Returns:
+                int: Number of elements estimated to be inserted
             Raises:
                 NotSupportedError: This functionality is currently not \
                 supported
         '''
-        msg = 'Jaccard Index is not supported for counting blooms'
+        msg = ('Estimating the number of inserted elements is not '
+               'supported for counting blooms')
         raise NotSupportedError(msg)

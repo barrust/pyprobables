@@ -564,7 +564,8 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         ''' make sure checking for different bloom filters on disk works union
         '''
         filename = 'tmp.blm'
-        blm = BloomFilterOnDisk(filename, est_elements=10, false_positive_rate=0.05)
+        blm = BloomFilterOnDisk(filename, est_elements=10,
+                                false_positive_rate=0.05)
         blm.add('this is a test')
         blm2 = BloomFilter(est_elements=10, false_positive_rate=0.05,
                            hash_function=different_hash)
@@ -578,7 +579,8 @@ class TestBloomFilterOnDisk(unittest.TestCase):
             intersection
         '''
         filename = 'tmp.blm'
-        blm = BloomFilterOnDisk(filename, est_elements=10, false_positive_rate=0.05)
+        blm = BloomFilterOnDisk(filename, est_elements=10,
+                                false_positive_rate=0.05)
         blm.add('this is a test')
         blm2 = BloomFilter(est_elements=10, false_positive_rate=0.05,
                            hash_function=different_hash)
@@ -592,7 +594,8 @@ class TestBloomFilterOnDisk(unittest.TestCase):
             jaccard
         '''
         filename = 'tmp.blm'
-        blm = BloomFilterOnDisk(filename, est_elements=10, false_positive_rate=0.05)
+        blm = BloomFilterOnDisk(filename, est_elements=10,
+                                false_positive_rate=0.05)
         blm.add('this is a test')
         blm2 = BloomFilter(est_elements=10, false_positive_rate=0.05,
                            hash_function=different_hash)
@@ -604,7 +607,8 @@ class TestBloomFilterOnDisk(unittest.TestCase):
     def test_cbf_jaccard_invalid(self):
         ''' use an invalid type in a jaccard index cbf '''
         filename = 'tmp.blm'
-        blm = BloomFilterOnDisk(filename, est_elements=10, false_positive_rate=0.05)
+        blm = BloomFilterOnDisk(filename, est_elements=10,
+                                false_positive_rate=0.05)
         blm.add('this is a test')
         self.assertRaises(TypeError, lambda: blm.jaccard_index(1))
 
@@ -613,7 +617,8 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         msg = ('The parameter second must be of type BloomFilter or '
                'a BloomFilterOnDisk')
         filename = 'tmp.blm'
-        blm = BloomFilterOnDisk(filename, est_elements=10, false_positive_rate=0.05)
+        blm = BloomFilterOnDisk(filename, est_elements=10,
+                                false_positive_rate=0.05)
         blm.add('this is a test')
         try:
             blm.jaccard_index(1)
@@ -624,7 +629,8 @@ class TestBloomFilterOnDisk(unittest.TestCase):
     def test_cbf_union_invalid(self):
         ''' use an invalid type in a union cbf '''
         filename = 'tmp.blm'
-        blm = BloomFilterOnDisk(filename, est_elements=10, false_positive_rate=0.05)
+        blm = BloomFilterOnDisk(filename, est_elements=10,
+                                false_positive_rate=0.05)
         blm.add('this is a test')
         self.assertRaises(TypeError, lambda: blm.jaccard_index(1))
         os.remove(filename)
@@ -634,7 +640,8 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         msg = ('The parameter second must be of type BloomFilter or '
                'a BloomFilterOnDisk')
         filename = 'tmp.blm'
-        blm = BloomFilterOnDisk(filename, est_elements=10, false_positive_rate=0.05)
+        blm = BloomFilterOnDisk(filename, est_elements=10,
+                                false_positive_rate=0.05)
         blm.add('this is a test')
         try:
             blm.union(1)
@@ -645,7 +652,8 @@ class TestBloomFilterOnDisk(unittest.TestCase):
     def test_cbf_intersection_invalid(self):
         ''' use an invalid type in a intersection cbf '''
         filename = 'tmp.blm'
-        blm = BloomFilterOnDisk(filename, est_elements=10, false_positive_rate=0.05)
+        blm = BloomFilterOnDisk(filename, est_elements=10,
+                                false_positive_rate=0.05)
         blm.add('this is a test')
         self.assertRaises(TypeError, lambda: blm.jaccard_index(1))
         os.remove(filename)
@@ -655,7 +663,8 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         msg = ('The parameter second must be of type BloomFilter or '
                'a BloomFilterOnDisk')
         filename = 'tmp.blm'
-        blm = BloomFilterOnDisk(filename, est_elements=10, false_positive_rate=0.05)
+        blm = BloomFilterOnDisk(filename, est_elements=10,
+                                false_positive_rate=0.05)
         blm.add('this is a test')
         try:
             blm.intersection(1)

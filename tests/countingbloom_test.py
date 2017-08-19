@@ -259,11 +259,64 @@ class TestCountingBloomFilter(unittest.TestCase):
         except NotSupportedError as ex:
             self.assertEqual(str(ex), msg)
 
-    def test_cbf_jaccard(self):
-        ''' test jaccard of two counting bloom filters '''
+    def test_cbf_jaccard_ident(self):
+        ''' test jaccard of two identical counting bloom filters '''
         blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        blm1.add('this is a test', 10)
         blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
-        self.assertRaises(NotSupportedError, lambda: blm1.jaccard_index(blm2))
+        blm2.add('this is a test', 10)
+        self.assertEqual(blm1.jaccard_index(blm2), 1.0)
+
+    def test_cbf_jaccard_ident_2(self):
+        ''' test jaccard of two mostly identical counting bloom filters '''
+        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        blm1.add('this is a test', 10)
+        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        blm2.add('this is a test', 15)
+        self.assertEqual(blm1.jaccard_index(blm2), 1.0)
+
+    def test_cbf_jaccard_similar(self):
+        ''' test jaccard of two similar counting bloom filters '''
+        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        blm1.add('this is a test', 10)
+        blm1.add('this is a different test', 10)
+        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        blm2.add('this is a test', 10)
+        blm2.add('this is also a test', 10)
+        res = blm1.jaccard_index(blm2)
+        self.assertGreater(res, 0.33)
+        self.assertLess(res, 0.50)
+
+    def test_cbf_jaccard_different(self):
+        ''' test jaccard of two completly different counting bloom filters '''
+        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm1.add('this is a test', 10)
+        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm2.add('this is also a test', 10)
+        self.assertEqual(blm1.jaccard_index(blm2), 0.0)
+
+    def test_cbf_jaccard_empty(self):
+        ''' test jaccard of an empty counting bloom filters '''
+        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        blm1.add('this is a test', 10)
+        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        self.assertEqual(blm1.jaccard_index(blm2), 0.0)
+
+    def test_cbf_jaccard_invalid(self):
+        ''' use an invalid type in a jaccard index '''
+        blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm.add('this is a test')
+        self.assertRaises(TypeError, lambda: blm.jaccard_index(1))
+
+    def test_cbf_jaccard_invalid_msg(self):
+        ''' check invalid type in a jaccard index message '''
+        msg = ('The parameter second must be of type CountingBloomFilter')
+        blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm.add('this is a test')
+        try:
+            blm.jaccard_index(1)
+        except TypeError as ex:
+            self.assertEqual(str(ex), msg)
 
     def test_cbf_jaccard_msg(self):
         ''' test jaccard of two counting bloom filters msg '''
