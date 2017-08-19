@@ -257,15 +257,10 @@ class CountingBloomFilter(BaseBloom):
             return 1.0
         return count_inter / count_union
 
-    def estimate_elements(self):
-        ''' Estimate the number of elements added
-
-            Returns:
-                int: Number of elements estimated to be inserted
-            Raises:
-                NotSupportedError: This functionality is currently not \
-                supported
-        '''
-        msg = ('Estimating the number of inserted elements is not '
-               'supported for counting blooms')
-        raise NotSupportedError(msg)
+    def _cnt_number_bits_set(self):
+        ''' calculate the total number of set bits in the bloom '''
+        cnt = 0
+        for i in list(range(self.bloom_length)):
+            if self._get_element(i) > 0:
+                cnt += 1
+        return cnt

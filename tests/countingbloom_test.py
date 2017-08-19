@@ -346,23 +346,19 @@ class TestCountingBloomFilter(unittest.TestCase):
         else:
             self.assertEqual(True, False)
 
-    def test_cbf_estimate_error(self):
-        ''' check estimate elements in a index message '''
+    def test_cbf_estimate_easy(self):
+        ''' check estimate elements '''
         blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
-        blm.add('this is a test')
-        self.assertRaises(NotSupportedError, lambda: blm.estimate_elements())
+        blm.add('this is a test', 10)
+        blm.add('this is also a test', 5)
+        self.assertEqual(blm.estimate_elements(), 2)
 
-    def test_cbf_estimate_msg(self):
-        ''' test estimate elements in a counting bloom filters msg '''
-        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
-        msg = ('Estimating the number of inserted elements is not '
-               'supported for counting blooms')
-        try:
-            blm1.estimate_elements()
-        except NotSupportedError as ex:
-            self.assertEqual(str(ex), msg)
-        else:
-            self.assertEqual(True, False)
+    def test_cbf_estimate_2(self):
+        ''' check estimate elements - different '''
+        blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm.add('this is a test', 10)
+        blm.add('this is a different test', 5)
+        self.assertEqual(blm.estimate_elements(), 1)
 
     def test_cbf_remove(self):
         ''' test to see if the remove functionality works correctly '''

@@ -277,7 +277,7 @@ class BaseBloom(object):
         return math.pow((1 - exp), self.number_hashes)
 
     def estimate_elements(self):
-        ''' Estimate the number of elements added
+        ''' Estimate the number of unique elements added
 
             Returns:
                 int: Number of elements estimated to be inserted
