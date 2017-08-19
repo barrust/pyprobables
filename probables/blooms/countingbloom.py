@@ -198,19 +198,6 @@ class CountingBloomFilter(BaseBloom):
         self.elements_added -= t_num_els
         return tmp - t_num_els
 
-    def union(self, second):
-        ''' Union two Counting Bloom Filters together
-
-            Args:
-                second (CountingBloomFilter): The Bloom Filter with which to \
-                take the union
-            Raises:
-                NotSupportedError: This functionality is currently not \
-                supported
-        '''
-        msg = 'Union is not supported for counting blooms'
-        raise NotSupportedError(msg)
-
     def intersection(self, second):
         ''' Take the intersection of two Counting Bloom Filters
 
@@ -280,9 +267,12 @@ class CountingBloomFilter(BaseBloom):
         if super(CountingBloomFilter,
                  self)._verify_bloom_similarity(second) is False:
             return None
-        res = CountingBloomFilter(est_elements=self.estimated_elements, false_positive_rate=self.false_positive_rate, hash_function=self.hash_function)
+        res = CountingBloomFilter(est_elements=self.estimated_elements,
+                                  false_positive_rate=self.false_positive_rate,
+                                  hash_function=self.hash_function)
         for i in list(range(self.bloom_length)):
-            res._bloom[i] = self._get_set_element(self._get_element(i) + second._get_element(i))
+            tmp = self._get_element(i) + second._get_element(i)
+            res._bloom[i] = self._get_set_element(tmp)
         res.elements_added = res.estimate_elements()
         return res
 
