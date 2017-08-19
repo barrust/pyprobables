@@ -363,8 +363,7 @@ class CountMeanSketch(CountMinSketch):
             hash_function (function): Hashing strategy function to use \
             `hf(key, number)`
         Returns:
-            CountMinSketch: A Count-Min Sketch object
-
+            CountMeanSketch: A Count-Mean Sketch object
         Note:
             Initialization order of operations:
                 1) From file
@@ -397,8 +396,7 @@ class CountMeanMinSketch(CountMinSketch):
             hash_function (function): Hashing strategy function to use \
             `hf(key, number)`
         Returns:
-            CountMinSketch: A Count-Min Sketch object
-
+            CountMeanMinSketch: A Count-Mean-Min Sketch object
         Note:
             Initialization order of operations:
                 1) From file
@@ -432,7 +430,6 @@ class HeavyHitters(CountMinSketch):
             `hf(key, number)`
         Returns:
             HeavyHitters: A Count-Min Sketch object
-
         Note:
             Initialization order of operations:
                 1) From file
@@ -506,7 +503,7 @@ class HeavyHitters(CountMinSketch):
             Returns:
                 int: Number of times key has been inserted
             Note:
-                Different key signature than the normal CountMinSketch
+                Different key signature than the normal :class:`CountMinSketch`
             Note:
                 Override function '''
         res = super(HeavyHitters, self).add_alt(hashes, num_els)
@@ -611,7 +608,7 @@ class StreamThreshold(CountMinSketch):
             Returns:
                 int: Number of times key has been inserted
             Note:
-                Different key signature than the normal CountMinSketch
+                Different key signature than the normal :class:`CountMinSketch`
             Note:
                 Override function '''
         res = super(StreamThreshold, self).add_alt(hashes, num_els)
@@ -644,7 +641,7 @@ class StreamThreshold(CountMinSketch):
                 int: The number of times the element was likely inserted \
                 after the removal
             Note:
-                Different key signature than the normal CountMinSketch
+                Different key signature than the normal :class:`CountMinSketch`
             Note:
                 Override function '''
         res = super(StreamThreshold, self).remove_alt(hashes, num_els)

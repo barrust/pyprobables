@@ -227,24 +227,6 @@ class TestCountingBloomFilter(unittest.TestCase):
         blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
         self.assertEqual(404, blm.export_size())
 
-    def test_cbf_union(self):
-        ''' test union of two counting bloom filters '''
-        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
-        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
-        self.assertRaises(NotSupportedError, lambda: blm1.union(blm2))
-
-    def test_cbf_union_msg(self):
-        ''' test union of two counting bloom filters msg '''
-        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
-        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
-        msg = ('Union is not supported for counting blooms')
-        try:
-            blm1.union(blm2)
-        except NotSupportedError as ex:
-            self.assertEqual(str(ex), msg)
-        else:
-            self.assertEqual(True, False)
-
     def test_cbf_intersection(self):
         ''' test intersection of two counting bloom filters '''
         blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
@@ -412,3 +394,40 @@ class TestCountingBloomFilter(unittest.TestCase):
         res = blm.remove('this is a test 0', large)
         self.assertEqual(blm.elements_added, large)
         self.assertEqual(res, large - 1)
+
+    def test_cbf_union(self):
+        ''' test calculating the union between two counting bloom filters '''
+        blm1 = CountingBloomFilter(est_elements=100, false_positive_rate=0.05)
+        blm1.add('this is a test', 10)
+        blm1.add('this is a different test', 10)
+        blm2 = CountingBloomFilter(est_elements=100, false_positive_rate=0.05)
+        blm2.add('this is a test', 10)
+        res = blm1.union(blm2)
+
+        self.assertEqual(res.check('this is a test'), 20)
+        self.assertEqual(res.check('this is a different test'), 10)
+        self.assertEqual(res.check('this is not a test'), 0)
+        self.assertEqual(res.elements_added, 2)
+
+    def test_cbf_union_error(self):
+        ''' test union of two counting bloom filters type error '''
+        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        self.assertRaises(TypeError, lambda: blm1.union(1))
+
+    def test_cbf_union_error_msg(self):
+        ''' test union of two counting bloom filters type error msg '''
+        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        msg = ('The parameter second must be of type CountingBloomFilter')
+        try:
+            blm1.union(1)
+        except TypeError as ex:
+            self.assertEqual(str(ex), msg)
+        else:
+            self.assertEqual(True, False)
+
+    def test_cbf_union_diff(self):
+        ''' test jaccard of an mismath of counting bloom filters '''
+        blm1 = CountingBloomFilter(est_elements=101, false_positive_rate=0.01)
+        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        self.assertEqual(blm1.union(blm2), None)
