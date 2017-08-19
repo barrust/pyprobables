@@ -316,6 +316,18 @@ class TestCountingBloomFilter(unittest.TestCase):
         blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
         self.assertEqual(blm1.jaccard_index(blm2), 0.0)
 
+    def test_cbf_jaccard_empty_both(self):
+        ''' test jaccard of an empty counting bloom filters '''
+        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        self.assertEqual(blm1.jaccard_index(blm2), 1.0)
+
+    def test_cbf_jaccard_different_2(self):
+        ''' test jaccard of an mismath of counting bloom filters '''
+        blm1 = CountingBloomFilter(est_elements=101, false_positive_rate=0.01)
+        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        self.assertEqual(blm1.jaccard_index(blm2), None)
+
     def test_cbf_jaccard_invalid(self):
         ''' use an invalid type in a jaccard index '''
         blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
