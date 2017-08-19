@@ -47,6 +47,8 @@ class TestCountMinSketch(unittest.TestCase):
                    '    The width and depth,\n'
                    '    OR confidence and error rate')
             self.assertEqual(str(ex), msg)
+        else:
+            self.assertEqual(True, False)
 
     def test_cms_set_query_type(self):
         ''' test setting different query types '''
@@ -369,6 +371,8 @@ class TestHeavyHitters(unittest.TestCase):
                    'class as it is an un supported action (and does not'
                    'make sense)!')
             self.assertEqual(str(ex), msg)
+        else:
+            self.assertEqual(True, False)
 
     def test_hh_clear(self):
         ''' test clearing out the heavy hitters object '''

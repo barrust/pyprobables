@@ -242,6 +242,8 @@ class TestCountingBloomFilter(unittest.TestCase):
             blm1.union(blm2)
         except NotSupportedError as ex:
             self.assertEqual(str(ex), msg)
+        else:
+            self.assertEqual(True, False)
 
     def test_cbf_intersection(self):
         ''' test intersection of two counting bloom filters '''
@@ -258,6 +260,8 @@ class TestCountingBloomFilter(unittest.TestCase):
             blm1.intersection(blm2)
         except NotSupportedError as ex:
             self.assertEqual(str(ex), msg)
+        else:
+            self.assertEqual(True, False)
 
     def test_cbf_jaccard_ident(self):
         ''' test jaccard of two identical counting bloom filters '''
@@ -286,6 +290,16 @@ class TestCountingBloomFilter(unittest.TestCase):
         res = blm1.jaccard_index(blm2)
         self.assertGreater(res, 0.33)
         self.assertLess(res, 0.50)
+
+    def test_cbf_jaccard_similar_2(self):
+        ''' test jaccard of two similar counting bloom filters - again '''
+        blm1 = CountingBloomFilter(est_elements=100, false_positive_rate=0.01)
+        blm1.add('this is a test', 10)
+        blm1.add('this is a different test', 10)
+        blm2 = CountingBloomFilter(est_elements=100, false_positive_rate=0.01)
+        blm2.add('this is a test', 10)
+        res = blm1.jaccard_index(blm2)
+        self.assertEqual(res, 0.50)
 
     def test_cbf_jaccard_different(self):
         ''' test jaccard of two completly different counting bloom filters '''
@@ -317,16 +331,26 @@ class TestCountingBloomFilter(unittest.TestCase):
             blm.jaccard_index(1)
         except TypeError as ex:
             self.assertEqual(str(ex), msg)
+        else:
+            self.assertEqual(True, False)
 
-    def test_cbf_jaccard_msg(self):
-        ''' test jaccard of two counting bloom filters msg '''
+    def test_cbf_estimate_error(self):
+        ''' check estimate elements in a index message '''
+        blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm.add('this is a test')
+        self.assertRaises(NotSupportedError, lambda: blm.estimate_elements())
+
+    def test_cbf_estimate_msg(self):
+        ''' test estimate elements in a counting bloom filters msg '''
         blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
-        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
-        msg = ('Jaccard Index is not supported for counting blooms')
+        msg = ('Estimating the number of inserted elements is not '
+               'supported for counting blooms')
         try:
-            blm1.jaccard_index(blm2)
+            blm1.estimate_elements()
         except NotSupportedError as ex:
             self.assertEqual(str(ex), msg)
+        else:
+            self.assertEqual(True, False)
 
     def test_cbf_remove(self):
         ''' test to see if the remove functionality works correctly '''

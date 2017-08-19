@@ -245,6 +245,7 @@ class CountingBloomFilter(BaseBloom):
         if super(CountingBloomFilter,
                  self)._verify_bloom_similarity(second) is False:
             return None
+
         count_union = 0
         count_inter = 0
         for i in list(range(self.bloom_length)):

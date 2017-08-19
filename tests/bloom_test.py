@@ -151,6 +151,8 @@ class TestBloomFilter(unittest.TestCase):
             blm.jaccard_index(1)
         except TypeError as ex:
             self.assertEqual(str(ex), msg)
+        else:
+            self.assertEqual(True, False)
 
     def test_bf_union_invalid(self):
         ''' use an invalid type in a union '''
@@ -168,6 +170,8 @@ class TestBloomFilter(unittest.TestCase):
             blm.union(1)
         except TypeError as ex:
             self.assertEqual(str(ex), msg)
+        else:
+            self.assertEqual(True, False)
 
     def test_bf_intersection_invalid(self):
         ''' use an invalid type in a intersection '''
@@ -185,6 +189,8 @@ class TestBloomFilter(unittest.TestCase):
             blm.intersection(1)
         except TypeError as ex:
             self.assertEqual(str(ex), msg)
+        else:
+            self.assertEqual(True, False)
 
     def test_bf_jaccard_empty(self):
         ''' make sure checking for different bloom filters works jaccard '''
@@ -305,6 +311,8 @@ class TestBloomFilter(unittest.TestCase):
             BloomFilter(filepath=filename)
         except InitializationError as ex:
             self.assertEqual(str(ex), msg)
+        else:
+            self.assertEqual(True, False)
 
     def test_bf_clear(self):
         ''' test clearing out the bloom filter '''
@@ -466,6 +474,8 @@ class TestBloomFilterOnDisk(unittest.TestCase):
             BloomFilterOnDisk(filepath=filename)
         except InitializationError as ex:
             self.assertEqual(str(ex), msg)
+        else:
+            self.assertEqual(True, False)
 
     def test_bfod_close_del(self):
         ''' close an on disk bloom using the del syntax '''
@@ -478,6 +488,8 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         except UnboundLocalError as ex:
             msg = "local variable 'blm' referenced before assignment"
             self.assertEqual(str(ex), msg)
+        else:
+            self.assertEqual(True, False)
         os.remove(filename)
 
     # export to new file
@@ -514,6 +526,8 @@ class TestBloomFilterOnDisk(unittest.TestCase):
             msg = ('`export_hex` is currently not supported by the on disk '
                    'Bloom Filter')
             self.assertEqual(str(ex), msg)
+        else:
+            self.assertEqual(True, False)
         os.remove(filename)
 
     def test_bfod_load_hex(self):
@@ -534,6 +548,8 @@ class TestBloomFilterOnDisk(unittest.TestCase):
             msg = ('Loading from hex_string is currently not supported by '
                    'the on disk Bloom Filter')
             self.assertEqual(str(ex), msg)
+        else:
+            self.assertEqual(True, False)
 
     def test_bfod_clear(self):
         ''' test clearing out the bloom filter on disk '''
@@ -624,6 +640,8 @@ class TestBloomFilterOnDisk(unittest.TestCase):
             blm.jaccard_index(1)
         except TypeError as ex:
             self.assertEqual(str(ex), msg)
+        else:
+            self.assertEqual(True, False)
         os.remove(filename)
 
     def test_cbf_union_invalid(self):
@@ -647,6 +665,8 @@ class TestBloomFilterOnDisk(unittest.TestCase):
             blm.union(1)
         except TypeError as ex:
             self.assertEqual(str(ex), msg)
+        else:
+            self.assertEqual(True, False)
         os.remove(filename)
 
     def test_cbf_intersection_invalid(self):
