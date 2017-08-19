@@ -204,12 +204,31 @@ class CountingBloomFilter(BaseBloom):
             Args:
                 second (CountingBloomFilter): The Bloom Filter with which to \
                 take the intersection
+            Returns:
+                CountingBloomFilter: The new Counting Bloom Filter containing \
+                the union
             Raises:
-                NotSupportedError: This functionality is currently not \
-                supported
+                TypeError: When second is not a :class:`CountingBloomFilter`
+            Note:
+                The elements_added property will be set to the estimated \
+                number of unique elements added as found in estimate_elements()
         '''
-        msg = 'Intersection is not supported for counting blooms'
-        raise NotSupportedError(msg)
+        if not _verify_not_type_mismatch(second):
+            raise TypeError(MISMATCH_MSG)
+
+        if super(CountingBloomFilter,
+                 self)._verify_bloom_similarity(second) is False:
+            return None
+        res = CountingBloomFilter(est_elements=self.estimated_elements,
+                                  false_positive_rate=self.false_positive_rate,
+                                  hash_function=self.hash_function)
+
+        for i in list(range(self.bloom_length)):
+            if self._get_element(i) > 0 and second._get_element(i) > 0:
+                tmp = self._get_element(i) + second._get_element(i)
+                res._bloom[i] = self._get_set_element(tmp)
+        res.elements_added = res.estimate_elements()
+        return res
 
     def jaccard_index(self, second):
         ''' Take the Jaccard Index of two Counting Bloom Filters
@@ -251,7 +270,6 @@ class CountingBloomFilter(BaseBloom):
             Args:
                 second (CountingBloomFilter): The Counting Bloom Filter with \
                 which to calculate the union
-
             Returns:
                 CountingBloomFilter: The new Counting Bloom Filter containing \
                 the union

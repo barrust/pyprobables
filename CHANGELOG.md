@@ -4,6 +4,7 @@
 * Counting Bloom Filter
     * Estimate unique elements added
     * Union
+    * Intersection
     * Jaccard Index
 
 ### Version 0.0.7:
