@@ -215,16 +215,9 @@ class TestBloomFilter(unittest.TestCase):
                '\tnumber bits set: 29\n'
                '\tis on disk: no\n')
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
-        blm.add('this is a test 0')
-        blm.add('this is a test 1')
-        blm.add('this is a test 2')
-        blm.add('this is a test 3')
-        blm.add('this is a test 4')
-        blm.add('this is a test 5')
-        blm.add('this is a test 6')
-        blm.add('this is a test 7')
-        blm.add('this is a test 8')
-        blm.add('this is a test 9')
+        for i in range(0, 10):
+            tmp = 'this is a test {0}'.format(i)
+            blm.add(tmp)
         stats = str(blm)
         self.assertEqual(stats, msg)
 
@@ -232,16 +225,9 @@ class TestBloomFilter(unittest.TestCase):
         ''' test the exporting of the bloom filter to a hex string '''
         hex_val = '85f240623b6d9459000000000000000a000000000000000a3d4ccccd'
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
-        blm.add('this is a test 0')
-        blm.add('this is a test 1')
-        blm.add('this is a test 2')
-        blm.add('this is a test 3')
-        blm.add('this is a test 4')
-        blm.add('this is a test 5')
-        blm.add('this is a test 6')
-        blm.add('this is a test 7')
-        blm.add('this is a test 8')
-        blm.add('this is a test 9')
+        for i in range(0, 10):
+            tmp = 'this is a test {0}'.format(i)
+            blm.add(tmp)
         hex_out = blm.export_hex()
 
         self.assertEqual(hex_out, hex_val)
@@ -318,17 +304,9 @@ class TestBloomFilter(unittest.TestCase):
         ''' test clearing out the bloom filter '''
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         self.assertEqual(blm.elements_added, 0)
-        blm.add('this is a test 0')
-        blm.add('this is a test 1')
-        blm.add('this is a test 2')
-        blm.add('this is a test 3')
-        blm.add('this is a test 4')
-        blm.add('this is a test 5')
-        blm.add('this is a test 6')
-        blm.add('this is a test 7')
-        blm.add('this is a test 8')
-        blm.add('this is a test 9')
-
+        for i in range(0, 10):
+            tmp = 'this is a test {0}'.format(i)
+            blm.add(tmp)
         self.assertEqual(blm.elements_added, 10)
 
         blm.clear()
@@ -557,16 +535,9 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         blm = BloomFilterOnDisk(filepath=filename, est_elements=10,
                                 false_positive_rate=0.05)
         self.assertEqual(blm.elements_added, 0)
-        blm.add('this is a test 0')
-        blm.add('this is a test 1')
-        blm.add('this is a test 2')
-        blm.add('this is a test 3')
-        blm.add('this is a test 4')
-        blm.add('this is a test 5')
-        blm.add('this is a test 6')
-        blm.add('this is a test 7')
-        blm.add('this is a test 8')
-        blm.add('this is a test 9')
+        for i in range(0, 10):
+            tmp = 'this is a test {0}'.format(i)
+            blm.add(tmp)
         self.assertEqual(blm.elements_added, 10)
 
         blm.clear()
