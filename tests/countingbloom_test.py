@@ -394,7 +394,6 @@ class TestCountingBloomFilter(unittest.TestCase):
     def test_cbf_union_error(self):
         ''' test union of two counting bloom filters type error '''
         blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
-        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
         self.assertRaises(TypeError, lambda: blm1.union(1))
 
     def test_cbf_union_error_msg(self):
