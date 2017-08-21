@@ -80,7 +80,6 @@ class BloomFilter(BaseBloom):
             `hf(key, number)`
         Returns:
             BloomFilter: A Bloom Filter object
-
         Note:
             Initialization order of operations:
                 1) From file
@@ -129,10 +128,11 @@ class BloomFilter(BaseBloom):
             Args:
                 second (BloomFilter): The Bloom Filter with which to take \
                 the intersection
-
             Returns:
                 BloomFilter: The new Bloom Filter containing the intersection
-
+            Raises:
+                TypeError: When second is not either a :class:`BloomFilter` \
+                or :class:`BloomFilterOnDisk`
             Note:
                 `second` may be a BloomFilterOnDisk object
         '''
@@ -150,10 +150,11 @@ class BloomFilter(BaseBloom):
             Args:
                 second (BloomFilter): The Bloom Filter with which to \
                 calculate the union
-
             Returns:
                 BloomFilter: The new Bloom Filter containing the union
-
+            Raises:
+                TypeError: When second is not either a :class:`BloomFilter` \
+                or :class:`BloomFilterOnDisk`
             Note:
                 `second` may be a BloomFilterOnDisk object
         '''
@@ -173,6 +174,9 @@ class BloomFilter(BaseBloom):
             Returns:
                 float: A numeric value between 0 and 1 where 1 is identical \
                 and 0 means completely different
+            Raises:
+                TypeError: When second is not either a :class:`BloomFilter` \
+                or :class:`BloomFilterOnDisk`
             Note:
                 `second` may be a BloomFilterOnDisk object
         '''
@@ -315,6 +319,9 @@ class BloomFilterOnDisk(BaseBloom):
                 calculate the union
             Returns:
                 BloomFilter: The new Bloom Filter containing the union
+            Raises:
+                TypeError: When second is not either a :class:`BloomFilter` \
+                or :class:`BloomFilterOnDisk`
             Note:
                 `second` may be a BloomFilter object
         '''
@@ -336,6 +343,9 @@ class BloomFilterOnDisk(BaseBloom):
                 the intersection
             Returns:
                 BloomFilter: The new Bloom Filter containing the intersection
+            Raises:
+                TypeError: When second is not either a :class:`BloomFilter` \
+                or :class:`BloomFilterOnDisk`
             Note:
                 `second` may be a BloomFilter object
         '''
@@ -356,6 +366,9 @@ class BloomFilterOnDisk(BaseBloom):
             Returns:
                 float: A numeric value between 0 and 1 where 1 is identical \
                 and 0 means completely different
+            Raises:
+                TypeError: When second is not either a :class:`BloomFilter` \
+                or :class:`BloomFilterOnDisk`
             Note:
                 `second` may be a BloomFilter object
         '''

@@ -73,16 +73,8 @@ class TestCountingBloomFilter(unittest.TestCase):
                '\tmax index id: 2\n'
                '\tcalculated elements: 10\n')
         blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
-        blm.add('this is a test 0')
-        blm.add('this is a test 1')
-        blm.add('this is a test 2')
-        blm.add('this is a test 3')
-        blm.add('this is a test 4')
-        blm.add('this is a test 5')
-        blm.add('this is a test 6')
-        blm.add('this is a test 7')
-        blm.add('this is a test 8')
-        blm.add('this is a test 9')
+        for i in range(0, 10):
+            blm.add('this is a test {0}'.format(i))
         stats = str(blm)
         self.assertEqual(stats, msg)
 
@@ -90,17 +82,8 @@ class TestCountingBloomFilter(unittest.TestCase):
         ''' test clearing out the bloom filter '''
         blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
         self.assertEqual(blm.elements_added, 0)
-        blm.add('this is a test 0')
-        blm.add('this is a test 1')
-        blm.add('this is a test 2')
-        blm.add('this is a test 3')
-        blm.add('this is a test 4')
-        blm.add('this is a test 5')
-        blm.add('this is a test 6')
-        blm.add('this is a test 7')
-        blm.add('this is a test 8')
-        blm.add('this is a test 9')
-
+        for i in range(0, 10):
+            blm.add('this is a test {0}'.format(i))
         self.assertEqual(blm.elements_added, 10)
 
         blm.clear()
@@ -171,16 +154,9 @@ class TestCountingBloomFilter(unittest.TestCase):
                  '0000a3d4ccccd')
 
         blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
-        blm.add('this is a test 0')
-        blm.add('this is a test 1')
-        blm.add('this is a test 2')
-        blm.add('this is a test 3')
-        blm.add('this is a test 4')
-        blm.add('this is a test 5')
-        blm.add('this is a test 6')
-        blm.add('this is a test 7')
-        blm.add('this is a test 8')
-        blm.add('this is a test 9')
+        for i in range(0, 10):
+            tmp = 'this is a test {0}'.format(i)
+            blm.add(tmp)
         hex_out = blm.export_hex()
 
         self.assertEqual(hex_out, h_val)
@@ -198,7 +174,6 @@ class TestCountingBloomFilter(unittest.TestCase):
                  '01000000020000000000000002000000000000000000000a00000000000'
                  '0000a3d4ccccd')
         blm = CountingBloomFilter(hex_string=h_val)
-
         self.assertEqual('this is a test 0' in blm, True)
         self.assertEqual('this is a test 1' in blm, True)
         self.assertEqual('this is a test 2' in blm, True)
@@ -227,63 +202,110 @@ class TestCountingBloomFilter(unittest.TestCase):
         blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
         self.assertEqual(404, blm.export_size())
 
-    def test_cbf_union(self):
-        ''' test union of two counting bloom filters '''
+    def test_cbf_jaccard_ident(self):
+        ''' test jaccard of two identical counting bloom filters '''
         blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        blm1.add('this is a test', 10)
         blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
-        self.assertRaises(NotSupportedError, lambda: blm1.union(blm2))
+        blm2.add('this is a test', 10)
+        self.assertEqual(blm1.jaccard_index(blm2), 1.0)
 
-    def test_cbf_union_msg(self):
-        ''' test union of two counting bloom filters msg '''
+    def test_cbf_jaccard_ident_2(self):
+        ''' test jaccard of two mostly identical counting bloom filters '''
+        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        blm1.add('this is a test', 10)
+        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        blm2.add('this is a test', 15)
+        self.assertEqual(blm1.jaccard_index(blm2), 1.0)
+
+    def test_cbf_jaccard_similar(self):
+        ''' test jaccard of two similar counting bloom filters '''
+        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        blm1.add('this is a test', 10)
+        blm1.add('this is a different test', 10)
+        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        blm2.add('this is a test', 10)
+        blm2.add('this is also a test', 10)
+        res = blm1.jaccard_index(blm2)
+        self.assertGreater(res, 0.33)
+        self.assertLess(res, 0.50)
+
+    def test_cbf_jaccard_similar_2(self):
+        ''' test jaccard of two similar counting bloom filters - again '''
+        blm1 = CountingBloomFilter(est_elements=100, false_positive_rate=0.01)
+        blm1.add('this is a test', 10)
+        blm1.add('this is a different test', 10)
+        blm2 = CountingBloomFilter(est_elements=100, false_positive_rate=0.01)
+        blm2.add('this is a test', 10)
+        res = blm1.jaccard_index(blm2)
+        self.assertEqual(res, 0.50)
+
+    def test_cbf_jaccard_different(self):
+        ''' test jaccard of two completly different counting bloom filters '''
+        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm1.add('this is a test', 10)
+        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm2.add('this is also a test', 10)
+        self.assertEqual(blm1.jaccard_index(blm2), 0.0)
+
+    def test_cbf_jaccard_empty(self):
+        ''' test jaccard of an empty counting bloom filters '''
+        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        blm1.add('this is a test', 10)
+        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        self.assertEqual(blm1.jaccard_index(blm2), 0.0)
+
+    def test_cbf_jaccard_empty_both(self):
+        ''' test jaccard of an empty counting bloom filters '''
         blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
         blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
-        msg = ('Union is not supported for counting blooms')
+        self.assertEqual(blm1.jaccard_index(blm2), 1.0)
+
+    def test_cbf_jaccard_different_2(self):
+        ''' test jaccard of an mismath of counting bloom filters '''
+        blm1 = CountingBloomFilter(est_elements=101, false_positive_rate=0.01)
+        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        self.assertEqual(blm1.jaccard_index(blm2), None)
+
+    def test_cbf_jaccard_invalid(self):
+        ''' use an invalid type in a jaccard index '''
+        blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm.add('this is a test')
+        self.assertRaises(TypeError, lambda: blm.jaccard_index(1))
+
+    def test_cbf_jaccard_invalid_msg(self):
+        ''' check invalid type in a jaccard index message '''
+        msg = ('The parameter second must be of type CountingBloomFilter')
+        blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm.add('this is another test')
         try:
-            blm1.union(blm2)
-        except NotSupportedError as ex:
+            blm.jaccard_index(15)
+        except TypeError as ex:
             self.assertEqual(str(ex), msg)
+        else:
+            self.assertEqual(True, False)
 
-    def test_cbf_intersection(self):
-        ''' test intersection of two counting bloom filters '''
-        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
-        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
-        self.assertRaises(NotSupportedError, lambda: blm1.intersection(blm2))
+    def test_cbf_estimate_easy(self):
+        ''' check estimate elements '''
+        blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm.add('this is a test', 10)
+        blm.add('this is also a test', 5)
+        self.assertEqual(blm.estimate_elements(), 2)
 
-    def test_cbf_intersection_msg(self):
-        ''' test intersection of two counting bloom filters msg '''
-        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
-        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
-        msg = ('Intersection is not supported for counting blooms')
-        try:
-            blm1.intersection(blm2)
-        except NotSupportedError as ex:
-            self.assertEqual(str(ex), msg)
-
-    def test_cbf_jaccard(self):
-        ''' test jaccard of two counting bloom filters '''
-        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
-        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
-        self.assertRaises(NotSupportedError, lambda: blm1.jaccard_index(blm2))
-
-    def test_cbf_jaccard_msg(self):
-        ''' test jaccard of two counting bloom filters msg '''
-        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
-        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
-        msg = ('Jaccard Index is not supported for counting blooms')
-        try:
-            blm1.jaccard_index(blm2)
-        except NotSupportedError as ex:
-            self.assertEqual(str(ex), msg)
+    def test_cbf_estimate_2(self):
+        ''' check estimate elements - different '''
+        blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm.add('this is a test', 10)
+        blm.add('this is a different test', 5)
+        self.assertEqual(blm.estimate_elements(), 1)
 
     def test_cbf_remove(self):
         ''' test to see if the remove functionality works correctly '''
         blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
         self.assertEqual(blm.elements_added, 0)
-        blm.add('this is a test 0')
-        blm.add('this is a test 1')
-        blm.add('this is a test 2')
-        blm.add('this is a test 3')
-        blm.add('this is a test 4')
+        for i in range(0, 5):
+            tmp = 'this is a test {0}'.format(i)
+            blm.add(tmp)
         self.assertEqual(blm.elements_added, 5)
         res = blm.remove('this is a test 0')
         self.assertEqual(blm.elements_added, 4)
@@ -327,3 +349,76 @@ class TestCountingBloomFilter(unittest.TestCase):
         res = blm.remove('this is a test 0', large)
         self.assertEqual(blm.elements_added, large)
         self.assertEqual(res, large - 1)
+
+    def test_cbf_union(self):
+        ''' test calculating the union between two counting bloom filters '''
+        blm1 = CountingBloomFilter(est_elements=100, false_positive_rate=0.05)
+        blm1.add('this is a test', 10)
+        blm1.add('this is a different test', 10)
+        blm2 = CountingBloomFilter(est_elements=100, false_positive_rate=0.05)
+        blm2.add('this is a test', 10)
+        res = blm1.union(blm2)
+
+        self.assertEqual(res.check('this is a test'), 20)
+        self.assertEqual(res.check('this is a different test'), 10)
+        self.assertEqual(res.check('this is not a test'), 0)
+        self.assertEqual(res.elements_added, 2)
+
+    def test_cbf_union_error(self):
+        ''' test union of two counting bloom filters type error '''
+        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        self.assertRaises(TypeError, lambda: blm1.union(1))
+
+    def test_cbf_union_error_msg(self):
+        ''' test union of two counting bloom filters type error msg '''
+        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        msg = ('The parameter second must be of type CountingBloomFilter')
+        try:
+            blm1.union(1)
+        except TypeError as ex:
+            self.assertEqual(str(ex), msg)
+        else:
+            self.assertEqual(True, False)
+
+    def test_cbf_union_diff(self):
+        ''' test union of an mismath of counting bloom filters '''
+        blm1 = CountingBloomFilter(est_elements=101, false_positive_rate=0.01)
+        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        self.assertEqual(blm1.union(blm2), None)
+
+    def test_cbf_inter(self):
+        ''' test calculating the intersection between two
+            counting bloom filters '''
+        blm1 = CountingBloomFilter(est_elements=100, false_positive_rate=0.05)
+        blm1.add('this is a test', 10)
+        blm1.add('this is a different test', 10)
+        blm2 = CountingBloomFilter(est_elements=100, false_positive_rate=0.05)
+        blm2.add('this is a test', 10)
+        res = blm1.intersection(blm2)
+
+        self.assertEqual(res.check('this is a test'), 20)
+        self.assertEqual(res.check('this is a different test'), 0)
+        self.assertEqual(res.check('this is not a test'), 0)
+        self.assertEqual(res.elements_added, 1)
+
+    def test_cbf_inter_error(self):
+        ''' test intersection of two counting bloom filters type error '''
+        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        self.assertRaises(TypeError, lambda: blm1.intersection(1))
+
+    def test_cbf_inter_error_msg(self):
+        ''' test intersection of two counting bloom filters type error msg '''
+        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        msg = ('The parameter second must be of type CountingBloomFilter')
+        try:
+            blm1.intersection(1)
+        except TypeError as ex:
+            self.assertEqual(str(ex), msg)
+        else:
+            self.assertEqual(True, False)
+
+    def test_cbf_inter_diff(self):
+        ''' test intersection of an mismath of counting bloom filters '''
+        blm1 = CountingBloomFilter(est_elements=101, false_positive_rate=0.01)
+        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+        self.assertEqual(blm1.intersection(blm2), None)

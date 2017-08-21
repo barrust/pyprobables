@@ -8,6 +8,16 @@ from __future__ import (unicode_literals, absolute_import, print_function,
 from .. exceptions import (NotSupportedError)
 from . basebloom import (BaseBloom)
 
+MISMATCH_MSG = ('The parameter second must be of type CountingBloomFilter')
+
+
+def _verify_not_type_mismatch(second):
+    ''' verify that there is not a type mismatch '''
+    if not isinstance(second, (CountingBloomFilter)):
+        return False
+    else:
+        return True
+
 
 class CountingBloomFilter(BaseBloom):
     ''' Simple Counting Bloom Filter implementation for use in python;
@@ -188,31 +198,37 @@ class CountingBloomFilter(BaseBloom):
         self.elements_added -= t_num_els
         return tmp - t_num_els
 
-    def union(self, second):
-        ''' Union two Counting Bloom Filters together
-
-            Args:
-                second (CountingBloomFilter): The Bloom Filter with which to \
-                take the union
-            Raises:
-                NotSupportedError: This functionality is currently not \
-                supported
-        '''
-        msg = 'Union is not supported for counting blooms'
-        raise NotSupportedError(msg)
-
     def intersection(self, second):
         ''' Take the intersection of two Counting Bloom Filters
 
             Args:
                 second (CountingBloomFilter): The Bloom Filter with which to \
                 take the intersection
+            Returns:
+                CountingBloomFilter: The new Counting Bloom Filter containing \
+                the union
             Raises:
-                NotSupportedError: This functionality is currently not \
-                supported
+                TypeError: When second is not a :class:`CountingBloomFilter`
+            Note:
+                The elements_added property will be set to the estimated \
+                number of unique elements added as found in estimate_elements()
         '''
-        msg = 'Intersection is not supported for counting blooms'
-        raise NotSupportedError(msg)
+        if not _verify_not_type_mismatch(second):
+            raise TypeError(MISMATCH_MSG)
+
+        if super(CountingBloomFilter,
+                 self)._verify_bloom_similarity(second) is False:
+            return None
+        res = CountingBloomFilter(est_elements=self.estimated_elements,
+                                  false_positive_rate=self.false_positive_rate,
+                                  hash_function=self.hash_function)
+
+        for i in list(range(self.bloom_length)):
+            if self._get_element(i) > 0 and second._get_element(i) > 0:
+                tmp = self._get_element(i) + second._get_element(i)
+                res._bloom[i] = self._get_set_element(tmp)
+        res.elements_added = res.estimate_elements()
+        return res
 
     def jaccard_index(self, second):
         ''' Take the Jaccard Index of two Counting Bloom Filters
@@ -220,9 +236,68 @@ class CountingBloomFilter(BaseBloom):
             Args:
                 second (CountingBloomFilter): The Bloom Filter with which to \
                 take the jaccard index
+            Returns:
+                float: A numeric value between 0 and 1 where 1 is identical \
+                and 0 means completely different
             Raises:
-                NotSupportedError: This functionality is currently not \
-                supported
+                TypeError: When second is not a :class:`CountingBloomFilter`
+            Note:
+                The Jaccard Index is based on the unique set of elements \
+                added and not the number of each element added
         '''
-        msg = 'Jaccard Index is not supported for counting blooms'
-        raise NotSupportedError(msg)
+        if not _verify_not_type_mismatch(second):
+            raise TypeError(MISMATCH_MSG)
+
+        if super(CountingBloomFilter,
+                 self)._verify_bloom_similarity(second) is False:
+            return None
+
+        count_union = 0
+        count_inter = 0
+        for i in list(range(self.bloom_length)):
+            if self._get_element(i) > 0 or second._get_element(i) > 0:
+                count_union += 1
+            if self._get_element(i) > 0 and second._get_element(i) > 0:
+                count_inter += 1
+        if count_union == 0:
+            return 1.0
+        return count_inter / count_union
+
+    def union(self, second):
+        ''' Return a new Countiong Bloom Filter that contains the union of
+            the two
+
+            Args:
+                second (CountingBloomFilter): The Counting Bloom Filter with \
+                which to calculate the union
+            Returns:
+                CountingBloomFilter: The new Counting Bloom Filter containing \
+                the union
+            Raises:
+                TypeError: When second is not a :class:`CountingBloomFilter`
+            Note:
+                The elements_added property will be set to the estimated \
+                number of unique elements added as found in estimate_elements()
+        '''
+        if not _verify_not_type_mismatch(second):
+            raise TypeError(MISMATCH_MSG)
+
+        if super(CountingBloomFilter,
+                 self)._verify_bloom_similarity(second) is False:
+            return None
+        res = CountingBloomFilter(est_elements=self.estimated_elements,
+                                  false_positive_rate=self.false_positive_rate,
+                                  hash_function=self.hash_function)
+        for i in list(range(self.bloom_length)):
+            tmp = self._get_element(i) + second._get_element(i)
+            res._bloom[i] = self._get_set_element(tmp)
+        res.elements_added = res.estimate_elements()
+        return res
+
+    def _cnt_number_bits_set(self):
+        ''' calculate the total number of set bits in the bloom '''
+        cnt = 0
+        for i in list(range(self.bloom_length)):
+            if self._get_element(i) > 0:
+                cnt += 1
+        return cnt

@@ -1,5 +1,12 @@
 # PyProbables Changelog
 
+### Version 0.0.8:
+* Counting Bloom Filter
+    * Estimate unique elements added
+    * Union
+    * Intersection
+    * Jaccard Index
+
 ### Version 0.0.7:
 * Counting Bloom Filter
     * Fix counting bloom hex export / import

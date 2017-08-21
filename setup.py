@@ -5,6 +5,7 @@ from probables import (__version__, __url__, __author__, __email__,
                        __license__, __bugtrack_url__)
 
 def read_file(filepath):
+    ''' read the file '''
     with io.open(filepath, 'r') as filepointer:
         res = filepointer.read()
     return res
