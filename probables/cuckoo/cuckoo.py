@@ -46,19 +46,19 @@ class CuckooFilter(object):
 
         # NOTE: these do not match in py2/py3
         hash_bytes = b'' + struct.pack(">Q", int(hash_val))
-        hex_data = hex(int(hash_val))
-        print(hex_data)
-        hash_bytes = bytearray.fromhex(hex_data[2:])
-        print(hash_bytes)
+        # hex_data = hex(int(hash_val))
+        # print(hex_data)
+        # hash_bytes = bytearray.fromhex(hex_data[2:])
+        # print(hash_bytes)
 
         idx_1 = hash_val % self.capacity
 
         fingerprint = bytes(hash_bytes[:4])  # fingerprint is the first 32 bits
-        print(hash_val, hash_bytes, fingerprint)
+        # print(hash_val, hash_bytes, fingerprint)
 
         idx_2 = (idx_1 ^ self.__hash_func(str(fingerprint))) % self.capacity
 
-        print(idx_1, idx_2, fingerprint, hash_bytes)
+        # print(idx_1, idx_2, fingerprint, hash_bytes)
 
         return idx_1, idx_2, fingerprint
 
