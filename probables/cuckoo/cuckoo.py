@@ -74,11 +74,12 @@ class CuckooFilter(object):
         # we didn't insert, so now we need to randomly select one index to use
         # and move things around to the other index, if possible, until we
         # either move everything around or hit the maximum number of swaps
-        rand_index = random.choice(idx_1, idx_2)
+        rand_idx = random.choice(idx_1, idx_2)
         for _ in range(self.__max_cuckoo_swaps):
             # select one element to be swapped out...
-            swap_idx = random.randrange(0, len(self.__buckets[rand_index]))
-            fingerprint, self.__buckets[rand_index][swap_idx] = self.__buckets[rand_index][swap_idx], fingerprint
+            swap_idx = random.randrange(0, len(self.__buckets[rand_idx]))
+            sb = self.__buckets[rand_idx][swap_idx]
+            fingerprint, self.__buckets[rand_idx][swap_idx] = sb, fingerprint
 
             # now find another place to put this fingerprint
             _, _, rand_idx = self.generate_fingerprint_info(fingerprint)
