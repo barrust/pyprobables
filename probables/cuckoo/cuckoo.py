@@ -11,6 +11,7 @@ import struct
 import binascii
 
 from .. hashes import (fnv_1a)
+from .. utilities import (get_leftmost_bits)
 
 
 class CuckooFilter(object):
@@ -44,21 +45,10 @@ class CuckooFilter(object):
         # generate the fingerprint along with the two possible indecies
         hash_val = self.__hash_func(key)
 
-        # NOTE: these do not match in py2/py3
-        hash_bytes = b'' + struct.pack(">Q", int(hash_val))
-        # hex_data = hex(int(hash_val))
-        # print(hex_data)
-        # hash_bytes = bytearray.fromhex(hex_data[2:])
-        # print(hash_bytes)
+        fingerprint = get_leftmost_bits(hash_val, 64, 32)
 
         idx_1 = hash_val % self.capacity
-
-        fingerprint = bytes(hash_bytes[:4])  # fingerprint is the first 32 bits
-        # print(hash_val, hash_bytes, fingerprint)
-
         idx_2 = (idx_1 ^ self.__hash_func(str(fingerprint))) % self.capacity
-
-        # print(idx_1, idx_2, fingerprint, hash_bytes)
 
         return idx_1, idx_2, fingerprint
 
