@@ -5,7 +5,6 @@
 '''
 from __future__ import (unicode_literals, absolute_import, print_function,
                         division)
-from .. exceptions import (NotSupportedError)
 from . basebloom import (BaseBloom)
 
 MISMATCH_MSG = ('The parameter second must be of type CountingBloomFilter')
@@ -15,8 +14,7 @@ def _verify_not_type_mismatch(second):
     ''' verify that there is not a type mismatch '''
     if not isinstance(second, (CountingBloomFilter)):
         return False
-    else:
-        return True
+    return True
 
 
 class CountingBloomFilter(BaseBloom):

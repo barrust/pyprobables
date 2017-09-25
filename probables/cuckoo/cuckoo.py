@@ -5,10 +5,7 @@
 
 from __future__ import (unicode_literals, absolute_import, print_function,
                         division)
-import sys
 import random
-import struct
-import binascii
 
 from .. hashes import (fnv_1a)
 from .. utilities import (get_leftmost_bits)
@@ -20,7 +17,7 @@ class CuckooFilter(object):
         self.__cuckoo_capacity = capacity
         self.__max_cuckoo_swaps = max_swaps
         self.__buckets = list()
-        for i in range(self.capacity):
+        for _ in range(self.capacity):
             self.__buckets.append(list())  # we could pre-populate it with bins
         self.__hash_func = fnv_1a
         self.__inserted_elements = 0
@@ -64,12 +61,12 @@ class CuckooFilter(object):
         # we didn't insert, so now we need to randomly select one index to use
         # and move things around to the other index, if possible, until we
         # either move everything around or hit the maximum number of swaps
-        rand_idx = random.choice(idx_1, idx_2)
+        rand_idx = random.choice([idx_1, idx_2])
         for _ in range(self.__max_cuckoo_swaps):
             # select one element to be swapped out...
             swap_idx = random.randrange(0, len(self.__buckets[rand_idx]))
-            sb = self.__buckets[rand_idx][swap_idx]
-            fingerprint, self.__buckets[rand_idx][swap_idx] = sb, fingerprint
+            swb = self.__buckets[rand_idx][swap_idx]
+            fingerprint, self.__buckets[rand_idx][swap_idx] = swb, fingerprint
 
             # now find another place to put this fingerprint
             _, _, rand_idx = self.generate_fingerprint_info(fingerprint)
