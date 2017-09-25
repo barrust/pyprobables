@@ -16,3 +16,9 @@ def is_valid_file(filepath):
     if filepath is None:
         return False
     return os.path.isfile(filepath)
+
+
+def get_leftmost_bits(num, max_bits, left_bits):
+    bits = bin(num).lstrip('0b')
+    bits = bits.zfill(max_bits)
+    return int(bits[:left_bits], 2)
