@@ -52,7 +52,8 @@ class CuckooFilter(object):
         # idx_1 = hash_val % self.capacity
         # idx_2 = self._generate_second_idx(idx_1, str(fingerprint))
         if idx_1 > self.capacity or idx_2 > self.capacity:
-            print('Either idx_1 {0} or idx_2 {1} is greater than {2}'.format(idx_1, idx_2, self.capacity))
+            msg = ('Either idx_1 {0} or idx_2 {1} is greater than {2}')
+            print(msg.format(idx_1, idx_2, self.capacity))
         return idx_1, idx_2, fingerprint
 
     def _generate_second_idx(self, idx, fingerprint):
