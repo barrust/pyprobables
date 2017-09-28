@@ -40,21 +40,22 @@ class CuckooFilter(object):
         return self.__bucket_size
 
     def __index_from_str(self, fingerprint):
-        hash_val = self.__hash_func(fingerprint)
+        hash_val = self.__hash_func(str(fingerprint))
         return hash_val % self.capacity
 
     def indicies_from_fingerprint(self, fingerprint):
         idx_1 = self.__index_from_str(fingerprint)
-        idx_2 = self.__index_from_str(fingerprint[::-1])
+        idx_2 = self.__index_from_str(int(str(fingerprint)[::-1]))
         return idx_1, idx_2
 
     def generate_fingerprint_info(self, key):
         # generate the fingerprint along with the two possible indecies
         hash_val = self.__hash_func(key)
-        fingerprint = str(hash_val).encode()[:8]
-        idx_1, idx_2 = self.indicies_from_fingerprint(str(fingerprint))
+        fingerprint = get_leftmost_bits(hash_val, 64, 32)
+        idx_1, idx_2 = self.indicies_from_fingerprint(fingerprint)
 
         if idx_1 > self.capacity or idx_2 > self.capacity:
+            # TODO: This should throw an exception but it should never happen..
             msg = ('Either idx_1 {0} or idx_2 {1} is greater than {2}')
             print(msg.format(idx_1, idx_2, self.capacity))
         return idx_1, idx_2, fingerprint
