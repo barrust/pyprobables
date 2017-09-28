@@ -30,18 +30,17 @@ class TestCuckooFilter(unittest.TestCase):
         cko.add_element('this is yet another test')
         self.assertEqual(cko.elements_added, 3)
 
-    # def test_cuckoo_filter_lots(self):
-    #     cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=10)
-    #     for i in range(125):
-    #         cko.add_element(str(i))
-    #     self.assertEqual(cko.elements_added, 125)
+    def test_cuckoo_filter_lots(self):
+        cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=100)
+        for i in range(125):
+            cko.add_element(str(i))
+        self.assertEqual(cko.elements_added, 125)
 
     def test_cuckoo_idx(self):
         cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=5)
-        idx_1, idx_2, fingerprint = cko.generate_fingerprint_info('this is a test')
-        print(idx_1, idx_2)
-        index_1 = cko._generate_second_idx(idx_2, fingerprint)
-        index_2 = cko._generate_second_idx(idx_1, fingerprint)
+        txt = 'this is a test'
+        idx_1, idx_2, fingerprint = cko.generate_fingerprint_info(txt)
+        index_1, index_2 = cko.indicies_from_fingerprint(fingerprint)
         self.assertEqual(idx_1, index_1)
         self.assertEqual(idx_2, index_2)
 

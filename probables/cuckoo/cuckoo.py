@@ -39,29 +39,25 @@ class CuckooFilter(object):
     def bucket_size(self):
         return self.__bucket_size
 
+    def __index_from_str(self, fingerprint):
+        hash_val = self.__hash_func(fingerprint)
+        return hash_val % self.capacity
+
+    def indicies_from_fingerprint(self, fingerprint):
+        idx_1 = self.__index_from_str(fingerprint)
+        idx_2 = self.__index_from_str(fingerprint[::-1])
+        return idx_1, idx_2
+
     def generate_fingerprint_info(self, key):
         # generate the fingerprint along with the two possible indecies
         hash_val = self.__hash_func(key)
-        fingerprint = int(bin(self.__hash_func(key)).lstrip('0b')[:16], 2)
-        idx_1 = hash_val % self.capacity
-        finger_hash = self.__hash_func(str(fingerprint))
-        idx_2 = idx_1 ^ (finger_hash % self.capacity) % self.capacity
+        fingerprint = str(hash_val).encode()[:8]
+        idx_1, idx_2 = self.indicies_from_fingerprint(str(fingerprint))
 
-        # fingerprint = hash_val.to_bytes(16, 'big')[:2]
-        # print(hash_val, fingerprint)
-        # idx_1 = hash_val % self.capacity
-        # idx_2 = self._generate_second_idx(idx_1, str(fingerprint))
         if idx_1 > self.capacity or idx_2 > self.capacity:
             msg = ('Either idx_1 {0} or idx_2 {1} is greater than {2}')
             print(msg.format(idx_1, idx_2, self.capacity))
         return idx_1, idx_2, fingerprint
-
-    def _generate_second_idx(self, idx, fingerprint):
-        finger_hash = self.__hash_func(str(fingerprint))
-        tmp = idx ^ (finger_hash % self.capacity)
-        if tmp > self.capacity:
-            print('from idx {} we got {}'.format(idx, tmp))
-        return tmp
 
     def add_element(self, key):
         idx_1, idx_2, fingerprint = self.generate_fingerprint_info(key)
@@ -76,16 +72,22 @@ class CuckooFilter(object):
         # and move things around to the other index, if possible, until we
         # either move everything around or hit the maximum number of swaps
         idx = random.choice([idx_1, idx_2])
-        for _ in range(self.__max_cuckoo_swaps):
+        # print(idx)
+        for i in range(self.__max_cuckoo_swaps):
             # select one element to be swapped out...
-            swap_elm = random.randint(0, self.bucket_size)
+            swap_elm = random.randint(0, self.bucket_size - 1)
 
             swb = self.__buckets[idx][swap_elm]
             fingerprint, self.__buckets[idx][swap_elm] = swb, fingerprint
 
             # now find another place to put this fingerprint
-            idx = self._generate_second_idx(idx, fingerprint)
-            # print(idx)
+            index_1, index_2 = self.indicies_from_fingerprint(fingerprint)
+
+            if idx == index_1:
+                idx = index_2
+            else:
+                idx = index_1
+
             if self.__insert_element(fingerprint, idx):
                 self.__inserted_elements += 1
                 return idx
