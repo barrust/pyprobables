@@ -91,6 +91,17 @@ Import pyprobables and setup a Count-Min Sketch:
     >>> cms.add('google.com')  # should return 1
     >>> cms.add('facebook.com', 25)  # insert 25 at once; should return 25
 
+
+Import pyprobables and setup a Cuckoo Filter:
+
+    .. code:: python
+
+        >>> from probables import (CuckooFilter)
+        >>> cko = CuckooFilter(capacity=100, max_swaps=10)
+        >>> cko.add('google.com')
+        >>> cko.check('facebook.com')  # should return False
+        >>> cko.check('google.com')  # should return True
+
 See the `API documentation <http://pyprobables.readthedocs.io/en/latest/code.html#api>`__
 for other data structures available and the
 `quickstart page <http://pyprobables.readthedocs.io/en/latest/quickstart.html#quickstart>`__

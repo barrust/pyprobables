@@ -22,8 +22,7 @@ def _verify_not_type_mismatch(second):
     ''' verify that there is not a type mismatch '''
     if not isinstance(second, (BloomFilter, BloomFilterOnDisk)):
         return False
-    else:
-        return True
+    return True
 
 
 def _cnt_set_bits(i):
