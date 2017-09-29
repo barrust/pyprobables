@@ -5,7 +5,7 @@ from .countminsketch import (CountMinSketch, HeavyHitters, StreamThreshold,
                              CountMeanSketch, CountMeanMinSketch)
 from .cuckoo import (CuckooFilter)
 from .exceptions import (InitializationError, NotSupportedError,
-                         ProbablesBaseException)
+                         ProbablesBaseException, CuckooFilterFullError)
 
 __author__ = 'Tyler Barrus'
 __maintainer__ = 'Tyler Barrus'
@@ -18,4 +18,5 @@ __bugtrack_url__ = 'https://github.com/barrust/pyprobables/issues'
 
 __all__ = ['BloomFilter', 'BloomFilterOnDisk', 'CountMinSketch',
            'HeavyHitters', 'StreamThreshold', 'CountMeanSketch',
-           'CountMeanMinSketch', 'CountingBloomFilter', 'CuckooFilter']
+           'CountMeanMinSketch', 'CountingBloomFilter', 'CuckooFilter',
+           'CuckooFilterFullError']

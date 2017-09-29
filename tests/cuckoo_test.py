@@ -3,7 +3,7 @@
 from __future__ import (unicode_literals, absolute_import, print_function)
 import unittest
 
-from probables import (CuckooFilter)
+from probables import (CuckooFilter, CuckooFilterFullError)
 # from . utilities import(calc_file_md5, different_hash)
 
 class TestCuckooFilter(unittest.TestCase):
@@ -30,11 +30,58 @@ class TestCuckooFilter(unittest.TestCase):
         cko.add_element('this is yet another test')
         self.assertEqual(cko.elements_added, 3)
 
+    def test_cuckoo_filter_remove(self):
+        cko = CuckooFilter()
+        cko.add_element('this is a test')
+        self.assertEqual(cko.elements_added, 1)
+        cko.add_element('this is another test')
+        self.assertEqual(cko.elements_added, 2)
+        cko.add_element('this is yet another test')
+        self.assertEqual(cko.elements_added, 3)
+
+        res = cko.remove_element('this is a test')
+        self.assertTrue(res)
+        self.assertEqual(cko.elements_added, 2)
+        self.assertFalse(cko.check_element('this is a test'))
+        self.assertTrue(cko.check_element('this is another test'))
+        self.assertTrue(cko.check_element('this is yet another test'))
+
+    def test_cuckoo_filter_remove_miss(self):
+        cko = CuckooFilter()
+        cko.add_element('this is a test')
+        self.assertEqual(cko.elements_added, 1)
+        cko.add_element('this is another test')
+        self.assertEqual(cko.elements_added, 2)
+        cko.add_element('this is yet another test')
+        self.assertEqual(cko.elements_added, 3)
+
+        res = cko.remove_element('this is still a test')
+        self.assertFalse(res)
+        self.assertEqual(cko.elements_added, 3)
+        self.assertTrue(cko.check_element('this is a test'))
+        self.assertTrue(cko.check_element('this is another test'))
+        self.assertTrue(cko.check_element('this is yet another test'))
+
     def test_cuckoo_filter_lots(self):
         cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=100)
         for i in range(125):
             cko.add_element(str(i))
         self.assertEqual(cko.elements_added, 125)
+
+    def test_cuckoo_filter_full(self):
+        def runner():
+            cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=100)
+            for i in range(175):
+                cko.add_element(str(i))
+        self.assertRaises(CuckooFilterFullError, runner)
+
+    def test_cuckoo_full_msg(self):
+        try:
+            cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=100)
+            for i in range(175):
+                cko.add_element(str(i))
+        except CuckooFilterFullError as ex:
+            self.assertEqual(str(ex), 'The CuckooFilter is currently full')
 
     def test_cuckoo_idx(self):
         cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=5)
@@ -54,3 +101,14 @@ class TestCuckooFilter(unittest.TestCase):
         self.assertEqual(cko.check_element('this is yet another test'), True)
         self.assertEqual(cko.check_element('this is not another test'), False)
         self.assertEqual(cko.check_element('this is not a test'), False)
+
+    def test_cuckoo_filter_in(self):
+        cko = CuckooFilter()
+        cko.add_element('this is a test')
+        cko.add_element('this is another test')
+        cko.add_element('this is yet another test')
+        self.assertEqual('this is a test' in cko, True)
+        self.assertEqual('this is another test' in cko, True)
+        self.assertEqual('this is yet another test' in cko, True)
+        self.assertEqual('this is not another test' in cko, False)
+        self.assertEqual('this is not a test' in cko, False)

@@ -18,8 +18,10 @@ def is_valid_file(filepath):
     return os.path.isfile(filepath)
 
 
-def get_leftmost_bits(num, max_bits, left_bits):
+def get_x_bits(num, max_bits, num_bits, right_bits=True):
     ''' ensure the correct number of bits and pull the upper x bits '''
     bits = bin(num).lstrip('0b')
     bits = bits.zfill(max_bits)
-    return int(bits[:left_bits], 2)
+    if right_bits:
+        return int(bits[num_bits:], 2)
+    return int(bits[:num_bits], 2)

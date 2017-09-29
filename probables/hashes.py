@@ -1,6 +1,6 @@
 ''' Probables Hashing library '''
 from __future__ import (unicode_literals, absolute_import, print_function)
-import sys
+
 from hashlib import (md5, sha256)
 from struct import (unpack)  # needed to turn digests into numbers
 
