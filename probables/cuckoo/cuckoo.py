@@ -36,7 +36,7 @@ class CuckooFilter(object):
 
     def __contains__(self, key):
         ''' setup the `in` keyword '''
-        return self.check_element(key)
+        return self.check(key)
 
     @property
     def elements_added(self):
@@ -70,7 +70,7 @@ class CuckooFilter(object):
                 Not settable '''
         return self.__bucket_size
 
-    def add_element(self, key):
+    def add(self, key):
         ''' Add element key to the filter
 
             Args:
@@ -108,7 +108,7 @@ class CuckooFilter(object):
                 return idx
         raise CuckooFilterFullError('The CuckooFilter is currently full')
 
-    def check_element(self, key):
+    def check(self, key):
         ''' Check if an element is in the filter
 
             Args:
@@ -118,7 +118,7 @@ class CuckooFilter(object):
             return True
         return False
 
-    def remove_element(self, key):
+    def remove(self, key):
         ''' Remove an element from the filter
 
             Args:

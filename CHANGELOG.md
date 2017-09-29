@@ -1,7 +1,8 @@
 # PyProbables Changelog
 
-### Version 0.0.9:
-
+### Version 0.1.0:
+* Cuckoo Filter
+    * Added basic Cuckoo Filter code
 
 ### Version 0.0.8:
 * Counting Bloom Filter

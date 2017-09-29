@@ -26,52 +26,52 @@ class TestCuckooFilter(unittest.TestCase):
     def test_cuckoo_filter_add(self):
         ''' test adding to the cuckoo filter '''
         cko = CuckooFilter()
-        cko.add_element('this is a test')
+        cko.add('this is a test')
         self.assertEqual(cko.elements_added, 1)
-        cko.add_element('this is another test')
+        cko.add('this is another test')
         self.assertEqual(cko.elements_added, 2)
-        cko.add_element('this is yet another test')
+        cko.add('this is yet another test')
         self.assertEqual(cko.elements_added, 3)
 
     def test_cuckoo_filter_remove(self):
         ''' test removing from the cuckoo filter '''
         cko = CuckooFilter()
-        cko.add_element('this is a test')
+        cko.add('this is a test')
         self.assertEqual(cko.elements_added, 1)
-        cko.add_element('this is another test')
+        cko.add('this is another test')
         self.assertEqual(cko.elements_added, 2)
-        cko.add_element('this is yet another test')
+        cko.add('this is yet another test')
         self.assertEqual(cko.elements_added, 3)
 
-        res = cko.remove_element('this is a test')
+        res = cko.remove('this is a test')
         self.assertTrue(res)
         self.assertEqual(cko.elements_added, 2)
-        self.assertFalse(cko.check_element('this is a test'))
-        self.assertTrue(cko.check_element('this is another test'))
-        self.assertTrue(cko.check_element('this is yet another test'))
+        self.assertFalse(cko.check('this is a test'))
+        self.assertTrue(cko.check('this is another test'))
+        self.assertTrue(cko.check('this is yet another test'))
 
     def test_cuckoo_filter_remove_miss(self):
         ''' test removing from the cuckoo filter when not present '''
         cko = CuckooFilter()
-        cko.add_element('this is a test')
+        cko.add('this is a test')
         self.assertEqual(cko.elements_added, 1)
-        cko.add_element('this is another test')
+        cko.add('this is another test')
         self.assertEqual(cko.elements_added, 2)
-        cko.add_element('this is yet another test')
+        cko.add('this is yet another test')
         self.assertEqual(cko.elements_added, 3)
 
-        res = cko.remove_element('this is still a test')
+        res = cko.remove('this is still a test')
         self.assertFalse(res)
         self.assertEqual(cko.elements_added, 3)
-        self.assertTrue(cko.check_element('this is a test'))
-        self.assertTrue(cko.check_element('this is another test'))
-        self.assertTrue(cko.check_element('this is yet another test'))
+        self.assertTrue(cko.check('this is a test'))
+        self.assertTrue(cko.check('this is another test'))
+        self.assertTrue(cko.check('this is yet another test'))
 
     def test_cuckoo_filter_lots(self):
         ''' test inserting lots into the cuckoo filter '''
         cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=100)
         for i in range(125):
-            cko.add_element(str(i))
+            cko.add(str(i))
         self.assertEqual(cko.elements_added, 125)
 
     def test_cuckoo_filter_full(self):
@@ -79,7 +79,7 @@ class TestCuckooFilter(unittest.TestCase):
         def runner():
             cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=100)
             for i in range(175):
-                cko.add_element(str(i))
+                cko.add(str(i))
         self.assertRaises(CuckooFilterFullError, runner)
 
     def test_cuckoo_full_msg(self):
@@ -87,7 +87,7 @@ class TestCuckooFilter(unittest.TestCase):
         try:
             cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=100)
             for i in range(175):
-                cko.add_element(str(i))
+                cko.add(str(i))
         except CuckooFilterFullError as ex:
             self.assertEqual(str(ex), 'The CuckooFilter is currently full')
 
@@ -103,21 +103,21 @@ class TestCuckooFilter(unittest.TestCase):
     def test_cuckoo_filter_check(self):
         ''' test checking if element in cuckoo filter '''
         cko = CuckooFilter()
-        cko.add_element('this is a test')
-        cko.add_element('this is another test')
-        cko.add_element('this is yet another test')
-        self.assertEqual(cko.check_element('this is a test'), True)
-        self.assertEqual(cko.check_element('this is another test'), True)
-        self.assertEqual(cko.check_element('this is yet another test'), True)
-        self.assertEqual(cko.check_element('this is not another test'), False)
-        self.assertEqual(cko.check_element('this is not a test'), False)
+        cko.add('this is a test')
+        cko.add('this is another test')
+        cko.add('this is yet another test')
+        self.assertEqual(cko.check('this is a test'), True)
+        self.assertEqual(cko.check('this is another test'), True)
+        self.assertEqual(cko.check('this is yet another test'), True)
+        self.assertEqual(cko.check('this is not another test'), False)
+        self.assertEqual(cko.check('this is not a test'), False)
 
     def test_cuckoo_filter_in(self):
         ''' test checking using 'in' cuckoo filter '''
         cko = CuckooFilter()
-        cko.add_element('this is a test')
-        cko.add_element('this is another test')
-        cko.add_element('this is yet another test')
+        cko.add('this is a test')
+        cko.add('this is another test')
+        cko.add('this is yet another test')
         self.assertEqual('this is a test' in cko, True)
         self.assertEqual('this is another test' in cko, True)
         self.assertEqual('this is yet another test' in cko, True)
