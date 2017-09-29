@@ -48,6 +48,18 @@ CountingBloomFilter
     :inherited-members:
 
 
+Cuckoo Filters
+--------------
+
+Cuckoo filters are a space efficient data structure that supports set
+membership testing. Cuckoo filters support insertion, deletion, and lookup of
+elements with low overhead with few false positive results.
+`Further Reading <https://www.cs.cmu.edu/~dga/papers/cuckoo-conext2014.pdf>`__
+
+.. autoclass:: probables.CuckooFilter
+    :members:
+
+
 Count-Min Sketches
 ------------------
 

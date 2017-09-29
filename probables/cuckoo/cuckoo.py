@@ -70,40 +70,14 @@ class CuckooFilter(object):
                 Not settable '''
         return self.__bucket_size
 
-    def _indicies_from_fingerprint(self, fingerprint):
-        ''' Generate the possible insertion indicies from a fingerprint
-
-            Args:
-                fingerprint (int): The fingerprint to use for generating \
-                indicies '''
-        # NOTE: Should this even be public???
-        idx_1 = fingerprint % self.capacity
-        idx_2 = self.__hash_func(str(fingerprint)) % self.capacity
-        return idx_1, idx_2
-
-    def _generate_fingerprint_info(self, key):
-        ''' Generate the fingerprint and indicies using the provided key
-
-            Args:
-                key (str): The element for which information is to be generated
-        '''
-        # NOTE: Should this even be public?
-        # generate the fingerprint along with the two possible indecies
-        hash_val = self.__hash_func(key)
-        fingerprint = get_x_bits(hash_val, 64, 32, True)
-        idx_1, idx_2 = self._indicies_from_fingerprint(fingerprint)
-
-        # NOTE: This should never happen...
-        if idx_1 > self.capacity or idx_2 > self.capacity:
-            msg = ('Either idx_1 {0} or idx_2 {1} is greater than {2}')
-            raise ValueError(msg.format(idx_1, idx_2, self.capacity))
-        return idx_1, idx_2, fingerprint
-
     def add_element(self, key):
         ''' Add element key to the filter
 
             Args:
-                key (str): The element to add '''
+                key (str): The element to add
+            Raises:
+                CuckooFilterFullError: When element not inserted after \
+                maximum number of swaps or 'kicks' '''
         idx_1, idx_2, fingerprint = self._generate_fingerprint_info(key)
         if self.__insert_element(fingerprint, idx_1):
             self.__inserted_elements += 1
@@ -166,3 +140,32 @@ class CuckooFilter(object):
             self.__buckets[idx].append(fingerprint)
             return True
         return False
+
+    def _indicies_from_fingerprint(self, fingerprint):
+        ''' Generate the possible insertion indicies from a fingerprint
+
+            Args:
+                fingerprint (int): The fingerprint to use for generating \
+                indicies '''
+        # NOTE: Should this even be public???
+        idx_1 = fingerprint % self.capacity
+        idx_2 = self.__hash_func(str(fingerprint)) % self.capacity
+        return idx_1, idx_2
+
+    def _generate_fingerprint_info(self, key):
+        ''' Generate the fingerprint and indicies using the provided key
+
+            Args:
+                key (str): The element for which information is to be generated
+        '''
+        # NOTE: Should this even be public?
+        # generate the fingerprint along with the two possible indecies
+        hash_val = self.__hash_func(key)
+        fingerprint = get_x_bits(hash_val, 64, 32, True)
+        idx_1, idx_2 = self._indicies_from_fingerprint(fingerprint)
+
+        # NOTE: This should never happen...
+        if idx_1 > self.capacity or idx_2 > self.capacity:
+            msg = ('Either idx_1 {0} or idx_2 {1} is greater than {2}')
+            raise ValueError(msg.format(idx_1, idx_2, self.capacity))
+        return idx_1, idx_2, fingerprint
