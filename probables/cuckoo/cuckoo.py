@@ -79,6 +79,11 @@ class CuckooFilter(object):
                 CuckooFilterFullError: When element not inserted after \
                 maximum number of swaps or 'kicks' '''
         idx_1, idx_2, fingerprint = self._generate_fingerprint_info(key)
+
+        is_present = self._check_if_present(idx_1, idx_2, fingerprint)
+        if is_present is not None:  # already there, nothing to do
+            return is_present
+
         if self.__insert_element(fingerprint, idx_1):
             self.__inserted_elements += 1
             return idx_1
@@ -114,7 +119,8 @@ class CuckooFilter(object):
             Args:
                 key (str): Element to check '''
         idx_1, idx_2, fingerprint = self._generate_fingerprint_info(key)
-        if fingerprint in chain(self.__buckets[idx_1], self.__buckets[idx_2]):
+        is_present = self._check_if_present(idx_1, idx_2, fingerprint)
+        if is_present is not None:
             return True
         return False
 
@@ -124,15 +130,20 @@ class CuckooFilter(object):
             Args:
                 key (str): Element to remove '''
         idx_1, idx_2, fingerprint = self._generate_fingerprint_info(key)
+        idx = self._check_if_present(idx_1, idx_2, fingerprint)
+        if idx is None:
+            return False
+        self.__buckets[idx].remove(fingerprint)
+        self.__inserted_elements -= 1
+        return True
+
+    def _check_if_present(self, idx_1, idx_2, fingerprint):
+        ''' wrapper for checking if fingerprint is already inserted '''
         if fingerprint in self.__buckets[idx_1]:
-            self.__buckets[idx_1].remove(fingerprint)
-            self.__inserted_elements -= 1
-            return True
+            return idx_1
         elif fingerprint in self.__buckets[idx_2]:
-            self.__buckets[idx_2].remove(fingerprint)
-            self.__inserted_elements -= 1
-            return True
-        return False
+            return idx_2
+        return None
 
     def __insert_element(self, fingerprint, idx):
         ''' insert element wrapper '''

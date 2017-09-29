@@ -123,3 +123,15 @@ class TestCuckooFilter(unittest.TestCase):
         self.assertEqual('this is yet another test' in cko, True)
         self.assertEqual('this is not another test' in cko, False)
         self.assertEqual('this is not a test' in cko, False)
+
+    def test_cuckoo_filter_dup_add(self):
+        ''' test adding same item multiple times cuckoo filter '''
+        cko = CuckooFilter()
+        cko.add('this is a test')
+        cko.add('this is another test')
+        cko.add('this is yet another test')
+        self.assertEqual(cko.elements_added, 3)
+        cko.add('this is a test')
+        cko.add('this is another test')
+        cko.add('this is yet another test')
+        self.assertEqual(cko.elements_added, 3)
