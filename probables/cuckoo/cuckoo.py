@@ -70,6 +70,10 @@ class CuckooFilter(object):
                 Not settable '''
         return self.__bucket_size
 
+    def load_factor(self):
+        ''' float: How full the Cuckoo Filter is currently '''
+        return self.elements_added / (self.capacity * self.bucket_size)
+
     def add(self, key):
         ''' Add element key to the filter
 
