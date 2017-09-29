@@ -86,8 +86,8 @@ class TestCuckooFilter(unittest.TestCase):
     def test_cuckoo_idx(self):
         cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=5)
         txt = 'this is a test'
-        idx_1, idx_2, fingerprint = cko.generate_fingerprint_info(txt)
-        index_1, index_2 = cko.indicies_from_fingerprint(fingerprint)
+        idx_1, idx_2, fingerprint = cko._generate_fingerprint_info(txt)
+        index_1, index_2 = cko._indicies_from_fingerprint(fingerprint)
         self.assertEqual(idx_1, index_1)
         self.assertEqual(idx_2, index_2)
 

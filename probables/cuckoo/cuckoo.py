@@ -14,7 +14,17 @@ from .. exceptions import (CuckooFilterFullError)
 
 
 class CuckooFilter(object):
+    ''' Simple Cuckoo Filter implementation
+
+        Args:
+            capacity (int): The number of bins
+            bucket_size (int): The number of buckets per bin
+            max_swaps (int): The number of cuckoo swaps before stopping
+        Returns:
+            CuckooFilter: A Cuckoo Filter object
+    '''
     def __init__(self, capacity=10000, bucket_size=4, max_swaps=500):
+        ''' setup the data structure '''
         self.__bucket_size = bucket_size
         self.__cuckoo_capacity = capacity
         self.__max_cuckoo_swaps = max_swaps
@@ -25,38 +35,63 @@ class CuckooFilter(object):
         self.__inserted_elements = 0
 
     def __contains__(self, key):
+        ''' setup the `in` keyword '''
         return self.check_element(key)
 
     @property
     def elements_added(self):
+        ''' int: The number of elements added
+
+            Note:
+                Not settable '''
         return self.__inserted_elements
 
     @property
     def capacity(self):
+        ''' int: The number of bins
+
+            Note:
+                Not settable '''
         return self.__cuckoo_capacity
 
     @property
     def max_swaps(self):
+        ''' int: The maximum number of swaps to perform
+
+            Note:
+                Not settable '''
         return self.__max_cuckoo_swaps
 
     @property
     def bucket_size(self):
+        ''' int: The number of buckets per bin
+
+            Note:
+                Not settable '''
         return self.__bucket_size
 
-    def __index_from_str(self, fingerprint):
-        hash_val = self.__hash_func(str(fingerprint))
-        return hash_val % self.capacity
+    def _indicies_from_fingerprint(self, fingerprint):
+        ''' Generate the possible insertion indicies from a fingerprint
 
-    def indicies_from_fingerprint(self, fingerprint):
+            Args:
+                fingerprint (int): The fingerprint to use for generating \
+                indicies '''
+        # NOTE: Should this even be public???
         idx_1 = fingerprint % self.capacity
-        idx_2 = self.__index_from_str(str(fingerprint))
+        idx_2 = self.__hash_func(str(fingerprint)) % self.capacity
         return idx_1, idx_2
 
-    def generate_fingerprint_info(self, key):
+    def _generate_fingerprint_info(self, key):
+        ''' Generate the fingerprint and indicies using the provided key
+
+            Args:
+                key (str): The element for which information is to be generated
+        '''
+        # NOTE: Should this even be public?
         # generate the fingerprint along with the two possible indecies
         hash_val = self.__hash_func(key)
         fingerprint = get_x_bits(hash_val, 64, 32, True)
-        idx_1, idx_2 = self.indicies_from_fingerprint(fingerprint)
+        idx_1, idx_2 = self._indicies_from_fingerprint(fingerprint)
 
         # NOTE: This should never happen...
         if idx_1 > self.capacity or idx_2 > self.capacity:
@@ -65,7 +100,11 @@ class CuckooFilter(object):
         return idx_1, idx_2, fingerprint
 
     def add_element(self, key):
-        idx_1, idx_2, fingerprint = self.generate_fingerprint_info(key)
+        ''' Add element key to the filter
+
+            Args:
+                key (str): The element to add '''
+        idx_1, idx_2, fingerprint = self._generate_fingerprint_info(key)
         if self.__insert_element(fingerprint, idx_1):
             self.__inserted_elements += 1
             return idx_1
@@ -86,7 +125,7 @@ class CuckooFilter(object):
             fingerprint, self.__buckets[idx][swap_elm] = swb, fingerprint
 
             # now find another place to put this fingerprint
-            index_1, index_2 = self.indicies_from_fingerprint(fingerprint)
+            index_1, index_2 = self._indicies_from_fingerprint(fingerprint)
 
             idx = index_2 if idx == index_1 else index_1
 
@@ -96,13 +135,21 @@ class CuckooFilter(object):
         raise CuckooFilterFullError('The CuckooFilter is currently full')
 
     def check_element(self, key):
-        idx_1, idx_2, fingerprint = self.generate_fingerprint_info(key)
+        ''' Check if an element is in the filter
+
+            Args:
+                key (str): Element to check '''
+        idx_1, idx_2, fingerprint = self._generate_fingerprint_info(key)
         if fingerprint in chain(self.__buckets[idx_1], self.__buckets[idx_2]):
             return True
         return False
 
     def remove_element(self, key):
-        idx_1, idx_2, fingerprint = self.generate_fingerprint_info(key)
+        ''' Remove an element from the filter
+
+            Args:
+                key (str): Element to remove '''
+        idx_1, idx_2, fingerprint = self._generate_fingerprint_info(key)
         if fingerprint in self.__buckets[idx_1]:
             self.__buckets[idx_1].remove(fingerprint)
             self.__inserted_elements -= 1
@@ -114,6 +161,7 @@ class CuckooFilter(object):
         return False
 
     def __insert_element(self, fingerprint, idx):
+        ''' insert element wrapper '''
         if len(self.__buckets[idx]) < self.__bucket_size:
             self.__buckets[idx].append(fingerprint)
             return True
