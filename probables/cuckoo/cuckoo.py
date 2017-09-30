@@ -7,7 +7,6 @@ from __future__ import (unicode_literals, absolute_import, print_function,
                         division)
 import os
 import random
-from itertools import chain
 from struct import (pack, unpack, calcsize)
 
 from .. hashes import (fnv_1a)
@@ -192,7 +191,7 @@ class CuckooFilter(object):
             self.__buckets = list()
             for i in range(self.capacity):
                 self.__buckets.append(list())
-                for j in range(self.bucket_size):
+                for _ in range(self.bucket_size):
                     fingerprint = unpack('I', filepointer.read(int_size))[0]
                     if fingerprint != 0:
                         self.__buckets[i].append(fingerprint)
