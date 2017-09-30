@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 ''' Unittest class '''
 from __future__ import (unicode_literals, absolute_import, print_function)
+import os
 import unittest
 
 from probables import (CuckooFilter, CuckooFilterFullError)
-# from . utilities import(calc_file_md5, different_hash)
+from . utilities import(calc_file_md5)
 
 class TestCuckooFilter(unittest.TestCase):
     ''' base Cuckoo Filter test '''
@@ -146,3 +147,36 @@ class TestCuckooFilter(unittest.TestCase):
         for i in range(50):
             cko.add(str(i + 50))
         self.assertEqual(cko.load_factor(), 0.50)
+
+    def test_cuckoo_filter_export(self):
+        ''' test exporting a cuckoo filter '''
+        filename = './test.cko'
+        md5sum = '49b947ddf364d27934570a6b33076b93'
+        cko = CuckooFilter()
+        for i in range(1000):
+            cko.add(str(i))
+        cko.export(filename)
+        md5_out = calc_file_md5(filename)
+        self.assertEqual(md5sum, md5_out)
+        os.remove(filename)
+
+    def test_cuckoo_filter_load(self):
+        ''' test loading a saved cuckoo filter '''
+        filename = './test.cko'
+        md5sum = '49b947ddf364d27934570a6b33076b93'
+        cko = CuckooFilter()
+        for i in range(1000):
+            cko.add(str(i))
+        cko.export(filename)
+        md5_out = calc_file_md5(filename)
+        self.assertEqual(md5sum, md5_out)
+
+        ckf = CuckooFilter(filepath='./test.cko')
+        for i in range(1000):
+            self.assertTrue(ckf.check(str(i)))
+
+        self.assertEqual(10000, ckf.capacity)
+        self.assertEqual(4, ckf.bucket_size)
+        self.assertEqual(500, ckf.max_swaps)
+        self.assertEqual(0.025, ckf.load_factor())
+        os.remove(filename)

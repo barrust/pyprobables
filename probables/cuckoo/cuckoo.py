@@ -5,8 +5,10 @@
 
 from __future__ import (unicode_literals, absolute_import, print_function,
                         division)
+import os
 import random
 from itertools import chain
+from struct import (pack, unpack, calcsize)
 
 from .. hashes import (fnv_1a)
 from .. utilities import (get_x_bits)
@@ -20,19 +22,25 @@ class CuckooFilter(object):
             capacity (int): The number of bins
             bucket_size (int): The number of buckets per bin
             max_swaps (int): The number of cuckoo swaps before stopping
+            filename (str): The path to the file to load or None if no file
         Returns:
             CuckooFilter: A Cuckoo Filter object
     '''
-    def __init__(self, capacity=10000, bucket_size=4, max_swaps=500):
+    def __init__(self, capacity=10000, bucket_size=4, max_swaps=500,
+                 filepath=None):
         ''' setup the data structure '''
         self.__bucket_size = bucket_size
         self.__cuckoo_capacity = capacity
         self.__max_cuckoo_swaps = max_swaps
-        self.__buckets = list()
-        for _ in range(self.capacity):
-            self.__buckets.append(list())
+
         self.__hash_func = fnv_1a
         self.__inserted_elements = 0
+        if filepath is None:
+            self.__buckets = list()
+            for _ in range(self.capacity):
+                self.__buckets.append(list())
+        else:
+            self.__load(filepath)
 
     def __contains__(self, key):
         ''' setup the `in` keyword '''
@@ -69,6 +77,14 @@ class CuckooFilter(object):
             Note:
                 Not settable '''
         return self.__bucket_size
+
+    @property
+    def buckets(self):
+        ''' list(list): The buckets holding the fingerprints
+
+            Note:
+                Not settable '''
+        return self.__buckets
 
     def load_factor(self):
         ''' float: How full the Cuckoo Filter is currently '''
@@ -140,6 +156,47 @@ class CuckooFilter(object):
         self.__buckets[idx].remove(fingerprint)
         self.__inserted_elements -= 1
         return True
+
+    def export(self, filename):
+        ''' Export cuckoo filter to file
+
+            Args:
+                filename (str): Path to file to export
+        '''
+        # NOTE: NOT TESTED!!!!!
+        with open(filename, 'wb') as filepointer:
+            for bucket in self.__buckets:
+                # do something for each...
+                rep = len(bucket) * 'I'
+                filepointer.write(pack(rep, *bucket))
+                leftover = self.bucket_size - len(bucket)
+                rep = leftover * 'I'
+                filepointer.write(pack(rep, *([0] * leftover)))
+            # now put out the required information at the end
+            filepointer.write(pack('II', self.bucket_size, self.max_swaps))
+
+    def __load(self, filename):
+        ''' load a cuckoo filter from file '''
+        with open(filename, 'rb') as filepointer:
+            offset = calcsize('II')
+            int_size = calcsize('I')
+            filepointer.seek(offset * -1, os.SEEK_END)
+            list_size = filepointer.tell()
+            mybytes = unpack('II', filepointer.read(offset))
+            self.__bucket_size = mybytes[0]
+            self.__max_cuckoo_swaps = mybytes[1]
+            self.__cuckoo_capacity = list_size // int_size // self.bucket_size
+            self.__inserted_elements = 0
+            # now pull everything in!
+            filepointer.seek(0, os.SEEK_SET)
+            self.__buckets = list()
+            for i in range(self.capacity):
+                self.__buckets.append(list())
+                for j in range(self.bucket_size):
+                    fingerprint = unpack('I', filepointer.read(int_size))[0]
+                    if fingerprint != 0:
+                        self.__buckets[i].append(fingerprint)
+                        self.__inserted_elements += 1
 
     def _check_if_present(self, idx_1, idx_2, fingerprint):
         ''' wrapper for checking if fingerprint is already inserted '''
