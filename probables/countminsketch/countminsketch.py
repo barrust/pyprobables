@@ -11,6 +11,7 @@ from struct import (pack, unpack, calcsize)
 from .. exceptions import (InitializationError, NotSupportedError)
 from .. hashes import (default_fnv_1a)
 from .. utilities import (is_valid_file)
+from .. constants import (INT32_T_MIN, INT32_T_MAX, INT64_T_MIN, INT64_T_MAX)
 
 
 class CountMinSketch(object):
@@ -50,11 +51,6 @@ class CountMinSketch(object):
         self.__error_rate = 0.0
         self.__elements_added = 0
         self.__query_method = self.__min_query
-        # for python2 and python3 support
-        self.__int32_t_min = -2147483648
-        self.__int32_t_max = 2147483647
-        self.__int64_t_min = -9223372036854775808
-        self.__int64_t_max = 9223372036854775807
 
         if is_valid_file(filepath):
             self.__load(filepath)
@@ -216,13 +212,13 @@ class CountMinSketch(object):
         for i, val in enumerate(hashes):
             t_bin = (val % self.__width) + (i * self.__width)
             self._bins[t_bin] += num_els
-            if self._bins[t_bin] > self.__int32_t_max:
-                self._bins[t_bin] = self.__int32_t_max
+            if self._bins[t_bin] > INT32_T_MAX:
+                self._bins[t_bin] = INT32_T_MAX
             res.append(self._bins[t_bin])
         self.__elements_added += num_els
 
-        if self.__elements_added > self.__int64_t_max:
-            self.__elements_added = self.__int64_t_max
+        if self.__elements_added > INT64_T_MAX:
+            self.__elements_added = INT64_T_MAX
         return self.__query_method(sorted(res))
 
     def remove(self, key, num_els=1):
@@ -252,12 +248,12 @@ class CountMinSketch(object):
         for i, val in enumerate(hashes):
             t_bin = (val % self.__width) + (i * self.__width)
             self._bins[t_bin] -= num_els
-            if self._bins[t_bin] < self.__int32_t_min:
-                self._bins[t_bin] = self.__int32_t_min
+            if self._bins[t_bin] < INT32_T_MIN:
+                self._bins[t_bin] = INT32_T_MIN
             res.append(self._bins[t_bin])
         self.__elements_added -= num_els
-        if self.__elements_added < self.__int64_t_min:
-            self.__elements_added = self.__int64_t_min
+        if self.__elements_added < INT64_T_MIN:
+            self.__elements_added = INT64_T_MIN
 
         return self.__query_method(sorted(res))
 

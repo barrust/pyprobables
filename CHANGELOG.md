@@ -1,5 +1,10 @@
 # PyProbables Changelog
 
+### Version 0.1.1:
+* CuckooFilter
+    * Added Import / Export functionality
+    * Enforce single insertion per key
+
 ### Version 0.1.0:
 * Cuckoo Filter
     * Added basic Cuckoo Filter code

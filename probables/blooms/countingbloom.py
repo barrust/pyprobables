@@ -6,6 +6,7 @@
 from __future__ import (unicode_literals, absolute_import, print_function,
                         division)
 from . basebloom import (BaseBloom)
+from .. constants import (UINT32_T_MAX, UINT64_T_MAX)
 
 MISMATCH_MSG = ('The parameter second must be of type CountingBloomFilter')
 
@@ -44,8 +45,6 @@ class CountingBloomFilter(BaseBloom):
                                                   false_positive_rate,
                                                   filepath, hex_string,
                                                   hash_function)
-        self.__uint32_t_max = 2**32 - 1
-        self.__uint64_t_max = 2**64 - 1
 
     def __str__(self):
         ''' correctly handle python 3 vs python2 encoding if necessary '''
@@ -110,20 +109,20 @@ class CountingBloomFilter(BaseBloom):
             Returns:
                 int: Maximum number of insertions
         '''
-        res = self.__uint32_t_max
+        res = UINT32_T_MAX
         for i in list(range(0, self.number_hashes)):
             k = int(hashes[i]) % self.number_bits
             j = self._get_element(k)
             tmp = j + num_els
-            if tmp <= self.__uint32_t_max:
+            if tmp <= UINT32_T_MAX:
                 self._bloom[k] = self._get_set_element(j + num_els)
             else:
-                self._bloom[k] = self.__uint32_t_max
+                self._bloom[k] = UINT32_T_MAX
             if self._bloom[k] < res:
                 res = self._bloom[k]
         self.elements_added += num_els
-        if self.elements_added > self.__uint64_t_max:
-            self.elements_added = self.__uint64_t_max
+        if self.elements_added > UINT64_T_MAX:
+            self.elements_added = UINT64_T_MAX
         return res
 
     def check(self, key):
@@ -147,7 +146,7 @@ class CountingBloomFilter(BaseBloom):
             Returns:
                 int: Maximum number of insertions
         '''
-        res = self.__uint32_t_max
+        res = UINT32_T_MAX
         for i in list(range(0, self.number_hashes)):
             k = int(hashes[i]) % self.number_bits
             tmp = self._get_element(k)
@@ -179,8 +178,8 @@ class CountingBloomFilter(BaseBloom):
                 int: Maximum number of insertions after the removal
         '''
         tmp = self.check_alt(hashes)
-        if tmp == self.__uint32_t_max:  # cannot remove if we have hit the max
-            return self.__uint32_t_max
+        if tmp == UINT32_T_MAX:  # cannot remove if we have hit the max
+            return UINT32_T_MAX
         elif tmp == 0:
             return 0
 
