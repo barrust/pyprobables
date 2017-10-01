@@ -4,7 +4,8 @@ from __future__ import (unicode_literals, absolute_import, print_function)
 import os
 import unittest
 
-from probables import (CuckooFilter, CuckooFilterFullError)
+from probables import (CuckooFilter, ExpandingCuckooFilter,
+                       CuckooFilterFullError)
 from . utilities import(calc_file_md5)
 
 class TestCuckooFilter(unittest.TestCase):
@@ -180,3 +181,45 @@ class TestCuckooFilter(unittest.TestCase):
         self.assertEqual(500, ckf.max_swaps)
         self.assertEqual(0.025, ckf.load_factor())
         os.remove(filename)
+
+
+class TestExpandingCuckooFilter(unittest.TestCase):
+    ''' expanding cuckoo filter '''
+
+    def test_expanding_cuckoo_init(self):
+        cko = ExpandingCuckooFilter()
+        self.assertEqual(10000, cko.capacity)
+        self.assertEqual(4, cko.bucket_size)
+        self.assertEqual(500, cko.max_swaps)
+        self.assertEqual(2, cko.expansion_rate)
+
+    def test_cuckoo_filter_expand(self):
+        cko = ExpandingCuckooFilter()
+        self.assertEqual(10000, cko.capacity)
+        self.assertEqual(4, cko.bucket_size)
+        self.assertEqual(500, cko.max_swaps)
+        self.assertEqual(2, cko.expansion_rate)
+        cko.expand()
+        self.assertEqual(20000, cko.capacity)
+        self.assertEqual(4, cko.bucket_size)
+        self.assertEqual(500, cko.max_swaps)
+        self.assertEqual(2, cko.expansion_rate)
+
+    def test_cuckoo_filter_expand_els(self):
+        cko = ExpandingCuckooFilter()
+        for i in range(200):  # this would fail if it doesn't expand
+            cko.add(str(i))
+        cko.expand()
+        for i in range(200):
+            self.assertTrue(cko.check(str(i)))
+        self.assertEqual(20000, cko.capacity)
+
+    def test_cuckoo_filter_self_expand(self):
+        ''' test inserting until cuckoo filter is full '''
+        cko = ExpandingCuckooFilter(capacity=100, bucket_size=2, max_swaps=100)
+        for i in range(375):  # this would fail if it doesn't expand
+            cko.add(str(i))
+        self.assertEqual(400, cko.capacity)
+        self.assertEqual(375, cko.elements_added)
+        for i in range(375):
+            self.assertTrue(cko.check(str(i)))
