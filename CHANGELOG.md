@@ -2,10 +2,9 @@
 
 ### Version 0.1.1:
 * CuckooFilter
-    * Added Import / Export functionality
+    * Import / Export functionality
     * Enforce single insertion per key
-    * ExpandingCuckooFilter - auto expands when insertion failure OR
-    when called to do so
+    * Auto expand when insertion failure OR when called to do so (settable)
 
 ### Version 0.1.0:
 * Cuckoo Filter

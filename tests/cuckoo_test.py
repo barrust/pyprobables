@@ -4,8 +4,7 @@ from __future__ import (unicode_literals, absolute_import, print_function)
 import os
 import unittest
 
-from probables import (CuckooFilter, ExpandingCuckooFilter,
-                       CuckooFilterFullError)
+from probables import (CuckooFilter, CuckooFilterFullError)
 from . utilities import(calc_file_md5)
 
 class TestCuckooFilter(unittest.TestCase):
@@ -17,13 +16,16 @@ class TestCuckooFilter(unittest.TestCase):
         self.assertEqual(10000, cko.capacity)
         self.assertEqual(4, cko.bucket_size)
         self.assertEqual(500, cko.max_swaps)
+        self.assertEqual(2, cko.expansion_rate)
 
     def test_cuckoo_filter_diff(self):
         ''' test cuckoo filter non-standard properties '''
-        cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=5)
+        cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=5,
+                           expansion_rate=4)
         self.assertEqual(100, cko.capacity)
         self.assertEqual(2, cko.bucket_size)
         self.assertEqual(5, cko.max_swaps)
+        self.assertEqual(4, cko.expansion_rate)
 
     def test_cuckoo_filter_add(self):
         ''' test adding to the cuckoo filter '''
@@ -79,7 +81,8 @@ class TestCuckooFilter(unittest.TestCase):
     def test_cuckoo_filter_full(self):
         ''' test inserting until cuckoo filter is full '''
         def runner():
-            cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=100)
+            cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=100,
+                               auto_expand=False)
             for i in range(175):
                 cko.add(str(i))
         self.assertRaises(CuckooFilterFullError, runner)
@@ -87,11 +90,14 @@ class TestCuckooFilter(unittest.TestCase):
     def test_cuckoo_full_msg(self):
         ''' test exception message for full cuckoo filter '''
         try:
-            cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=100)
+            cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=100,
+                               auto_expand=False)
             for i in range(175):
                 cko.add(str(i))
         except CuckooFilterFullError as ex:
             self.assertEqual(str(ex), 'The CuckooFilter is currently full')
+        else:
+            self.assertEqual(True, False)
 
     def test_cuckoo_idx(self):
         ''' test that the indexing works correctly for cuckoo filter swap '''
@@ -182,41 +188,19 @@ class TestCuckooFilter(unittest.TestCase):
         self.assertEqual(0.025, ckf.load_factor())
         os.remove(filename)
 
-
-class TestExpandingCuckooFilter(unittest.TestCase):
-    ''' expanding cuckoo filter '''
-
-    def test_expanding_cuckoo_init(self):
-        cko = ExpandingCuckooFilter()
-        self.assertEqual(10000, cko.capacity)
-        self.assertEqual(4, cko.bucket_size)
-        self.assertEqual(500, cko.max_swaps)
-        self.assertEqual(2, cko.expansion_rate)
-
-    def test_cuckoo_filter_expand(self):
-        cko = ExpandingCuckooFilter()
-        self.assertEqual(10000, cko.capacity)
-        self.assertEqual(4, cko.bucket_size)
-        self.assertEqual(500, cko.max_swaps)
-        self.assertEqual(2, cko.expansion_rate)
-        cko.expand()
-        self.assertEqual(20000, cko.capacity)
-        self.assertEqual(4, cko.bucket_size)
-        self.assertEqual(500, cko.max_swaps)
-        self.assertEqual(2, cko.expansion_rate)
-
     def test_cuckoo_filter_expand_els(self):
-        cko = ExpandingCuckooFilter()
-        for i in range(200):  # this would fail if it doesn't expand
+        ''' test out the expansion of the cuckoo filter '''
+        cko = CuckooFilter()
+        for i in range(200):
             cko.add(str(i))
         cko.expand()
         for i in range(200):
             self.assertTrue(cko.check(str(i)))
         self.assertEqual(20000, cko.capacity)
 
-    def test_cuckoo_filter_self_expand(self):
+    def test_cuckoo_filter_auto_expand(self):
         ''' test inserting until cuckoo filter is full '''
-        cko = ExpandingCuckooFilter(capacity=100, bucket_size=2, max_swaps=100)
+        cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=100)
         for i in range(375):  # this would fail if it doesn't expand
             cko.add(str(i))
         self.assertEqual(400, cko.capacity)
