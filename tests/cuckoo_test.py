@@ -17,15 +17,17 @@ class TestCuckooFilter(unittest.TestCase):
         self.assertEqual(4, cko.bucket_size)
         self.assertEqual(500, cko.max_swaps)
         self.assertEqual(2, cko.expansion_rate)
+        self.assertEqual(True, cko.auto_expand)
 
     def test_cuckoo_filter_diff(self):
         ''' test cuckoo filter non-standard properties '''
         cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=5,
-                           expansion_rate=4)
+                           expansion_rate=4, auto_expand=False)
         self.assertEqual(100, cko.capacity)
         self.assertEqual(2, cko.bucket_size)
         self.assertEqual(5, cko.max_swaps)
         self.assertEqual(4, cko.expansion_rate)
+        self.assertEqual(False, cko.auto_expand)
 
     def test_cuckoo_filter_add(self):
         ''' test adding to the cuckoo filter '''
