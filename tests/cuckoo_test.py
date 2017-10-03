@@ -146,7 +146,7 @@ class TestCuckooFilter(unittest.TestCase):
         cko.add('this is yet another test')
         self.assertEqual(cko.elements_added, 3)
 
-    def test_cuckoo_filter_load(self):
+    def test_cuckoo_filter_l_fact(self):
         ''' test the load factor of the cuckoo filter '''
         cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=10)
         self.assertEqual(cko.load_factor(), 0.0)
