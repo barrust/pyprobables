@@ -4,8 +4,7 @@ from __future__ import (unicode_literals, absolute_import, print_function)
 from hashlib import (md5, sha256)
 from struct import (unpack)  # needed to turn digests into numbers
 
-
-UIN64_MAX = 2 ** 64
+from . constants import (UINT64_T_MAX)
 
 
 def default_fnv_1a(key, depth):
@@ -32,11 +31,12 @@ def fnv_1a(key):
         Args:
             key (str): The element to be hashed
     '''
+    max64mod = UINT64_T_MAX + 1
     hval = 14695981039346656073
     fnv_64_prime = 1099511628211
     for t_str in key:
         hval = hval ^ ord(t_str)
-        hval = (hval * fnv_64_prime) % UIN64_MAX
+        hval = (hval * fnv_64_prime) % max64mod
     return hval
 
 

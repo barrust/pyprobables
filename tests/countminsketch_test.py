@@ -7,6 +7,8 @@ from probables import (CountMinSketch, HeavyHitters, StreamThreshold,
                        CountMeanSketch, CountMeanMinSketch)
 from probables.exceptions import (InitializationError, NotSupportedError)
 from . utilities import(calc_file_md5, different_hash)
+from probables.constants import (INT32_T_MIN, INT32_T_MAX, INT64_T_MAX,
+                                 INT64_T_MIN)
 
 
 class TestCountMinSketch(unittest.TestCase):
@@ -237,20 +239,20 @@ class TestCountMinSketch(unittest.TestCase):
     def test_cms_min_val(self):
         ''' test when we come to the bottom of the 32 bit int
             (stop overflow) '''
-        too_large = 2 ** 31
+        too_large = INT64_T_MAX + 5
         cms = CountMinSketch(width=1000, depth=5)
-        cms.remove('this is a test', too_large + 1)
-        self.assertEqual(cms.check('this is a test'), -too_large)
-        self.assertEqual(cms.elements_added, -too_large - 1)
+        cms.remove('this is a test', too_large)
+        self.assertEqual(cms.check('this is a test'), INT32_T_MIN)
+        self.assertEqual(cms.elements_added, INT64_T_MIN)
 
     def test_cms_max_val(self):
         ''' test when we come to the top of the 32 bit int
             (stop overflow) '''
-        too_large = 2 ** 31
+        too_large = INT64_T_MAX + 5
         cms = CountMinSketch(width=1000, depth=5)
         cms.add('this is a test', too_large)
-        self.assertEqual(cms.check('this is a test'), too_large - 1)
-        self.assertEqual(cms.elements_added, too_large)
+        self.assertEqual(cms.check('this is a test'), INT32_T_MAX)
+        self.assertEqual(cms.elements_added, INT64_T_MAX)
 
     def test_cms_clear(self):
         ''' test the clear functionality '''
@@ -261,23 +263,6 @@ class TestCountMinSketch(unittest.TestCase):
         cms.clear()
         self.assertEqual(cms.elements_added, 0)
         self.assertEqual(cms.check('this is a test'), 0)
-
-    # def test_cms_bad_query(self):
-    #     ''' test a bad query '''
-    #     cms = CountMinSketch(width=1000, depth=5)
-    #     self.assertEqual(cms.add('this is a test', 100), 100)
-    #     self.assertRaises(NotSupportedError,
-    #                       lambda: cms.check('this is a test', 'unknown'))
-
-    # def test_cms_bad_query_msg(self):
-    #     ''' test a bad query '''
-    #     cms = CountMinSketch(width=1000, depth=5)
-    #     self.assertEqual(cms.add('this is a test', 100), 100)
-    #     try:
-    #         cms.check('this is a test', 'unknown')
-    #     except NotSupportedError as ex:
-    #         msg = "`check`: Invalid query type"
-    #         self.assertEqual(str(ex), msg)
 
     def test_cms_str(self):
         ''' test the string representation of the count-min sketch '''
