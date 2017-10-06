@@ -2,6 +2,8 @@
     License: MIT
     Author: Tyler Barrus (barrust@gmail.com)
 '''
+from __future__ import (unicode_literals, absolute_import, print_function,
+                        division)
 import random
 
 from . cuckoo import (CuckooFilter)
@@ -42,6 +44,10 @@ class CountingCuckooFilter(CuckooFilter):
     def unique_elements(self):
         ''' int: unique number of elements inserted '''
         return self.__unique_elements
+
+    def load_factor(self):
+        ''' float: How full the Cuckoo Filter is currently '''
+        return self.unique_elements / (self.capacity * self.bucket_size)
 
     def add(self, key):
         ''' Add element key to the filter

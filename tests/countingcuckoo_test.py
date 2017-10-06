@@ -168,6 +168,10 @@ class TestCountingCuckooFilter(unittest.TestCase):
             cko.add(str(i + 50))
         self.assertEqual(cko.load_factor(), 0.50)
 
+        for i in range(100):
+            cko.add(str(i))
+        self.assertEqual(cko.load_factor(), 0.50)
+
     def test_c_cuckoo_filter_export(self):
         ''' test exporting a counting cuckoo filter '''
         def runner():
