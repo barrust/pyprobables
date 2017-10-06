@@ -1,5 +1,9 @@
 # PyProbables Changelog
 
+### Version 0.1.2:
+* Counting Cuckoo Filter
+    * Basic functionality: add, remove, check, expand
+
 ### Version 0.1.1:
 * CuckooFilter
     * Import / Export functionality

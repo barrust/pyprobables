@@ -30,12 +30,18 @@ class CountingCuckooFilter(CuckooFilter):
         super(CountingCuckooFilter,
               self).__init__(capacity, bucket_size, max_swaps,
                              expansion_rate, auto_expand, filepath)
+        self.__unique_elements = 0
 
     def __contains__(self, val):
         ''' setup the `in` keyword '''
         if self.check(val) > 0:
             return True
         return False
+
+    @property
+    def unique_elements(self):
+        ''' int: unique number of elements inserted '''
+        return self.__unique_elements
 
     def add(self, key):
         ''' Add element key to the filter
@@ -94,6 +100,7 @@ class CountingCuckooFilter(CuckooFilter):
                 self._inserted_elements -= 1
                 if bucket.count == 0:
                     self.buckets[idx].remove(bucket)
+                    self.__unique_elements -= 1
                 return True
 
     def expand(self):
@@ -116,9 +123,11 @@ class CountingCuckooFilter(CuckooFilter):
         ''' insert a fingerprint '''
         if self.__insert_element(fingerprint, idx_1, count):
             self._inserted_elements += 1
+            self.__unique_elements += 1
             return
         elif self.__insert_element(fingerprint, idx_2, count):
             self._inserted_elements += 1
+            self.__unique_elements += 1
             return
 
         # we didn't insert, so now we need to randomly select one index to use
@@ -139,6 +148,7 @@ class CountingCuckooFilter(CuckooFilter):
 
             if self.__insert_element(prv_bin.finger, idx, prv_bin.count):
                 self._inserted_elements += 1
+                self.__unique_elements += 1
                 return
 
         # if we got here we have an error... we might need to know what is left
@@ -165,7 +175,6 @@ class CountingCuckooFilter(CuckooFilter):
 
         for elm in fingerprints:
             idx_1, idx_2 = self._indicies_from_fingerprint(elm.finger)
-            print(elm.finger, idx_1, idx_2)
             res = self._insert_fingerprint(elm.finger, idx_1, idx_2,
                                            elm.count)
             if res is not None:  # again, this *shouldn't* happen

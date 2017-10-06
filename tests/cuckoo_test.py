@@ -211,3 +211,18 @@ class TestCuckooFilter(unittest.TestCase):
         self.assertEqual(375, cko.elements_added)
         for i in range(375):
             self.assertTrue(cko.check(str(i)))
+
+    def test_cuckoo_filter_str(self):
+        ''' test the str representation of the cuckoo filter '''
+        cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=100)
+        for i in range(75):
+            cko.add(str(i))
+        msg = ('CuckooFilter:\n'
+               '\tCapacity: 100\n'
+               '\tTotal Bins: 200\n'
+               '\tLoad Factor: 37.5%\n'
+               '\tInserted Elements: 75\n'
+               '\tMax Swaps: 100\n'
+               '\tExpansion Rate: 2\n'
+               '\tAuto Expand: True')
+        self.assertEqual(str(cko), msg)
