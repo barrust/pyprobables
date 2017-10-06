@@ -84,6 +84,7 @@ class TestCuckooFilter(unittest.TestCase):
     def test_cuckoo_filter_full(self):
         ''' test inserting until cuckoo filter is full '''
         def runner():
+            ''' runner '''
             cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=100,
                                auto_expand=False)
             for i in range(175):

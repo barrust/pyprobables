@@ -491,6 +491,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         ''' test that page error is thrown correctly '''
 
         def runner():
+            ''' runner '''
             blm = BloomFilterOnDisk(filename, 10, 0.05)
             blm.export_hex()
         filename = 'tmp.blm'

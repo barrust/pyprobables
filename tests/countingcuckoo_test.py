@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 ''' Unittest class '''
 from __future__ import (unicode_literals, absolute_import, print_function)
-import os
 import unittest
 
 from probables import (CountingCuckooFilter, CuckooFilterFullError,
                        NotSupportedError)
-from . utilities import(calc_file_md5)
 
 
 class TestCountingCuckooFilter(unittest.TestCase):
@@ -85,6 +83,7 @@ class TestCountingCuckooFilter(unittest.TestCase):
     def test_cuckoo_filter_full(self):
         ''' test inserting until cuckoo filter is full '''
         def runner():
+            ''' runner '''
             cko = CountingCuckooFilter(capacity=100, bucket_size=2,
                                        max_swaps=100, auto_expand=False)
             for i in range(175):
@@ -163,6 +162,7 @@ class TestCountingCuckooFilter(unittest.TestCase):
     def test_cuckoo_filter_export(self):
         ''' test exporting a cuckoo filter '''
         def runner():
+            ''' runner '''
             cko = CountingCuckooFilter()
             cko.export('./test.cck')
         self.assertRaises(NotSupportedError, runner)
@@ -181,7 +181,8 @@ class TestCountingCuckooFilter(unittest.TestCase):
     def test_cuckoo_filter_load(self):
         ''' test loading a saved cuckoo filter '''
         def runner():
-            ckf = CountingCuckooFilter(filepath='./test.cck')
+            ''' runner '''
+            CountingCuckooFilter(filepath='./test.cck')
         self.assertRaises(NotSupportedError, runner)
         # filename = './test.cko'
         # md5sum = '49b947ddf364d27934570a6b33076b93'
