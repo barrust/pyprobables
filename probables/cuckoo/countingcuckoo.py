@@ -95,7 +95,6 @@ class CountingCuckooFilter(CuckooFilter):
                 if bucket.count == 0:
                     self.buckets[idx].remove(bucket)
                 return True
-        return True
 
     def expand(self):
         ''' Expand the cuckoo filter '''
@@ -162,18 +161,7 @@ class CountingCuckooFilter(CuckooFilter):
     def __expand_logic(self, extra_fingerprint):
         ''' the logic to acutally expand the cuckoo filter '''
         # get all the fingerprints
-        fingerprints = list()
-        if extra_fingerprint is not None:
-            fingerprints.append(extra_fingerprint)
-        for idx in range(self.capacity):
-            fingerprints.extend(self.buckets[idx])
-
-        # reset everything
-        self._cuckoo_capacity = self.capacity * self.expansion_rate
-        self._buckets = list()
-        self._inserted_elements = 0
-        for _ in range(self.capacity):
-            self._buckets.append(list())
+        fingerprints = self._setup_expand(extra_fingerprint)
 
         for elm in fingerprints:
             idx_1, idx_2 = self._indicies_from_fingerprint(elm.finger)

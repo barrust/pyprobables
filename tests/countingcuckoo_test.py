@@ -8,6 +8,7 @@ from probables import (CountingCuckooFilter, CuckooFilterFullError,
                        NotSupportedError)
 from . utilities import(calc_file_md5)
 
+
 class TestCountingCuckooFilter(unittest.TestCase):
     ''' base Cuckoo Filter test '''
 
@@ -23,7 +24,7 @@ class TestCountingCuckooFilter(unittest.TestCase):
     def test_cuckoo_filter_diff(self):
         ''' test cuckoo filter non-standard properties '''
         cko = CountingCuckooFilter(capacity=100, bucket_size=2, max_swaps=5,
-                           expansion_rate=4, auto_expand=False)
+                                   expansion_rate=4, auto_expand=False)
         self.assertEqual(100, cko.capacity)
         self.assertEqual(2, cko.bucket_size)
         self.assertEqual(5, cko.max_swaps)
@@ -84,8 +85,8 @@ class TestCountingCuckooFilter(unittest.TestCase):
     def test_cuckoo_filter_full(self):
         ''' test inserting until cuckoo filter is full '''
         def runner():
-            cko = CountingCuckooFilter(capacity=100, bucket_size=2, max_swaps=100,
-                               auto_expand=False)
+            cko = CountingCuckooFilter(capacity=100, bucket_size=2,
+                                       max_swaps=100, auto_expand=False)
             for i in range(175):
                 cko.add(str(i))
         self.assertRaises(CuckooFilterFullError, runner)
@@ -93,12 +94,13 @@ class TestCountingCuckooFilter(unittest.TestCase):
     def test_cuckoo_full_msg(self):
         ''' test exception message for full cuckoo filter '''
         try:
-            cko = CountingCuckooFilter(capacity=100, bucket_size=2, max_swaps=100,
-                               auto_expand=False)
+            cko = CountingCuckooFilter(capacity=100, bucket_size=2,
+                                       max_swaps=100, auto_expand=False)
             for i in range(175):
                 cko.add(str(i))
         except CuckooFilterFullError as ex:
-            self.assertEqual(str(ex), 'The CountingCuckooFilter is currently full')
+            msg = 'The CountingCuckooFilter is currently full'
+            self.assertEqual(str(ex), msg)
         else:
             self.assertEqual(True, False)
 
@@ -219,3 +221,10 @@ class TestCountingCuckooFilter(unittest.TestCase):
         self.assertEqual(375, cko.elements_added)
         for i in range(375):
             self.assertGreater(cko.check(str(i)), 0)
+
+    def test_cuckoo_filter_bin(self):
+        ''' test the cuckoo bin repr '''
+        cko = CountingCuckooFilter(capacity=1, bucket_size=2, max_swaps=100)
+        cko.add('this is a test')
+        self.assertEqual('[(fingerprint:3057276164 count:1)]',
+                         str(cko.buckets[0]))

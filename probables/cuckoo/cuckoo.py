@@ -271,6 +271,17 @@ class CuckooFilter(object):
     def __expand_logic(self, extra_fingerprint):
         ''' the logic to acutally expand the cuckoo filter '''
         # get all the fingerprints
+        fingerprints = self._setup_expand(extra_fingerprint)
+
+        for finger in fingerprints:
+            idx_1, idx_2 = self._indicies_from_fingerprint(finger)
+            res = self._insert_fingerprint(finger, idx_1, idx_2)
+            if res is not None:  # again, this *shouldn't* happen
+                msg = ('The CuckooFilter failed to expand')
+                raise CuckooFilterFullError(msg)
+
+    def _setup_expand(self, extra_fingerprint):
+        ''' setup this thing '''
         fingerprints = list()
         if extra_fingerprint is not None:
             fingerprints.append(extra_fingerprint)
@@ -283,12 +294,7 @@ class CuckooFilter(object):
         for _ in range(self.capacity):
             self.buckets.append(list())
 
-        for finger in fingerprints:
-            idx_1, idx_2 = self._indicies_from_fingerprint(finger)
-            res = self._insert_fingerprint(finger, idx_1, idx_2)
-            if res is not None:  # again, this *shouldn't* happen
-                msg = ('The CuckooFilter failed to expand')
-                raise CuckooFilterFullError(msg)
+        return fingerprints
 
     def _indicies_from_fingerprint(self, fingerprint):
         ''' Generate the possible insertion indicies from a fingerprint

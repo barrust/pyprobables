@@ -7,6 +7,7 @@ import unittest
 from probables import (CuckooFilter, CuckooFilterFullError)
 from . utilities import(calc_file_md5)
 
+
 class TestCuckooFilter(unittest.TestCase):
     ''' base Cuckoo Filter test '''
 

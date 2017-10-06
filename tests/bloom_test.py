@@ -489,10 +489,11 @@ class TestBloomFilterOnDisk(unittest.TestCase):
 
     def test_bfod_export_hex(self):
         ''' test that page error is thrown correctly '''
-        filename = 'tmp.blm'
+
         def runner():
             blm = BloomFilterOnDisk(filename, 10, 0.05)
             blm.export_hex()
+        filename = 'tmp.blm'
         self.assertRaises(NotSupportedError, runner)
         os.remove(filename)
 
