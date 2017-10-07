@@ -56,8 +56,16 @@ membership testing. Cuckoo filters support insertion, deletion, and lookup of
 elements with low overhead with few false positive results.
 `Further Reading <https://www.cs.cmu.edu/~dga/papers/cuckoo-conext2014.pdf>`__
 
+CuckooFilter
++++++++++++++++++++++++++++++++
 .. autoclass:: probables.CuckooFilter
     :members:
+
+CountingCuckooFilter
++++++++++++++++++++++++++++++++
+.. autoclass:: probables.CountingCuckooFilter
+    :members:
+    :inherited-members:
 
 
 Count-Min Sketches
