@@ -5,6 +5,7 @@
     * Basic functionality: add, remove, check
     * Expand
     * Import / Export
+* Fix and tests for utility functions
 
 ### Version 0.1.1:
 * CuckooFilter

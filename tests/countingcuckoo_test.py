@@ -115,7 +115,8 @@ class TestCountingCuckooFilter(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_c_cuckoo_idx(self):
-        ''' test that the indexing works correctly for counting cuckoo filter swap '''
+        ''' test that the indexing works correctly for counting cuckoo filter
+            swap '''
         cko = CountingCuckooFilter(capacity=100, bucket_size=2, max_swaps=5)
         txt = 'this is a test'
         idx_1, idx_2, fingerprint = cko._generate_fingerprint_info(txt)
@@ -238,7 +239,6 @@ class TestCountingCuckooFilter(unittest.TestCase):
         cko.add('this is a test')
         self.assertEqual('[(fingerprint:3057276164 count:1)]',
                          str(cko.buckets[0]))
-
 
     def test_c_cuckoo_filter_str(self):
         ''' test the str representation of the counting cuckoo filter '''

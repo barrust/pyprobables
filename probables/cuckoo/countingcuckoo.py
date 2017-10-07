@@ -9,7 +9,7 @@ import random
 from struct import (pack, unpack, calcsize)
 
 from . cuckoo import (CuckooFilter)
-from .. exceptions import (CuckooFilterFullError, NotSupportedError)
+from .. exceptions import (CuckooFilterFullError)
 
 
 class CountingCuckooFilter(CuckooFilter):

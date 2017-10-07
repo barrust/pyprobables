@@ -5,7 +5,9 @@ import os
 from . utilities import (different_hash)
 from probables.utilities import (is_hex_string, is_valid_file, get_x_bits)
 
+
 class TestProbablesUtilities(unittest.TestCase):
+    ''' test the utilities for pyprobables '''
 
     def test_is_hex(self):
         ''' test the is valid hex function '''
