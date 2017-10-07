@@ -4,7 +4,9 @@
 '''
 from __future__ import (unicode_literals, absolute_import, print_function,
                         division)
+import os
 import random
+from struct import (pack, unpack, calcsize)
 
 from . cuckoo import (CuckooFilter)
 from .. exceptions import (CuckooFilterFullError, NotSupportedError)
@@ -29,10 +31,10 @@ class CountingCuckooFilter(CuckooFilter):
     def __init__(self, capacity=10000, bucket_size=4, max_swaps=500,
                  expansion_rate=2, auto_expand=True, filepath=None):
         ''' setup the data structure '''
+        self.__unique_elements = 0
         super(CountingCuckooFilter,
               self).__init__(capacity, bucket_size, max_swaps,
                              expansion_rate, auto_expand, filepath)
-        self.__unique_elements = 0
 
     def __contains__(self, val):
         ''' setup the `in` keyword '''
@@ -113,17 +115,23 @@ class CountingCuckooFilter(CuckooFilter):
         ''' Expand the cuckoo filter '''
         self.__expand_logic(None)
 
-    def export(self, filepath):
+    def export(self, filename):
         ''' Export cuckoo filter to file
 
             Args:
                 filename (str): Path to file to export
-            Raises:
-                NotSupportedError: Currently not supported!
         '''
-        msg = ('Exporting a counting cuckoo filter to file is not currently '
-               'supported')
-        raise NotSupportedError(msg)
+        with open(filename, 'wb') as filepointer:
+            for bucket in self.buckets:
+                # do something for each...
+                rep = len(bucket) * 'II'
+                wbytes = pack(rep, *[x for x in self.__bucket_decomposition(bucket)])
+                filepointer.write(wbytes)
+                leftover = self.bucket_size - len(bucket)
+                rep = leftover * 'II'
+                filepointer.write(pack(rep, *([0] * (leftover * 2))))
+            # now put out the required information at the end
+            filepointer.write(pack('II', self.bucket_size, self.max_swaps))
 
     def _insert_fingerprint(self, fingerprint, idx_1, idx_2, count=1):
         ''' insert a fingerprint '''
@@ -168,11 +176,30 @@ class CountingCuckooFilter(CuckooFilter):
             return idx_2
         return None
 
-    def _load(self, filepath):
-        ''' load a previously exported filter '''
-        msg = ('Loading a counting cuckoo filter from file is not currently '
-               'supported')
-        raise NotSupportedError(msg)
+    def _load(self, filename):
+        ''' load a cuckoo filter from file '''
+        with open(filename, 'rb') as filepointer:
+            offset = calcsize('II')
+            int_size = calcsize('II')
+            filepointer.seek(offset * -1, os.SEEK_END)
+            list_size = filepointer.tell()
+            mybytes = unpack('II', filepointer.read(offset))
+            self._bucket_size = mybytes[0]
+            self.__max_cuckoo_swaps = mybytes[1]
+            self._cuckoo_capacity = list_size // int_size // self.bucket_size
+            self._inserted_elements = 0
+            # now pull everything in!
+            filepointer.seek(0, os.SEEK_SET)
+            self._buckets = list()
+            for i in range(self.capacity):
+                self._buckets.append(list())
+                for _ in range(self.bucket_size):
+                    finger, count = unpack('II', filepointer.read(int_size))
+                    if finger > 0:
+                        self._buckets[i].append(CountingCuckooBin(finger, count))
+                        self._inserted_elements += count
+                        self.__unique_elements += 1
+
 
     def __expand_logic(self, extra_fingerprint):
         ''' the logic to acutally expand the cuckoo filter '''
@@ -193,6 +220,11 @@ class CountingCuckooFilter(CuckooFilter):
             self.buckets[idx].append(CountingCuckooBin(fingerprint, count))
             return True
         return False
+
+    def __bucket_decomposition(self, bucket):
+        for buck in bucket:
+            yield buck.finger
+            yield buck.count
 
 
 class CountingCuckooBin(object):

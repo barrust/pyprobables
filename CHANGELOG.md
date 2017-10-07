@@ -2,7 +2,9 @@
 
 ### Version 0.1.2:
 * Counting Cuckoo Filter
-    * Basic functionality: add, remove, check, expand
+    * Basic functionality: add, remove, check
+    * Expand
+    * Import / Export
 
 ### Version 0.1.1:
 * CuckooFilter

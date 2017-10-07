@@ -30,7 +30,7 @@ class CuckooFilter(object):
     def __init__(self, capacity=10000, bucket_size=4, max_swaps=500,
                  expansion_rate=2, auto_expand=True, filepath=None):
         ''' setup the data structure '''
-        self.__bucket_size = bucket_size
+        self._bucket_size = bucket_size
         self._cuckoo_capacity = capacity
         self.__max_cuckoo_swaps = max_swaps
         self.__expansion_rate = None
@@ -97,7 +97,7 @@ class CuckooFilter(object):
 
             Note:
                 Not settable '''
-        return self.__bucket_size
+        return self._bucket_size
 
     @property
     def buckets(self):
@@ -238,7 +238,7 @@ class CuckooFilter(object):
             filepointer.seek(offset * -1, os.SEEK_END)
             list_size = filepointer.tell()
             mybytes = unpack('II', filepointer.read(offset))
-            self.__bucket_size = mybytes[0]
+            self._bucket_size = mybytes[0]
             self.__max_cuckoo_swaps = mybytes[1]
             self._cuckoo_capacity = list_size // int_size // self.bucket_size
             self._inserted_elements = 0
