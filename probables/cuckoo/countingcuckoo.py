@@ -125,8 +125,9 @@ class CountingCuckooFilter(CuckooFilter):
             for bucket in self.buckets:
                 # do something for each...
                 rep = len(bucket) * 'II'
-                wbytes = pack(rep, *[x for x in self.__bucket_decomposition(bucket)])
-                filepointer.write(wbytes)
+                wbyt = pack(rep,
+                            *[x for x in self.__bucket_decomposition(bucket)])
+                filepointer.write(wbyt)
                 leftover = self.bucket_size - len(bucket)
                 rep = leftover * 'II'
                 filepointer.write(pack(rep, *([0] * (leftover * 2))))
@@ -196,10 +197,10 @@ class CountingCuckooFilter(CuckooFilter):
                 for _ in range(self.bucket_size):
                     finger, count = unpack('II', filepointer.read(int_size))
                     if finger > 0:
-                        self._buckets[i].append(CountingCuckooBin(finger, count))
+                        ccb = CountingCuckooBin(finger, count)
+                        self._buckets[i].append(ccb)
                         self._inserted_elements += count
                         self.__unique_elements += 1
-
 
     def __expand_logic(self, extra_fingerprint):
         ''' the logic to acutally expand the cuckoo filter '''
@@ -221,7 +222,8 @@ class CountingCuckooFilter(CuckooFilter):
             return True
         return False
 
-    def __bucket_decomposition(self, bucket):
+    @staticmethod
+    def __bucket_decomposition(bucket):
         for buck in bucket:
             yield buck.finger
             yield buck.count
