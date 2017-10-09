@@ -6,6 +6,7 @@
     * Expand
     * Import / Export
 * Fix and tests for utility functions
+* Fix package build
 
 ### Version 0.1.1:
 * CuckooFilter

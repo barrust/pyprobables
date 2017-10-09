@@ -11,7 +11,8 @@ def read_file(filepath):
     return res
 
 KEYWORDS = ['python', 'probabilistic', 'data-structure', 'bloom', 'filter',
-            'count-min', 'sketch', 'bloom-filter', 'count-min-sketch']
+            'count-min', 'sketch', 'bloom-filter', 'count-min-sketch',
+            'cuckoo-filter']
 
 setuptools.setup(
     name = 'pyprobables',
@@ -25,7 +26,7 @@ setuptools.setup(
     download_url = '{0}/tarball/v{1}'.format(__url__, __version__),
     bugtrack_url = __bugtrack_url__,
     install_requires = read_file('./requirements/python').splitlines(),
-    packages = ['probables'],
+    packages = setuptools.find_packages(include=['probables', 'probables.*']),
     long_description = read_file('README.rst'),
     classifiers = [
         'Development Status :: 5 - Production/Stable',

@@ -68,7 +68,7 @@ class CountingCuckooFilter(CuckooFilter):
                     bucket.increment()
                     self._inserted_elements += 1
                     return
-        finger = self._insert_fingerprint(fingerprint, idx_1, idx_2)
+        finger = self._insert_fingerprint_alt(fingerprint, idx_1, idx_2)
         if finger is None:
             return
         elif self.auto_expand:
@@ -134,8 +134,8 @@ class CountingCuckooFilter(CuckooFilter):
             # now put out the required information at the end
             filepointer.write(pack('II', self.bucket_size, self.max_swaps))
 
-    def _insert_fingerprint(self, fingerprint, idx_1, idx_2, count=1):
-        ''' insert a fingerprint '''
+    def _insert_fingerprint_alt(self, fingerprint, idx_1, idx_2, count=1):
+        ''' insert a fingerprint, but with a count parameter! '''
         if self.__insert_element(fingerprint, idx_1, count):
             self._inserted_elements += 1
             self.__unique_elements += 1
@@ -206,11 +206,12 @@ class CountingCuckooFilter(CuckooFilter):
         ''' the logic to acutally expand the cuckoo filter '''
         # get all the fingerprints
         fingerprints = self._setup_expand(extra_fingerprint)
+        self.__unique_elements = 0  # this needs to be reset!
 
         for elm in fingerprints:
             idx_1, idx_2 = self._indicies_from_fingerprint(elm.finger)
-            res = self._insert_fingerprint(elm.finger, idx_1, idx_2,
-                                           elm.count)
+            res = self._insert_fingerprint_alt(elm.finger, idx_1, idx_2,
+                                               elm.count)
             if res is not None:  # again, this *shouldn't* happen
                 msg = ('The CountingCuckooFilter failed to expand')
                 raise CuckooFilterFullError(msg)

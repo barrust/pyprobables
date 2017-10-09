@@ -115,11 +115,11 @@ class CountingBloomFilter(BaseBloom):
             j = self._get_element(k)
             tmp = j + num_els
             if tmp <= UINT32_T_MAX:
-                self._bloom[k] = self._get_set_element(j + num_els)
+                self.bloom[k] = self._get_set_element(j + num_els)
             else:
-                self._bloom[k] = UINT32_T_MAX
-            if self._bloom[k] < res:
-                res = self._bloom[k]
+                self.bloom[k] = UINT32_T_MAX
+            if self.bloom[k] < res:
+                res = self.bloom[k]
         self.elements_added += num_els
         if self.elements_added > UINT64_T_MAX:
             self.elements_added = UINT64_T_MAX
@@ -191,7 +191,7 @@ class CountingBloomFilter(BaseBloom):
         for i in list(range(self.number_hashes)):
             k = int(hashes[i]) % self.number_bits
             j = self._get_element(k)
-            self._bloom[k] = self._get_set_element(j - t_num_els)
+            self.bloom[k] = self._get_set_element(j - t_num_els)
         self.elements_added -= t_num_els
         return tmp - t_num_els
 
@@ -223,7 +223,7 @@ class CountingBloomFilter(BaseBloom):
         for i in list(range(self.bloom_length)):
             if self._get_element(i) > 0 and second._get_element(i) > 0:
                 tmp = self._get_element(i) + second._get_element(i)
-                res._bloom[i] = self._get_set_element(tmp)
+                res.bloom[i] = self._get_set_element(tmp)
         res.elements_added = res.estimate_elements()
         return res
 
@@ -287,7 +287,7 @@ class CountingBloomFilter(BaseBloom):
                                   hash_function=self.hash_function)
         for i in list(range(self.bloom_length)):
             tmp = self._get_element(i) + second._get_element(i)
-            res._bloom[i] = self._get_set_element(tmp)
+            res.bloom[i] = self._get_set_element(tmp)
         res.elements_added = res.estimate_elements()
         return res
 
