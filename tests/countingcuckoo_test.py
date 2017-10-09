@@ -4,8 +4,7 @@ from __future__ import (unicode_literals, absolute_import, print_function)
 import unittest
 import os
 
-from probables import (CountingCuckooFilter, CuckooFilterFullError,
-                       NotSupportedError)
+from probables import (CountingCuckooFilter, CuckooFilterFullError)
 
 from . utilities import (calc_file_md5)
 
