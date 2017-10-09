@@ -7,6 +7,7 @@ import unittest
 from probables import (CuckooFilter, CuckooFilterFullError)
 from . utilities import(calc_file_md5)
 
+
 class TestCuckooFilter(unittest.TestCase):
     ''' base Cuckoo Filter test '''
 
@@ -83,6 +84,7 @@ class TestCuckooFilter(unittest.TestCase):
     def test_cuckoo_filter_full(self):
         ''' test inserting until cuckoo filter is full '''
         def runner():
+            ''' runner '''
             cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=100,
                                auto_expand=False)
             for i in range(175):
@@ -155,7 +157,11 @@ class TestCuckooFilter(unittest.TestCase):
         self.assertEqual(cko.load_factor(), 0.25)
         for i in range(50):
             cko.add(str(i + 50))
-        self.assertEqual(cko.load_factor(), 0.50)
+
+        if cko.capacity == 200:  # self expanded
+            self.assertEqual(cko.load_factor(), 0.25)
+        else:
+            self.assertEqual(cko.load_factor(), 0.50)
 
     def test_cuckoo_filter_export(self):
         ''' test exporting a cuckoo filter '''
@@ -209,3 +215,18 @@ class TestCuckooFilter(unittest.TestCase):
         self.assertEqual(375, cko.elements_added)
         for i in range(375):
             self.assertTrue(cko.check(str(i)))
+
+    def test_cuckoo_filter_str(self):
+        ''' test the str representation of the cuckoo filter '''
+        cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=100)
+        for i in range(75):
+            cko.add(str(i))
+        msg = ('CuckooFilter:\n'
+               '\tCapacity: 100\n'
+               '\tTotal Bins: 200\n'
+               '\tLoad Factor: 37.5%\n'
+               '\tInserted Elements: 75\n'
+               '\tMax Swaps: 100\n'
+               '\tExpansion Rate: 2\n'
+               '\tAuto Expand: True')
+        self.assertEqual(str(cko), msg)

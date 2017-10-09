@@ -6,9 +6,9 @@ import os
 from probables import (CountMinSketch, HeavyHitters, StreamThreshold,
                        CountMeanSketch, CountMeanMinSketch)
 from probables.exceptions import (InitializationError, NotSupportedError)
-from . utilities import(calc_file_md5, different_hash)
 from probables.constants import (INT32_T_MIN, INT32_T_MAX, INT64_T_MAX,
                                  INT64_T_MIN)
+from . utilities import(calc_file_md5, different_hash)
 
 
 class TestCountMinSketch(unittest.TestCase):

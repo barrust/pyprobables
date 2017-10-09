@@ -23,5 +23,5 @@ def get_x_bits(num, max_bits, num_bits, right_bits=True):
     bits = bin(num).lstrip('0b')
     bits = bits.zfill(max_bits)
     if right_bits:
-        return int(bits[num_bits:], 2)
+        return int(bits[-num_bits:], 2)
     return int(bits[:num_bits], 2)
