@@ -10,6 +10,7 @@ import os
 from abc import (abstractmethod)
 from struct import (pack, unpack, calcsize, Struct)
 from binascii import (hexlify, unhexlify)
+
 from .. exceptions import (InitializationError)
 from .. hashes import (default_fnv_1a)
 from .. utilities import (is_hex_string, is_valid_file)
@@ -169,6 +170,13 @@ class BaseBloom(object):
         else:
             tmp_hash = hash_function
 
+        if estimated_elements <= 0:
+            msg = 'Bloom: estimated elements must be greater than 0'
+            raise InitializationError(msg)
+        if false_positive_rate >= 1.0 or false_positive_rate <= 0.0:
+            msg = 'Bloom: false positive rate must be between 0.0 and 1.0'
+            raise InitializationError(msg)
+
         fpr = pack('f', float(false_positive_rate))
         t_fpr = unpack('f', fpr)[0]  # to mimic the c version!
         # optimal caluclations
@@ -176,6 +184,10 @@ class BaseBloom(object):
         fpr = float(false_positive_rate)
         m_bt = math.ceil((-n_els * math.log(fpr)) / 0.4804530139182)  # ln(2)^2
         number_hashes = int(round(math.log(2.0) * m_bt / n_els))
+
+        if number_hashes <= 0:  # this should never happen...
+            msg = 'Bloom: Number hashes is zero; unusable parameters provided'
+            raise InitializationError(msg)
 
         return tmp_hash, t_fpr, number_hashes, int(m_bt)
 

@@ -5,6 +5,7 @@
 '''
 from __future__ import (unicode_literals, absolute_import, print_function,
                         division)
+
 from . basebloom import (BaseBloom)
 from .. constants import (UINT32_T_MAX, UINT64_T_MAX)
 

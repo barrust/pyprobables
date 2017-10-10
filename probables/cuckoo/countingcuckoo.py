@@ -193,12 +193,12 @@ class CountingCuckooFilter(CuckooFilter):
             filepointer.seek(0, os.SEEK_SET)
             self._buckets = list()
             for i in range(self.capacity):
-                self._buckets.append(list())
+                self.buckets.append(list())
                 for _ in range(self.bucket_size):
                     finger, count = unpack('II', filepointer.read(int_size))
                     if finger > 0:
                         ccb = CountingCuckooBin(finger, count)
-                        self._buckets[i].append(ccb)
+                        self.buckets[i].append(ccb)
                         self._inserted_elements += count
                         self.__unique_elements += 1
 

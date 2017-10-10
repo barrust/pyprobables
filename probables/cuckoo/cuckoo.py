@@ -10,8 +10,8 @@ import random
 from struct import (pack, unpack, calcsize)
 
 from .. hashes import (fnv_1a)
-from .. utilities import (get_x_bits)
-from .. exceptions import (CuckooFilterFullError)
+from .. utilities import (is_valid_file, get_x_bits)
+from .. exceptions import (CuckooFilterFullError, InitializationError)
 
 
 class CuckooFilter(object):
@@ -30,9 +30,13 @@ class CuckooFilter(object):
     def __init__(self, capacity=10000, bucket_size=4, max_swaps=500,
                  expansion_rate=2, auto_expand=True, filepath=None):
         ''' setup the data structure '''
-        self._bucket_size = bucket_size
-        self._cuckoo_capacity = capacity
-        self.__max_cuckoo_swaps = max_swaps
+        if capacity <= 0 or bucket_size <= 0 or max_swaps <= 0:
+            msg = ('CuckooFilter: capacity, bucket_size, and max_swaps '
+                   'must be greater than 0')
+            raise InitializationError(msg)
+        self._bucket_size = int(bucket_size)
+        self._cuckoo_capacity = int(capacity)
+        self.__max_cuckoo_swaps = int(max_swaps)
         self.__expansion_rate = None
         self.expansion_rate = expansion_rate
         self.__auto_expand = None
@@ -43,9 +47,12 @@ class CuckooFilter(object):
         if filepath is None:
             self._buckets = list()
             for _ in range(self.capacity):
-                self._buckets.append(list())
-        else:
+                self.buckets.append(list())
+        elif is_valid_file(filepath):
             self._load(filepath)
+        else:
+            msg = ''
+            raise InitializationError(msg)
 
     def __contains__(self, key):
         ''' setup the `in` keyword '''
@@ -246,11 +253,11 @@ class CuckooFilter(object):
             filepointer.seek(0, os.SEEK_SET)
             self._buckets = list()
             for i in range(self.capacity):
-                self._buckets.append(list())
+                self.buckets.append(list())
                 for _ in range(self.bucket_size):
                     fingerprint = unpack('I', filepointer.read(int_size))[0]
                     if fingerprint != 0:
-                        self._buckets[i].append(fingerprint)
+                        self.buckets[i].append(fingerprint)
                         self._inserted_elements += 1
 
     def _check_if_present(self, idx_1, idx_2, fingerprint):

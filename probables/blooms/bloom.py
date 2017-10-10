@@ -10,6 +10,7 @@ import os
 import mmap
 from struct import (pack, unpack, calcsize)
 from shutil import (copyfile)
+
 from . basebloom import (BaseBloom)
 from .. exceptions import (InitializationError, NotSupportedError)
 from .. utilities import (is_hex_string, is_valid_file)

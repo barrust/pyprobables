@@ -8,6 +8,7 @@ from __future__ import (unicode_literals, absolute_import, print_function,
 import os
 import math
 from struct import (pack, unpack, calcsize)
+
 from .. exceptions import (InitializationError, NotSupportedError)
 from .. hashes import (default_fnv_1a)
 from .. utilities import (is_valid_file)
@@ -55,18 +56,24 @@ class CountMinSketch(object):
         if is_valid_file(filepath):
             self.__load(filepath)
         elif width is not None and depth is not None:
-            self.__width = width
-            self.__depth = depth
-            self.__confidence = 1 - (1 / math.pow(2, depth))
-            self.__error_rate = 2 / width
-            self._bins = [0] * (self.__width * self.__depth)
+            if width <= 0 or depth <= 0:
+                msg = 'CountMinSketch: width and depth must be greater than 0'
+                raise InitializationError(msg)
+            self.__width = int(width)
+            self.__depth = int(depth)
+            self.__confidence = 1 - (1 / math.pow(2, self.depth))
+            self.__error_rate = 2 / self.width
+            self._bins = [0] * (self.width * self.depth)
         elif confidence is not None and error_rate is not None:
+            if confidence <= 0 or error_rate <= 0:
+                msg = 'CountMinSketch: width and depth must be greater than 0'
+                raise InitializationError(msg)
             self.__confidence = confidence
             self.__error_rate = error_rate
             self.__width = math.ceil(2 / error_rate)
             numerator = (-1 * math.log(1 - confidence))
             self.__depth = math.ceil(numerator / 0.6931471805599453)
-            self._bins = [0] * int(self.__width * self.__depth)
+            self._bins = [0] * int(self.width * self.depth)
         else:
             msg = ('Must provide one of the following to initialize the '
                    'Count-Min Sketch:\n'
@@ -182,7 +189,7 @@ class CountMinSketch(object):
             Returns:
                 List(int): A list of the hashes for the key in int form
         '''
-        t_depth = self.__depth if depth is None else depth
+        t_depth = self.depth if depth is None else depth
         return self._hash_function(key, t_depth)
 
     def add(self, key, num_els=1):
@@ -210,14 +217,14 @@ class CountMinSketch(object):
         '''
         res = list()
         for i, val in enumerate(hashes):
-            t_bin = (val % self.__width) + (i * self.__width)
+            t_bin = (val % self.width) + (i * self.width)
             self._bins[t_bin] += num_els
             if self._bins[t_bin] > INT32_T_MAX:
                 self._bins[t_bin] = INT32_T_MAX
             res.append(self._bins[t_bin])
         self.__elements_added += num_els
 
-        if self.__elements_added > INT64_T_MAX:
+        if self.elements_added > INT64_T_MAX:
             self.__elements_added = INT64_T_MAX
         return self.__query_method(sorted(res))
 
@@ -246,13 +253,13 @@ class CountMinSketch(object):
         '''
         res = list()
         for i, val in enumerate(hashes):
-            t_bin = (val % self.__width) + (i * self.__width)
+            t_bin = (val % self.width) + (i * self.width)
             self._bins[t_bin] -= num_els
             if self._bins[t_bin] < INT32_T_MIN:
                 self._bins[t_bin] = INT32_T_MIN
             res.append(self._bins[t_bin])
         self.__elements_added -= num_els
-        if self.__elements_added < INT64_T_MIN:
+        if self.elements_added < INT64_T_MIN:
             self.__elements_added = INT64_T_MIN
 
         return self.__query_method(sorted(res))
@@ -290,8 +297,8 @@ class CountMinSketch(object):
             # write out the bins
             rep = 'i' * len(self._bins)
             filepointer.write(pack(rep, *self._bins))
-            filepointer.write(pack('IIq', self.__width, self.__depth,
-                                   self.__elements_added))
+            filepointer.write(pack('IIq', self.width, self.depth,
+                                   self.elements_added))
 
     def __load(self, filepath):
         ''' load the count-min sketch from file '''
@@ -302,11 +309,11 @@ class CountMinSketch(object):
             self.__width = mybytes[0]
             self.__depth = mybytes[1]
             self.__elements_added = mybytes[2]
-            self.__confidence = 1 - (1 / math.pow(2, self.__depth))
-            self.__error_rate = 2 / self.__width
+            self.__confidence = 1 - (1 / math.pow(2, self.depth))
+            self.__error_rate = 2 / self.width
 
             filepointer.seek(0, os.SEEK_SET)
-            length = self.__width * self.__depth
+            length = self.width * self.depth
             rep = 'i' * length
             offset = calcsize(rep)
             self._bins = list(unpack(rep, filepointer.read(offset)))
@@ -315,7 +322,7 @@ class CountMinSketch(object):
         ''' get the values sorted '''
         bins = list()
         for i, val in enumerate(hashes):
-            t_bin = (val % self.__width) + (i * self.__width)
+            t_bin = (val % self.width) + (i * self.width)
             bins.append(self._bins[t_bin])
         bins.sort()
         return bins
@@ -327,21 +334,21 @@ class CountMinSketch(object):
 
     def __mean_query(self, results):
         ''' generate the mean query; assumes sorted list '''
-        return sum(results) // self.__depth
+        return sum(results) // self.depth
 
     def __mean_min_query(self, results):
         ''' generate the mean-min query; assumes sorted list '''
         meanmin = list()
         for t_bin in results:
-            diff = self.__elements_added - t_bin
-            calc = t_bin - diff // (self.__width - 1)
+            diff = self.elements_added - t_bin
+            calc = t_bin - diff // (self.width - 1)
             meanmin.append(calc)
         meanmin.sort()
-        if self.__depth % 2 == 0:
-            calc = meanmin[self.__depth//2] + meanmin[self.__depth//2 - 1]
+        if self.depth % 2 == 0:
+            calc = meanmin[self.depth//2] + meanmin[self.depth//2 - 1]
             res = calc // 2
         else:
-            res = meanmin[self.__depth//2]
+            res = meanmin[self.depth//2]
         return res
 
 
