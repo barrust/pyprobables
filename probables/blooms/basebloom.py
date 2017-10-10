@@ -171,12 +171,14 @@ class BaseBloom(object):
         else:
             tmp_hash = hash_function
 
-        if not isinstance(estimated_elements, Number) \
-           or estimated_elements <= 0:
+        valid_prms = (isinstance(estimated_elements, Number) and
+                      estimated_elements > 0)
+        if not valid_prms:
             msg = 'Bloom: estimated elements must be greater than 0'
             raise InitializationError(msg)
-        if not isinstance(false_positive_rate, Number) \
-           or not 0.0 <= false_positive_rate < 1.0:
+        valid_prms = (isinstance(false_positive_rate, Number) and
+                      0.0 <= false_positive_rate < 1.0)
+        if not valid_prms:
             msg = 'Bloom: false positive rate must be between 0.0 and 1.0'
             raise InitializationError(msg)
 

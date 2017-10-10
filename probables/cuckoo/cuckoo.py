@@ -31,9 +31,10 @@ class CuckooFilter(object):
     def __init__(self, capacity=10000, bucket_size=4, max_swaps=500,
                  expansion_rate=2, auto_expand=True, filepath=None):
         ''' setup the data structure '''
-        if not isinstance(capacity, Number) or capacity < 1 \
-           or not isinstance(bucket_size, Number) or bucket_size < 1 \
-           or not isinstance(max_swaps, Number) or max_swaps < 1:
+        valid_prms = (isinstance(capacity, Number) and capacity >= 1 and
+                      isinstance(bucket_size, Number) and bucket_size >= 1 and
+                      isinstance(max_swaps, Number) and max_swaps >= 1)
+        if not valid_prms:
             msg = ('CuckooFilter: capacity, bucket_size, and max_swaps '
                    'must be an integer greater than 0')
             raise InitializationError(msg)
