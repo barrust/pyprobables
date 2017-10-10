@@ -7,6 +7,7 @@ from __future__ import (unicode_literals, absolute_import, print_function,
 import sys
 import math
 import os
+from numbers import Number
 from abc import (abstractmethod)
 from struct import (pack, unpack, calcsize, Struct)
 from binascii import (hexlify, unhexlify)
@@ -170,10 +171,12 @@ class BaseBloom(object):
         else:
             tmp_hash = hash_function
 
-        if estimated_elements <= 0:
+        if not isinstance(estimated_elements, Number) \
+           or estimated_elements <= 0:
             msg = 'Bloom: estimated elements must be greater than 0'
             raise InitializationError(msg)
-        if false_positive_rate >= 1.0 or false_positive_rate <= 0.0:
+        if not isinstance(false_positive_rate, Number) \
+           or not 0.0 <= false_positive_rate < 1.0:
             msg = 'Bloom: false positive rate must be between 0.0 and 1.0'
             raise InitializationError(msg)
 

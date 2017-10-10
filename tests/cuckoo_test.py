@@ -4,7 +4,8 @@ from __future__ import (unicode_literals, absolute_import, print_function)
 import os
 import unittest
 
-from probables import (CuckooFilter, CuckooFilterFullError)
+from probables import (CuckooFilter, CuckooFilterFullError,
+                       InitializationError)
 from . utilities import(calc_file_md5)
 
 
@@ -230,3 +231,93 @@ class TestCuckooFilter(unittest.TestCase):
                '\tExpansion Rate: 2\n'
                '\tAuto Expand: True')
         self.assertEqual(str(cko), msg)
+
+    def test_invalid_capacity(self):
+        ''' test invalid capacity '''
+        def runner():
+            CuckooFilter(capacity=-100)
+
+        self.assertRaises(InitializationError, runner)
+        msg = ('CuckooFilter: capacity, bucket_size, and max_swaps '
+               'must be an integer greater than 0')
+        try:
+            runner()
+        except InitializationError as ex:
+            self.assertEqual(str(ex), msg)
+        else:
+            self.assertTrue(False)
+
+    def test_invalid_buckets(self):
+        ''' test invalid capacity '''
+        def runner():
+            CuckooFilter(bucket_size=0)
+
+        self.assertRaises(InitializationError, runner)
+        msg = ('CuckooFilter: capacity, bucket_size, and max_swaps '
+               'must be an integer greater than 0')
+        try:
+            runner()
+        except InitializationError as ex:
+            self.assertEqual(str(ex), msg)
+        else:
+            self.assertTrue(False)
+
+    def test_invalid_swaps(self):
+        ''' test invalid capacity '''
+        def runner():
+            CuckooFilter(max_swaps=0)
+
+        self.assertRaises(InitializationError, runner)
+        msg = ('CuckooFilter: capacity, bucket_size, and max_swaps '
+               'must be an integer greater than 0')
+        try:
+            runner()
+        except InitializationError as ex:
+            self.assertEqual(str(ex), msg)
+        else:
+            self.assertTrue(False)
+
+    def test_invalid_capacity_2(self):
+        ''' test invalid capacity '''
+        def runner():
+            CuckooFilter(capacity='abc')
+
+        self.assertRaises(InitializationError, runner)
+        msg = ('CuckooFilter: capacity, bucket_size, and max_swaps '
+               'must be an integer greater than 0')
+        try:
+            runner()
+        except InitializationError as ex:
+            self.assertEqual(str(ex), msg)
+        else:
+            self.assertTrue(False)
+
+    def test_invalid_buckets_2(self):
+        ''' test invalid capacity '''
+        def runner():
+            CuckooFilter(bucket_size=[0])
+
+        self.assertRaises(InitializationError, runner)
+        msg = ('CuckooFilter: capacity, bucket_size, and max_swaps '
+               'must be an integer greater than 0')
+        try:
+            runner()
+        except InitializationError as ex:
+            self.assertEqual(str(ex), msg)
+        else:
+            self.assertTrue(False)
+
+    def test_invalid_swaps_2(self):
+        ''' test invalid capacity '''
+        def runner():
+            CuckooFilter(max_swaps=None)
+
+        self.assertRaises(InitializationError, runner)
+        msg = ('CuckooFilter: capacity, bucket_size, and max_swaps '
+               'must be an integer greater than 0')
+        try:
+            runner()
+        except InitializationError as ex:
+            self.assertEqual(str(ex), msg)
+        else:
+            self.assertTrue(False)

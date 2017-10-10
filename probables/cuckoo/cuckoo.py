@@ -7,6 +7,7 @@ from __future__ import (unicode_literals, absolute_import, print_function,
                         division)
 import os
 import random
+from numbers import Number
 from struct import (pack, unpack, calcsize)
 
 from .. hashes import (fnv_1a)
@@ -30,9 +31,11 @@ class CuckooFilter(object):
     def __init__(self, capacity=10000, bucket_size=4, max_swaps=500,
                  expansion_rate=2, auto_expand=True, filepath=None):
         ''' setup the data structure '''
-        if capacity <= 0 or bucket_size <= 0 or max_swaps <= 0:
+        if not isinstance(capacity, Number) or capacity < 1 \
+           or not isinstance(bucket_size, Number) or bucket_size < 1 \
+           or not isinstance(max_swaps, Number) or max_swaps < 1:
             msg = ('CuckooFilter: capacity, bucket_size, and max_swaps '
-                   'must be greater than 0')
+                   'must be an integer greater than 0')
             raise InitializationError(msg)
         self._bucket_size = int(bucket_size)
         self._cuckoo_capacity = int(capacity)

@@ -7,6 +7,7 @@ from __future__ import (unicode_literals, absolute_import, print_function,
                         division)
 import os
 import math
+from numbers import Number
 from struct import (pack, unpack, calcsize)
 
 from .. exceptions import (InitializationError, NotSupportedError)
@@ -56,7 +57,8 @@ class CountMinSketch(object):
         if is_valid_file(filepath):
             self.__load(filepath)
         elif width is not None and depth is not None:
-            if width <= 0 or depth <= 0:
+            if not isinstance(width, Number) or width <= 0 \
+               or not isinstance(depth, Number) or depth <= 0:
                 msg = 'CountMinSketch: width and depth must be greater than 0'
                 raise InitializationError(msg)
             self.__width = int(width)
@@ -65,7 +67,8 @@ class CountMinSketch(object):
             self.__error_rate = 2 / self.width
             self._bins = [0] * (self.width * self.depth)
         elif confidence is not None and error_rate is not None:
-            if confidence <= 0 or error_rate <= 0:
+            if not isinstance(confidence, Number) or confidence <= 0 or \
+               not isinstance(error_rate, Number) or error_rate <= 0:
                 msg = 'CountMinSketch: width and depth must be greater than 0'
                 raise InitializationError(msg)
             self.__confidence = confidence

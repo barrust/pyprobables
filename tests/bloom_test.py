@@ -330,6 +330,36 @@ class TestBloomFilter(unittest.TestCase):
         else:
             self.assertTrue(False)
 
+    def test_invalid_fpr_2(self):
+        ''' test if invalid false positive rate provided is non numeric '''
+        def runner():
+            ''' runner '''
+            BloomFilter(est_elements=100, false_positive_rate='1.1')
+
+        self.assertRaises(InitializationError, runner)
+        try:
+            runner()
+        except InitializationError as ex:
+            msg = 'Bloom: false positive rate must be between 0.0 and 1.0'
+            self.assertEqual(str(ex), msg)
+        else:
+            self.assertTrue(False)
+
+    def test_invalid_estimated_els_2(self):
+        ''' test if invalid estimated elements provided is non numeric '''
+        def runner():
+            ''' runner '''
+            BloomFilter(est_elements=[0], false_positive_rate=0.1)
+
+        self.assertRaises(InitializationError, runner)
+        try:
+            runner()
+        except InitializationError as ex:
+            msg = 'Bloom: estimated elements must be greater than 0'
+            self.assertEqual(str(ex), msg)
+        else:
+            self.assertTrue(False)
+
     def test_invalid_number_hashes(self):
         ''' test if invalid estimated elements provided '''
         def runner():

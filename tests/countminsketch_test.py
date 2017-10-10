@@ -276,6 +276,118 @@ class TestCountMinSketch(unittest.TestCase):
                '\tElements Added: 100')
         self.assertEqual(str(cms), msg)
 
+    def test_cms_invalid_width(self):
+        ''' test invalid width '''
+        def runner():
+            CountMinSketch(width=0, depth=5)
+
+        self.assertRaises(InitializationError, runner)
+        msg = 'CountMinSketch: width and depth must be greater than 0'
+        try:
+            runner()
+        except InitializationError as ex:
+            self.assertEqual(str(ex), msg)
+        else:
+            self.assertTrue(False)
+
+    def test_cms_invalid_depth(self):
+        ''' test invalid width '''
+        def runner():
+            CountMinSketch(width=1000, depth=-5)
+
+        self.assertRaises(InitializationError, runner)
+        msg = 'CountMinSketch: width and depth must be greater than 0'
+        try:
+            runner()
+        except InitializationError as ex:
+            self.assertEqual(str(ex), msg)
+        else:
+            self.assertTrue(False)
+
+    def test_cms_invalid_width_2(self):
+        ''' test invalid width invalid type '''
+        def runner():
+            CountMinSketch(width='0.0', depth=5)
+
+        self.assertRaises(InitializationError, runner)
+        msg = 'CountMinSketch: width and depth must be greater than 0'
+        try:
+            runner()
+        except InitializationError as ex:
+            self.assertEqual(str(ex), msg)
+        else:
+            self.assertTrue(False)
+
+    def test_cms_invalid_depth(self):
+        ''' test invalid width invalid type '''
+        def runner():
+            CountMinSketch(width=1000, depth=[])
+
+        self.assertRaises(InitializationError, runner)
+        msg = 'CountMinSketch: width and depth must be greater than 0'
+        try:
+            runner()
+        except InitializationError as ex:
+            self.assertEqual(str(ex), msg)
+        else:
+            self.assertTrue(False)
+
+    def test_cms_invalid_conf(self):
+        ''' test invalid width '''
+        def runner():
+            CountMinSketch(confidence=-3.0, error_rate=0.99)
+
+        self.assertRaises(InitializationError, runner)
+        msg = 'CountMinSketch: width and depth must be greater than 0'
+        try:
+            runner()
+        except InitializationError as ex:
+            self.assertEqual(str(ex), msg)
+        else:
+            self.assertTrue(False)
+
+    def test_cms_invalid_err_rate(self):
+        ''' test invalid width '''
+        def runner():
+            CountMinSketch(confidence=3.0, error_rate=0)
+
+        self.assertRaises(InitializationError, runner)
+        msg = 'CountMinSketch: width and depth must be greater than 0'
+        try:
+            runner()
+        except InitializationError as ex:
+            self.assertEqual(str(ex), msg)
+        else:
+            self.assertTrue(False)
+
+    def test_cms_invalid_conf_2(self):
+        ''' test invalid width invalid type '''
+        def runner():
+            CountMinSketch(confidence=3.0, error_rate='0.99')
+
+        self.assertRaises(InitializationError, runner)
+        msg = 'CountMinSketch: width and depth must be greater than 0'
+        try:
+            runner()
+        except InitializationError as ex:
+            self.assertEqual(str(ex), msg)
+        else:
+            self.assertTrue(False)
+
+    def test_cms_invalid_err_rate_2(self):
+        ''' test invalid error rate invalid type '''
+        def runner():
+            CountMinSketch(width=1000, depth=[])
+
+        self.assertRaises(InitializationError, runner)
+        msg = 'CountMinSketch: width and depth must be greater than 0'
+        try:
+            runner()
+        except InitializationError as ex:
+            self.assertEqual(str(ex), msg)
+        else:
+            self.assertTrue(False)
+
 
 class TestHeavyHitters(unittest.TestCase):
     ''' Test the default heavy hitters implementation '''
