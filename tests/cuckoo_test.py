@@ -187,7 +187,7 @@ class TestCuckooFilter(unittest.TestCase):
         md5_out = calc_file_md5(filename)
         self.assertEqual(md5sum, md5_out)
 
-        ckf = CuckooFilter(filepath='./test.cko')
+        ckf = CuckooFilter(filepath=filename)
         for i in range(1000):
             self.assertTrue(ckf.check(str(i)))
 
@@ -196,6 +196,20 @@ class TestCuckooFilter(unittest.TestCase):
         self.assertEqual(500, ckf.max_swaps)
         self.assertEqual(0.025, ckf.load_factor())
         os.remove(filename)
+
+    def test_cuckoo_filter_unload(self):
+        ''' test failing to load a saved cuckoo filter '''
+        def runner():
+            ''' runner '''
+            filename = './test.cko'
+            CuckooFilter(filepath='./test.cko')
+
+        self.assertRaises(InitializationError, runner)
+        try:
+            runner()
+        except InitializationError as ex:
+            msg = 'CuckooFilter: failed to load provided file'
+            self.assertEqual(str(ex), msg)
 
     def test_cuckoo_filter_expand_els(self):
         ''' test out the expansion of the cuckoo filter '''

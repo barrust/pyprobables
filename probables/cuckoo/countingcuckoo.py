@@ -69,13 +69,7 @@ class CountingCuckooFilter(CuckooFilter):
                     self._inserted_elements += 1
                     return
         finger = self._insert_fingerprint_alt(fingerprint, idx_1, idx_2)
-        if finger is None:
-            return
-        elif self.auto_expand:
-            self.__expand_logic(finger)
-        else:
-            msg = 'The CountingCuckooFilter is currently full'
-            raise CuckooFilterFullError(msg)
+        self._deal_with_insertion(finger)
 
     def check(self, key):
         ''' Check if an element is in the filter
@@ -113,7 +107,7 @@ class CountingCuckooFilter(CuckooFilter):
 
     def expand(self):
         ''' Expand the cuckoo filter '''
-        self.__expand_logic(None)
+        self._expand_logic(None)
 
     def export(self, filename):
         ''' Export cuckoo filter to file
@@ -202,7 +196,7 @@ class CountingCuckooFilter(CuckooFilter):
                         self._inserted_elements += count
                         self.__unique_elements += 1
 
-    def __expand_logic(self, extra_fingerprint):
+    def _expand_logic(self, extra_fingerprint):
         ''' the logic to acutally expand the cuckoo filter '''
         # get all the fingerprints
         fingerprints = self._setup_expand(extra_fingerprint)

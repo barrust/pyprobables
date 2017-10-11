@@ -55,7 +55,7 @@ class CuckooFilter(object):
         elif is_valid_file(filepath):
             self._load(filepath)
         else:
-            msg = ''
+            msg = 'CuckooFilter: failed to load provided file'
             raise InitializationError(msg)
 
     def __contains__(self, key):
@@ -156,12 +156,7 @@ class CuckooFilter(object):
         if is_present is not None:  # already there, nothing to do
             return
         finger = self._insert_fingerprint(fingerprint, idx_1, idx_2)
-        if finger is None:
-            return
-        elif self.auto_expand:
-            self.__expand_logic(finger)
-        else:
-            raise CuckooFilterFullError('The CuckooFilter is currently full')
+        self._deal_with_insertion(finger)
 
     def check(self, key):
         ''' Check if an element is in the filter
@@ -206,7 +201,7 @@ class CuckooFilter(object):
 
     def expand(self):
         ''' Expand the cuckoo filter '''
-        self.__expand_logic(None)
+        self._expand_logic(None)
 
     def _insert_fingerprint(self, fingerprint, idx_1, idx_2):
         ''' insert a fingerprint '''
@@ -279,7 +274,7 @@ class CuckooFilter(object):
             return True
         return False
 
-    def __expand_logic(self, extra_fingerprint):
+    def _expand_logic(self, extra_fingerprint):
         ''' the logic to acutally expand the cuckoo filter '''
         # get all the fingerprints
         fingerprints = self._setup_expand(extra_fingerprint)
@@ -333,3 +328,12 @@ class CuckooFilter(object):
             msg = ('Either idx_1 {0} or idx_2 {1} is greater than {2}')
             raise ValueError(msg.format(idx_1, idx_2, self.capacity))
         return idx_1, idx_2, fingerprint
+
+    def _deal_with_insertion(self, finger):
+        if finger is None:
+            return
+        elif self.auto_expand:
+            self._expand_logic(finger)
+        else:
+            msg = 'The {} is currently full'.format(self.__class__.__name__)
+            raise CuckooFilterFullError(msg)
