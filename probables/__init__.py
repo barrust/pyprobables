@@ -18,6 +18,6 @@ __bugtrack_url__ = 'https://github.com/barrust/pyprobables/issues'
 
 __all__ = ['BloomFilter', 'BloomFilterOnDisk', 'CountingBloomFilter',
            'CountMinSketch', 'CountMeanSketch', 'CountMeanMinSketch',
-           'HeavyHitters', 'StreamThreshold',  'CuckooFilter',
+           'HeavyHitters', 'StreamThreshold', 'CuckooFilter',
            'CountingCuckooFilter', 'InitializationError', 'NotSupportedError',
-           'ProbablesBaseException', 'CuckooFilterFullError'']
+           'ProbablesBaseException', 'CuckooFilterFullError']
