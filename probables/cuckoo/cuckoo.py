@@ -26,8 +26,7 @@ class CuckooFilter(object):
             auto_expand (bool): If the filter should automatically expand
             filename (str): The path to the file to load or None if no file
         Returns:
-            CuckooFilter: A Cuckoo Filter object
-    '''
+            CuckooFilter: A Cuckoo Filter object '''
     def __init__(self, capacity=10000, bucket_size=4, max_swaps=500,
                  expansion_rate=2, auto_expand=True, filepath=None):
         ''' setup the data structure '''
@@ -120,7 +119,7 @@ class CuckooFilter(object):
 
     @property
     def expansion_rate(self):
-        ''' int: The rate at expansion when the filter grows'''
+        ''' int: The rate at expansion when the filter grows '''
         return self.__expansion_rate
 
     @expansion_rate.setter
@@ -162,7 +161,9 @@ class CuckooFilter(object):
         ''' Check if an element is in the filter
 
             Args:
-                key (str): Element to check '''
+                key (str): Element to check
+            Returns:
+                bool: True if likely present, False if definately not '''
         idx_1, idx_2, fingerprint = self._generate_fingerprint_info(key)
         is_present = self._check_if_present(idx_1, idx_2, fingerprint)
         if is_present is not None:
@@ -173,7 +174,9 @@ class CuckooFilter(object):
         ''' Remove an element from the filter
 
             Args:
-                key (str): Element to remove '''
+                key (str): Element to remove
+            Returns:
+                bool: True if removed, False if not present '''
         idx_1, idx_2, fingerprint = self._generate_fingerprint_info(key)
         idx = self._check_if_present(idx_1, idx_2, fingerprint)
         if idx is None:
@@ -186,8 +189,7 @@ class CuckooFilter(object):
         ''' Export cuckoo filter to file
 
             Args:
-                filename (str): Path to file to export
-        '''
+                filename (str): Path to file to export '''
         with open(filename, 'wb') as filepointer:
             for bucket in self.buckets:
                 # do something for each...
@@ -330,6 +332,7 @@ class CuckooFilter(object):
         return idx_1, idx_2, fingerprint
 
     def _deal_with_insertion(self, finger):
+        ''' some code to handle the insertion the same '''
         if finger is None:
             return
         elif self.auto_expand:

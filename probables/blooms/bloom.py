@@ -134,8 +134,7 @@ class BloomFilter(BaseBloom):
                 TypeError: When second is not either a :class:`BloomFilter` \
                 or :class:`BloomFilterOnDisk`
             Note:
-                `second` may be a BloomFilterOnDisk object
-        '''
+                `second` may be a BloomFilterOnDisk object '''
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
@@ -156,8 +155,7 @@ class BloomFilter(BaseBloom):
                 TypeError: When second is not either a :class:`BloomFilter` \
                 or :class:`BloomFilterOnDisk`
             Note:
-                `second` may be a BloomFilterOnDisk object
-        '''
+                `second` may be a BloomFilterOnDisk object '''
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
@@ -178,8 +176,7 @@ class BloomFilter(BaseBloom):
                 TypeError: When second is not either a :class:`BloomFilter` \
                 or :class:`BloomFilterOnDisk`
             Note:
-                `second` may be a BloomFilterOnDisk object
-        '''
+                `second` may be a BloomFilterOnDisk object '''
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
@@ -299,8 +296,7 @@ class BloomFilterOnDisk(BaseBloom):
                 filename (str): The filename to which the Bloom Filter will \
                 be exported
             Note:
-                Only exported if the filename is not the original filename
-        '''
+                Only exported if the filename is not the original filename '''
         self.__update()
         if filename != self.__filename:
             # setup the new bloom filter
@@ -323,8 +319,7 @@ class BloomFilterOnDisk(BaseBloom):
                 TypeError: When second is not either a :class:`BloomFilter` \
                 or :class:`BloomFilterOnDisk`
             Note:
-                `second` may be a BloomFilter object
-        '''
+                `second` may be a BloomFilter object '''
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
@@ -347,8 +342,7 @@ class BloomFilterOnDisk(BaseBloom):
                 TypeError: When second is not either a :class:`BloomFilter` \
                 or :class:`BloomFilterOnDisk`
             Note:
-                `second` may be a BloomFilter object
-        '''
+                `second` may be a BloomFilter object '''
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
@@ -370,8 +364,7 @@ class BloomFilterOnDisk(BaseBloom):
                 TypeError: When second is not either a :class:`BloomFilter` \
                 or :class:`BloomFilterOnDisk`
             Note:
-                `second` may be a BloomFilter object
-        '''
+                `second` may be a BloomFilter object '''
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
@@ -385,8 +378,7 @@ class BloomFilterOnDisk(BaseBloom):
 
             Raises:
                 NotSupportedError: This functionality is currently not \
-                supported
-        '''
+                supported '''
         msg = ('`export_hex` is currently not supported by the on disk '
                'Bloom Filter')
         raise NotSupportedError(msg)

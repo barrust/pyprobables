@@ -157,8 +157,7 @@ class BaseBloom(object):
                 depth (int): Number of permutations of the hash to generate; \
                 if None, generate `number_hashes`
             Returns:
-                List(int): A list of the hashes for the key in int form
-        '''
+                List(int): A list of the hashes for the key in int form '''
         tmp = depth if depth is not None else self.number_hashes
         return self.__hash_func(key, tmp)
 
@@ -244,8 +243,7 @@ class BaseBloom(object):
         ''' Export the Bloom Filter as a hex string
 
             Return:
-                str: Hex representation of the Bloom Filter
-        '''
+                str: Hex representation of the Bloom Filter '''
         mybytes = pack('>QQf', self.estimated_elements,
                        self.elements_added, self.false_positive_rate)
         if self.__blm_type in ['regular', 'reg-ondisk']:
@@ -264,8 +262,7 @@ class BaseBloom(object):
 
             Args:
                 filename (str): The filename to which the Bloom Filter will \
-                be written.
-        '''
+                be written. '''
         with open(filename, 'wb') as filepointer:
             rep = self.__impt_type * self.bloom_length
             filepointer.write(pack(rep, *self.bloom))
@@ -277,8 +274,7 @@ class BaseBloom(object):
         ''' Calculate the size of the bloom on disk
 
             Returns:
-                int: Size of the Bloom Filter when exported to disk
-        '''
+                int: Size of the Bloom Filter when exported to disk '''
         tmp_b = calcsize(self.__impt_type)
         return (self.bloom_length * tmp_b) + calcsize('QQf')
 
@@ -286,8 +282,7 @@ class BaseBloom(object):
         ''' Calculate the current false positive rate based on elements added
 
             Return:
-                float: The current false positive rate
-        '''
+                float: The current false positive rate '''
         num = self.number_hashes * -1 * self.elements_added
         dbl = num / float(self.number_bits)
         exp = math.exp(dbl)
@@ -297,8 +292,7 @@ class BaseBloom(object):
         ''' Estimate the number of unique elements added
 
             Returns:
-                int: Number of elements estimated to be inserted
-        '''
+                int: Number of elements estimated to be inserted '''
         setbits = self._cnt_number_bits_set()
         log_n = math.log(1 - (float(setbits) / float(self.number_bits)))
         tmp = float(self.number_bits) / float(self.number_hashes)
@@ -329,8 +323,7 @@ class BaseBloom(object):
         ''' Add the key to the Bloom Filter
 
             Args:
-                key (str): The element to be inserted
-        '''
+                key (str): The element to be inserted '''
         hashes = self.hashes(key)
         self.add_alt(hashes)
 
@@ -339,8 +332,7 @@ class BaseBloom(object):
 
             Args:
                 hashes (list): A list of integers representing the key to \
-                insert
-        '''
+                insert '''
         for i in list(range(0, self.number_hashes)):
             k = int(hashes[i]) % self.number_bits
             idx = k // 8
@@ -355,8 +347,7 @@ class BaseBloom(object):
             Args:
                 key (str): The element to be checked
             Returns:
-                bool: True if likely encountered, False if definately not
-        '''
+                bool: True if likely encountered, False if definately not '''
         hashes = self.hashes(key)
         return self.check_alt(hashes)
 
@@ -367,8 +358,7 @@ class BaseBloom(object):
                 hashes (list): A list of integers representing the key to \
                 check
             Returns:
-                bool: True if likely encountered, False if definately not
-        '''
+                bool: True if likely encountered, False if definately not '''
         for i in list(range(0, self.number_hashes)):
             k = int(hashes[i]) % self.number_bits
             if (int(self._get_element(k // 8)) & int((1 << (k % 8)))) == 0:

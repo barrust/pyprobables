@@ -94,8 +94,7 @@ class CountingBloomFilter(BaseBloom):
                 key (str): The element to be inserted
                 num_els (int): Number of times to insert the element
             Returns:
-                int: Maximum number of insertions
-        '''
+                int: Maximum number of insertions '''
         hashes = self.hashes(key)
         return self.add_alt(hashes, num_els)
 
@@ -108,8 +107,7 @@ class CountingBloomFilter(BaseBloom):
                 insert
                 num_els (int): Number of times to insert the element
             Returns:
-                int: Maximum number of insertions
-        '''
+                int: Maximum number of insertions '''
         res = UINT32_T_MAX
         for i in list(range(0, self.number_hashes)):
             k = int(hashes[i]) % self.number_bits
@@ -132,8 +130,7 @@ class CountingBloomFilter(BaseBloom):
             Args:
                 key (str): The element to be checked
             Returns:
-                int: Maximum number of insertions
-        '''
+                int: Maximum number of insertions '''
         hashes = self.hashes(key)
         return self.check_alt(hashes)
 
@@ -145,8 +142,7 @@ class CountingBloomFilter(BaseBloom):
                 hashes (list): A list of integers representing the key to \
                 check
             Returns:
-                int: Maximum number of insertions
-        '''
+                int: Maximum number of insertions '''
         res = UINT32_T_MAX
         for i in list(range(0, self.number_hashes)):
             k = int(hashes[i]) % self.number_bits
@@ -162,8 +158,7 @@ class CountingBloomFilter(BaseBloom):
                 key (str): The element to be removed
                 num_els (int): Number of times to remove the element
             Returns:
-                int: Maximum number of insertions after the removal
-        '''
+                int: Maximum number of insertions after the removal '''
         hashes = self.hashes(key)
         return self.remove_alt(hashes, num_els)
 
@@ -176,8 +171,7 @@ class CountingBloomFilter(BaseBloom):
                 remove
                 num_els (int): Number of times to remove the element
             Returns:
-                int: Maximum number of insertions after the removal
-        '''
+                int: Maximum number of insertions after the removal '''
         tmp = self.check_alt(hashes)
         if tmp == UINT32_T_MAX:  # cannot remove if we have hit the max
             return UINT32_T_MAX
@@ -209,8 +203,8 @@ class CountingBloomFilter(BaseBloom):
                 TypeError: When second is not a :class:`CountingBloomFilter`
             Note:
                 The elements_added property will be set to the estimated \
-                number of unique elements added as found in estimate_elements()
-        '''
+                number of unique elements added as found in \
+                estimate_elements() '''
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
@@ -241,8 +235,7 @@ class CountingBloomFilter(BaseBloom):
                 TypeError: When second is not a :class:`CountingBloomFilter`
             Note:
                 The Jaccard Index is based on the unique set of elements \
-                added and not the number of each element added
-        '''
+                added and not the number of each element added '''
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
@@ -275,8 +268,8 @@ class CountingBloomFilter(BaseBloom):
                 TypeError: When second is not a :class:`CountingBloomFilter`
             Note:
                 The elements_added property will be set to the estimated \
-                number of unique elements added as found in estimate_elements()
-        '''
+                number of unique elements added as found in \
+                estimate_elements() '''
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 

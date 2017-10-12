@@ -23,11 +23,7 @@ class CountingCuckooFilter(CuckooFilter):
             auto_expand (bool): If the filter should automatically expand
             filename (str): The path to the file to load or None if no file
         Returns:
-            CountingCuckooFilter: A Cuckoo Filter object
-        Raises:
-            NotSupportedError: Loading a previously exported filter is \
-            currently not supported
-    '''
+            CountingCuckooFilter: A Cuckoo Filter object '''
     def __init__(self, capacity=10000, bucket_size=4, max_swaps=500,
                  expansion_rate=2, auto_expand=True, filepath=None):
         ''' setup the data structure '''
@@ -113,8 +109,7 @@ class CountingCuckooFilter(CuckooFilter):
         ''' Export cuckoo filter to file
 
             Args:
-                filename (str): Path to file to export
-        '''
+                filename (str): Path to file to export '''
         with open(filename, 'wb') as filepointer:
             for bucket in self.buckets:
                 # do something for each...

@@ -1,5 +1,8 @@
 # PyProbables Changelog
 
+### Version 0.1.3:
+* Better parameter validation
+
 ### Version 0.1.2:
 * Counting Cuckoo Filter
     * Basic functionality: add, remove, check

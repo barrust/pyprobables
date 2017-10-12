@@ -151,8 +151,7 @@ class CountMinSketch(object):
                 Valid values:
                     * 'min' or None
                     * 'mean'
-                    * 'mean-min'
-        '''
+                    * 'mean-min' '''
         if self.__query_method == self.__min_query:
             return 'min'
         elif self.__query_method == self.__mean_query:
@@ -192,8 +191,7 @@ class CountMinSketch(object):
                 if None, generate `number_hashes`
 
             Returns:
-                List(int): A list of the hashes for the key in int form
-        '''
+                List(int): A list of the hashes for the key in int form '''
         t_depth = self.depth if depth is None else depth
         return self._hash_function(key, t_depth)
 
@@ -205,8 +203,7 @@ class CountMinSketch(object):
                 num_els (int): The number of times to insert the element
             Returns:
                 int: The number of times the element was likely inserted \
-                after the insertion
-        '''
+                after the insertion '''
         hashes = self.hashes(key)
         return self.add_alt(hashes, num_els)
 
@@ -218,8 +215,7 @@ class CountMinSketch(object):
                 num_els (int): The number of times to insert the element
             Returns:
                 int: The number of times the element was likely inserted \
-                after the insertion
-        '''
+                after the insertion '''
         res = list()
         for i, val in enumerate(hashes):
             t_bin = (val % self.width) + (i * self.width)
@@ -241,8 +237,7 @@ class CountMinSketch(object):
                 num_els (int): The number of times to remove the element
             Returns:
                 int: The number of times the element was likely inserted \
-                after the removal
-        '''
+                after the removal '''
         hashes = self.hashes(key)
         return self.remove_alt(hashes, num_els)
 
@@ -254,8 +249,7 @@ class CountMinSketch(object):
                 num_els (int): The number of times to remove the element
             Returns:
                 int: The number of times the element was likely inserted \
-                after the removal
-        '''
+                after the removal '''
         res = list()
         for i, val in enumerate(hashes):
             t_bin = (val % self.width) + (i * self.width)
@@ -275,8 +269,7 @@ class CountMinSketch(object):
             Args:
                 key (str): The key to check the number of times inserted
             Returns:
-                int: The number of times the element was likely inserted
-        '''
+                int: The number of times the element was likely inserted '''
         hashes = self.hashes(key)
         return self.check_alt(hashes)
 
@@ -287,8 +280,7 @@ class CountMinSketch(object):
             Args:
                 hashes (list): The hashes representing the element to check
             Returns:
-                int: The number of times the element was likely inserted
-        '''
+                int: The number of times the element was likely inserted '''
         bins = self.__get_values_sorted(hashes)
         return self.__query_method(bins)
 
@@ -494,8 +486,7 @@ class HeavyHitters(CountMinSketch):
             Returns:
                 int: Number of times key has been inserted
             Note:
-                Override function
-        '''
+                Override function '''
         hashes = self.hashes(key)
         return self.add_alt(key, hashes, num_els)
 
@@ -600,8 +591,7 @@ class StreamThreshold(CountMinSketch):
             Returns:
                 int: Number of times key has been inserted
             Note:
-                Override function
-        '''
+                Override function '''
         hashes = self.hashes(key)
         return self.add_alt(key, hashes, num_els)
 

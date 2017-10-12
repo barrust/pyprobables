@@ -94,13 +94,13 @@ Import pyprobables and setup a Count-Min Sketch:
 
 Import pyprobables and setup a Cuckoo Filter:
 
-    .. code:: python
+.. code:: python
 
-        >>> from probables import (CuckooFilter)
-        >>> cko = CuckooFilter(capacity=100, max_swaps=10)
-        >>> cko.add('google.com')
-        >>> cko.check('facebook.com')  # should return False
-        >>> cko.check('google.com')  # should return True
+    >>> from probables import (CuckooFilter)
+    >>> cko = CuckooFilter(capacity=100, max_swaps=10)
+    >>> cko.add('google.com')
+    >>> cko.check('facebook.com')  # should return False
+    >>> cko.check('google.com')  # should return True
 
 See the `API documentation <http://pyprobables.readthedocs.io/en/latest/code.html#api>`__
 for other data structures available and the
