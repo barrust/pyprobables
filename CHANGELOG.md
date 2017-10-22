@@ -2,6 +2,8 @@
 
 ### Version 0.1.3:
 * Better parameter validation
+* CuckooFilter types:
+    * Support passing different hash function
 
 ### Version 0.1.2:
 * Counting Cuckoo Filter

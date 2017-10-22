@@ -18,6 +18,10 @@ PyProbables
 is to provide the developer with a pure-python implementation of common
 probabilistic data-structures to use in their work.
 
+**pyprobables** uses a pure python hashing algorithm. To reduce speed and gain
+raw performance, it is recommended using a different hashing algorithm such as
+the murmur hash (mmh3) or the pyhash library. Each data object makes it easy to
+pass in a hashing function as desired.
 
 Installation
 ------------------

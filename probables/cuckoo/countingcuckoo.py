@@ -25,12 +25,14 @@ class CountingCuckooFilter(CuckooFilter):
         Returns:
             CountingCuckooFilter: A Cuckoo Filter object '''
     def __init__(self, capacity=10000, bucket_size=4, max_swaps=500,
-                 expansion_rate=2, auto_expand=True, filepath=None):
+                 expansion_rate=2, auto_expand=True, filepath=None,
+                 hash_function=None):
         ''' setup the data structure '''
         self.__unique_elements = 0
         super(CountingCuckooFilter,
               self).__init__(capacity, bucket_size, max_swaps,
-                             expansion_rate, auto_expand, filepath)
+                             expansion_rate, auto_expand, filepath,
+                             hash_function)
 
     def __contains__(self, val):
         ''' setup the `in` keyword '''

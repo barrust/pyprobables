@@ -25,10 +25,13 @@ class CuckooFilter(object):
             expansion_rate (int): The rate at which to expand
             auto_expand (bool): If the filter should automatically expand
             filename (str): The path to the file to load or None if no file
+            hash_function (function): Hashing strategy function to use \
+            `hf(key)`
         Returns:
             CuckooFilter: A Cuckoo Filter object '''
     def __init__(self, capacity=10000, bucket_size=4, max_swaps=500,
-                 expansion_rate=2, auto_expand=True, filepath=None):
+                 expansion_rate=2, auto_expand=True, filepath=None,
+                 hash_function=None):
         ''' setup the data structure '''
         valid_prms = (isinstance(capacity, Number) and capacity >= 1 and
                       isinstance(bucket_size, Number) and bucket_size >= 1 and
@@ -45,7 +48,10 @@ class CuckooFilter(object):
         self.__auto_expand = None
         self.auto_expand = auto_expand
 
-        self.__hash_func = fnv_1a
+        if hash_function is None:
+            self.__hash_func = fnv_1a
+        else:
+            self.__hash_func = hash_function
         self._inserted_elements = 0
         if filepath is None:
             self._buckets = list()
