@@ -57,6 +57,7 @@ class TestHashes(unittest.TestCase):
                    18150279091576190542,
                    9861778148718857663,
                    14008040072978383620]
+
         @hash_with_depth_bytes
         def my_hash(key):
             '''  my hash function '''
@@ -74,13 +75,13 @@ class TestHashes(unittest.TestCase):
                    5074829385518853901,
                    3953072760750514173,
                    11782747630324011555]
+
         @hash_with_depth_int
         def my_hash(key, encoding='utf-8'):
             '''  my hash function '''
             max64mod = UINT64_T_MAX + 1
             val = int(hashlib.sha512(key.encode(encoding)).hexdigest(), 16)
             return val % max64mod
-
 
         self.assertEqual(my_hash('this is a test', 5), results)
         res = my_hash('this is a test', 1)

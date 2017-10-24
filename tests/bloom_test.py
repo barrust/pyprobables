@@ -409,7 +409,6 @@ class TestBloomFilter(unittest.TestCase):
             val = int(hashlib.sha512(key.encode(encoding)).hexdigest(), 16)
             return val % max64mod
 
-
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05,
                           hash_function=my_hash)
         self.assertEqual(blm.elements_added, 0)
@@ -454,7 +453,6 @@ class TestBloomFilter(unittest.TestCase):
                 val = int(hashlib.sha512(tmp.encode(encoding)).hexdigest(), 16)
                 results.append(val % max64mod)
             return results
-
 
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05,
                           hash_function=my_hash)
