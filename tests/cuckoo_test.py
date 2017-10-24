@@ -201,7 +201,6 @@ class TestCuckooFilter(unittest.TestCase):
         ''' test failing to load a saved cuckoo filter '''
         def runner():
             ''' runner '''
-            filename = './test.cko'
             CuckooFilter(filepath='./test.cko')
 
         self.assertRaises(InitializationError, runner)
@@ -249,6 +248,7 @@ class TestCuckooFilter(unittest.TestCase):
     def test_invalid_capacity(self):
         ''' test invalid capacity '''
         def runner():
+            ''' runner '''
             CuckooFilter(capacity=-100)
 
         self.assertRaises(InitializationError, runner)
@@ -259,11 +259,12 @@ class TestCuckooFilter(unittest.TestCase):
         except InitializationError as ex:
             self.assertEqual(str(ex), msg)
         else:
-            self.assertTrue(False)
+            self.assertEqual(True, False)
 
     def test_invalid_buckets(self):
         ''' test invalid capacity '''
         def runner():
+            ''' runner '''
             CuckooFilter(bucket_size=0)
 
         self.assertRaises(InitializationError, runner)
@@ -274,11 +275,12 @@ class TestCuckooFilter(unittest.TestCase):
         except InitializationError as ex:
             self.assertEqual(str(ex), msg)
         else:
-            self.assertTrue(False)
+            self.assertEqual(True, False)
 
     def test_invalid_swaps(self):
         ''' test invalid capacity '''
         def runner():
+            ''' runner '''
             CuckooFilter(max_swaps=0)
 
         self.assertRaises(InitializationError, runner)
@@ -289,11 +291,12 @@ class TestCuckooFilter(unittest.TestCase):
         except InitializationError as ex:
             self.assertEqual(str(ex), msg)
         else:
-            self.assertTrue(False)
+            self.assertEqual(True, False)
 
     def test_invalid_capacity_2(self):
         ''' test invalid capacity '''
         def runner():
+            ''' runner '''
             CuckooFilter(capacity='abc')
 
         self.assertRaises(InitializationError, runner)
@@ -304,11 +307,12 @@ class TestCuckooFilter(unittest.TestCase):
         except InitializationError as ex:
             self.assertEqual(str(ex), msg)
         else:
-            self.assertTrue(False)
+            self.assertEqual(True, False)
 
     def test_invalid_buckets_2(self):
         ''' test invalid capacity '''
         def runner():
+            ''' runner '''
             CuckooFilter(bucket_size=[0])
 
         self.assertRaises(InitializationError, runner)
@@ -319,11 +323,12 @@ class TestCuckooFilter(unittest.TestCase):
         except InitializationError as ex:
             self.assertEqual(str(ex), msg)
         else:
-            self.assertTrue(False)
+            self.assertEqual(True, False)
 
     def test_invalid_swaps_2(self):
         ''' test invalid capacity '''
         def runner():
+            ''' runner '''
             CuckooFilter(max_swaps=None)
 
         self.assertRaises(InitializationError, runner)
@@ -334,4 +339,4 @@ class TestCuckooFilter(unittest.TestCase):
         except InitializationError as ex:
             self.assertEqual(str(ex), msg)
         else:
-            self.assertTrue(False)
+            self.assertEqual(True, False)

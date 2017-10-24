@@ -60,7 +60,7 @@ def hash_with_depth_int(func):
 
 
 @hash_with_depth_int
-def default_fnv_1a(key):
+def default_fnv_1a(key, depth=1):
     ''' The default fnv-1a hashing routine
 
         Args:
@@ -90,7 +90,7 @@ def fnv_1a(key):
 
 
 @hash_with_depth_bytes
-def default_md5(key):
+def default_md5(key, depth=1):
     ''' The default md5 hashing routine
 
         Args:
@@ -104,7 +104,7 @@ def default_md5(key):
 
 
 @hash_with_depth_bytes
-def default_sha256(key):
+def default_sha256(key, depth=1):
     ''' The default sha256 hashing routine
 
         Args:

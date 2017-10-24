@@ -279,6 +279,7 @@ class TestCountMinSketch(unittest.TestCase):
     def test_cms_invalid_width(self):
         ''' test invalid width '''
         def runner():
+            ''' runner '''
             CountMinSketch(width=0, depth=5)
 
         self.assertRaises(InitializationError, runner)
@@ -288,11 +289,12 @@ class TestCountMinSketch(unittest.TestCase):
         except InitializationError as ex:
             self.assertEqual(str(ex), msg)
         else:
-            self.assertTrue(False)
+            self.assertEqual(True, False)
 
     def test_cms_invalid_depth(self):
         ''' test invalid width '''
         def runner():
+            ''' runner '''
             CountMinSketch(width=1000, depth=-5)
 
         self.assertRaises(InitializationError, runner)
@@ -302,11 +304,12 @@ class TestCountMinSketch(unittest.TestCase):
         except InitializationError as ex:
             self.assertEqual(str(ex), msg)
         else:
-            self.assertTrue(False)
+            self.assertEqual(True, False)
 
     def test_cms_invalid_width_2(self):
         ''' test invalid width invalid type '''
         def runner():
+            ''' runner '''
             CountMinSketch(width='0.0', depth=5)
 
         self.assertRaises(InitializationError, runner)
@@ -316,11 +319,12 @@ class TestCountMinSketch(unittest.TestCase):
         except InitializationError as ex:
             self.assertEqual(str(ex), msg)
         else:
-            self.assertTrue(False)
+            self.assertEqual(True, False)
 
-    def test_cms_invalid_depth(self):
-        ''' test invalid width invalid type '''
+    def test_cms_invalid_depth_2(self):
+        ''' test invalid depth type '''
         def runner():
+            ''' runner '''
             CountMinSketch(width=1000, depth=[])
 
         self.assertRaises(InitializationError, runner)
@@ -330,11 +334,12 @@ class TestCountMinSketch(unittest.TestCase):
         except InitializationError as ex:
             self.assertEqual(str(ex), msg)
         else:
-            self.assertTrue(False)
+            self.assertEqual(True, False)
 
     def test_cms_invalid_conf(self):
         ''' test invalid width '''
         def runner():
+            ''' runner '''
             CountMinSketch(confidence=-3.0, error_rate=0.99)
 
         self.assertRaises(InitializationError, runner)
@@ -344,11 +349,12 @@ class TestCountMinSketch(unittest.TestCase):
         except InitializationError as ex:
             self.assertEqual(str(ex), msg)
         else:
-            self.assertTrue(False)
+            self.assertEqual(True, False)
 
     def test_cms_invalid_err_rate(self):
         ''' test invalid width '''
         def runner():
+            ''' runner '''
             CountMinSketch(confidence=3.0, error_rate=0)
 
         self.assertRaises(InitializationError, runner)
@@ -358,11 +364,12 @@ class TestCountMinSketch(unittest.TestCase):
         except InitializationError as ex:
             self.assertEqual(str(ex), msg)
         else:
-            self.assertTrue(False)
+            self.assertEqual(True, False)
 
     def test_cms_invalid_conf_2(self):
         ''' test invalid width invalid type '''
         def runner():
+            ''' runner '''
             CountMinSketch(confidence=3.0, error_rate='0.99')
 
         self.assertRaises(InitializationError, runner)
@@ -372,11 +379,12 @@ class TestCountMinSketch(unittest.TestCase):
         except InitializationError as ex:
             self.assertEqual(str(ex), msg)
         else:
-            self.assertTrue(False)
+            self.assertEqual(True, False)
 
     def test_cms_invalid_err_rate_2(self):
         ''' test invalid error rate invalid type '''
         def runner():
+            ''' runner '''
             CountMinSketch(width=1000, depth=[])
 
         self.assertRaises(InitializationError, runner)
@@ -386,7 +394,7 @@ class TestCountMinSketch(unittest.TestCase):
         except InitializationError as ex:
             self.assertEqual(str(ex), msg)
         else:
-            self.assertTrue(False)
+            self.assertEqual(True, False)
 
 
 class TestHeavyHitters(unittest.TestCase):

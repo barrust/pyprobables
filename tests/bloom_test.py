@@ -3,8 +3,11 @@
 from __future__ import (unicode_literals, absolute_import, print_function)
 import unittest
 import os
+import hashlib
 from probables import (BloomFilter, BloomFilterOnDisk)
 from probables.exceptions import (InitializationError, NotSupportedError)
+from probables.hashes import (hash_with_depth_int)
+from probables.constants import (UINT64_T_MAX)
 from . utilities import(calc_file_md5, different_hash)
 
 
@@ -313,7 +316,7 @@ class TestBloomFilter(unittest.TestCase):
             msg = 'Bloom: false positive rate must be between 0.0 and 1.0'
             self.assertEqual(str(ex), msg)
         else:
-            self.assertTrue(False)
+            self.assertEqual(True, False)
 
     def test_invalid_estimated_els(self):
         ''' test if invalid estimated elements provided '''
@@ -328,7 +331,7 @@ class TestBloomFilter(unittest.TestCase):
             msg = 'Bloom: estimated elements must be greater than 0'
             self.assertEqual(str(ex), msg)
         else:
-            self.assertTrue(False)
+            self.assertEqual(True, False)
 
     def test_invalid_fpr_2(self):
         ''' test if invalid false positive rate provided is non numeric '''
@@ -343,7 +346,7 @@ class TestBloomFilter(unittest.TestCase):
             msg = 'Bloom: false positive rate must be between 0.0 and 1.0'
             self.assertEqual(str(ex), msg)
         else:
-            self.assertTrue(False)
+            self.assertEqual(True, False)
 
     def test_invalid_estimated_els_2(self):
         ''' test if invalid estimated elements provided is non numeric '''
@@ -358,7 +361,7 @@ class TestBloomFilter(unittest.TestCase):
             msg = 'Bloom: estimated elements must be greater than 0'
             self.assertEqual(str(ex), msg)
         else:
-            self.assertTrue(False)
+            self.assertEqual(True, False)
 
     def test_invalid_number_hashes(self):
         ''' test if invalid estimated elements provided '''
@@ -373,7 +376,7 @@ class TestBloomFilter(unittest.TestCase):
             msg = 'Bloom: Number hashes is zero; unusable parameters provided'
             self.assertEqual(str(ex), msg)
         else:
-            self.assertTrue(False)
+            self.assertEqual(True, False)
 
     def test_bf_clear(self):
         ''' test clearing out the bloom filter '''
@@ -388,6 +391,96 @@ class TestBloomFilter(unittest.TestCase):
         self.assertEqual(blm.elements_added, 0)
         for idx in range(blm.bloom_length):
             self.assertEqual(blm._get_element(idx), 0)
+
+    def test_bf_use_different_hash(self):
+        ''' test that the different hash works as intended '''
+        md5_val = '7f590086f9b962387e145899dd001256'  # for default hash used
+        filename = 'test.blm'
+        results = [14409285476674975580,
+                   6203976290780191624,
+                   5074829385518853901,
+                   3953072760750514173,
+                   11782747630324011555]
+
+        @hash_with_depth_int
+        def my_hash(key, encoding='utf-8'):
+            ''' my hash function '''
+            max64mod = UINT64_T_MAX + 1
+            val = int(hashlib.sha512(key.encode(encoding)).hexdigest(), 16)
+            return val % max64mod
+
+
+        blm = BloomFilter(est_elements=10, false_positive_rate=0.05,
+                          hash_function=my_hash)
+        self.assertEqual(blm.elements_added, 0)
+        blm.add('this is a test')
+        blm.export(filename)
+
+        md5_out = calc_file_md5(filename)
+        self.assertNotEqual(md5_out, md5_val)
+        os.remove(filename)
+
+        for i in range(0, 10):
+            tmp = 'this is a test {0}'.format(i)
+            blm.add(tmp)
+
+        self.assertEqual(blm.elements_added, 11)
+
+        for i in range(0, 10):
+            tmp = 'this is a test {0}'.format(i)
+            self.assertTrue(blm.check(tmp))
+
+        self.assertEqual(blm.hashes('this is a test', 5), results)
+        res = blm.hashes('this is a test', 1)
+        self.assertEqual(len(res), 1)
+        self.assertEqual(res[0], results[0])
+
+    def test_another_hashing_algo(self):
+        ''' test defining a completely different hashing strategy '''
+        md5_val = '7f590086f9b962387e145899dd001256'  # for default hash used
+        filename = 'test.blm'
+        results = [14409285476674975580,
+                   1383622036369840193,
+                   10825905054403519891,
+                   3456253732347153957,
+                   1494124715262089992]
+
+        def my_hash(key, depth, encoding='utf-8'):
+            ''' my hashing strategy '''
+            max64mod = UINT64_T_MAX + 1
+            results = list()
+            for i in range(0, depth):
+                tmp = key[i:] + key[:i]
+                val = int(hashlib.sha512(tmp.encode(encoding)).hexdigest(), 16)
+                results.append(val % max64mod)
+            return results
+
+
+        blm = BloomFilter(est_elements=10, false_positive_rate=0.05,
+                          hash_function=my_hash)
+
+        self.assertEqual(blm.elements_added, 0)
+        blm.add('this is a test')
+        blm.export(filename)
+
+        md5_out = calc_file_md5(filename)
+        self.assertNotEqual(md5_out, md5_val)
+        os.remove(filename)
+
+        for i in range(0, 10):
+            tmp = 'this is a test {0}'.format(i)
+            blm.add(tmp)
+
+        self.assertEqual(blm.elements_added, 11)
+
+        for i in range(0, 10):
+            tmp = 'this is a test {0}'.format(i)
+            self.assertTrue(blm.check(tmp))
+
+        self.assertEqual(blm.hashes('this is a test', 5), results)
+        res = blm.hashes('this is a test', 1)
+        self.assertEqual(len(res), 1)
+        self.assertEqual(res[0], results[0])
 
 
 class TestBloomFilterOnDisk(unittest.TestCase):

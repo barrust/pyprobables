@@ -2,7 +2,10 @@
 ''' Unittest class '''
 from __future__ import (unicode_literals, absolute_import, print_function)
 import unittest
-from probables.hashes import (default_fnv_1a, default_md5, default_sha256)
+import hashlib
+from probables.constants import (UINT64_T_MAX)
+from probables.hashes import (default_fnv_1a, default_md5, default_sha256,
+                              hash_with_depth_bytes, hash_with_depth_int)
 
 
 class TestHashes(unittest.TestCase):
@@ -46,3 +49,40 @@ class TestHashes(unittest.TestCase):
         self.assertEqual(hashes, this_is_a_test)
         hashes = default_sha256('this is also a test', 5)
         self.assertEqual(hashes, this_is_also)
+
+    def test_hash_bytes_decorator(self):
+        ''' test making bytes hashing strategy with decorator '''
+        results = [1164302962920061,
+                   16735493734761467723,
+                   18150279091576190542,
+                   9861778148718857663,
+                   14008040072978383620]
+        @hash_with_depth_bytes
+        def my_hash(key):
+            '''  my hash function '''
+            return hashlib.sha512(key).digest()
+
+        self.assertEqual(my_hash('this is a test', 5), results)
+        res = my_hash('this is a test', 1)
+        self.assertEqual(len(res), 1)
+        self.assertEqual(res[0], results[0])
+
+    def test_hash_ints_decorator(self):
+        ''' test making int hashing strategy with decorator '''
+        results = [14409285476674975580,
+                   6203976290780191624,
+                   5074829385518853901,
+                   3953072760750514173,
+                   11782747630324011555]
+        @hash_with_depth_int
+        def my_hash(key, encoding='utf-8'):
+            '''  my hash function '''
+            max64mod = UINT64_T_MAX + 1
+            val = int(hashlib.sha512(key.encode(encoding)).hexdigest(), 16)
+            return val % max64mod
+
+
+        self.assertEqual(my_hash('this is a test', 5), results)
+        res = my_hash('this is a test', 1)
+        self.assertEqual(len(res), 1)
+        self.assertEqual(res[0], results[0])
