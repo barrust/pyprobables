@@ -273,7 +273,7 @@ Generate completely different hashing strategy
     >>>         results.append(val % max64mod)
     >>>     return results
 
-Indices and tables
+Indices and Tables
 ==================
 
 * :ref:`home`

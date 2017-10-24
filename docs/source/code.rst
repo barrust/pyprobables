@@ -53,7 +53,9 @@ Cuckoo Filters
 
 Cuckoo filters are a space efficient data structure that supports set
 membership testing. Cuckoo filters support insertion, deletion, and lookup of
-elements with low overhead with few false positive results.
+elements with low overhead with few false positive results. The name is derived
+from the `cuckoo hashing <https://en.wikipedia.org/wiki/Cuckoo_hashing>`__
+strategy used to resolve conflicts.
 `Further Reading <https://www.cs.cmu.edu/~dga/papers/cuckoo-conext2014.pdf>`__
 
 CuckooFilter
@@ -137,7 +139,7 @@ Hashing Functions
     :members:
 
 
-Indices and tables
+Indices and Tables
 ============================
 
 * :ref:`home`
