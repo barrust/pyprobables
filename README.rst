@@ -16,12 +16,12 @@ PyProbables
 
 **pyprobables** is a python library for probabilistic data structures. The goal
 is to provide the developer with a pure-python implementation of common
-probabilistic data-structures to use in their work.
-
-**pyprobables** uses a pure python hashing algorithm. To reduce speed and gain
-raw performance, it is recommended using a different hashing algorithm such as
-the murmur hash (mmh3) or the pyhash library. Each data object makes it easy to
-pass in a hashing function as desired.
+probabilistic data-structures to use in their work. To get better raw
+performance, it is recommended supplying a different hashing algorithm
+(hopefully compiled in C) such as the murmur hash
+`mmh3 <https://github.com/hajimes/mmh3>`__ or one from the
+`pyhash <https://github.com/flier/pyfasthash>`__ library. Each data object
+makes it easy to pass in a hashing function.
 
 Installation
 ------------------
@@ -77,7 +77,7 @@ Quickstart
 
 Import pyprobables and setup a Bloom Filter:
 
-.. code:: python
+.. code:: python3
 
     >>> from probables import (BloomFilter)
     >>> blm = BloomFilter(est_elements=1000, false_positive_rate=0.05)
@@ -88,7 +88,7 @@ Import pyprobables and setup a Bloom Filter:
 
 Import pyprobables and setup a Count-Min Sketch:
 
-.. code:: python
+.. code:: python3
 
     >>> from probables import (CountMinSketch)
     >>> cms = CountMinSketch(width=1000, depth=5)
@@ -98,13 +98,42 @@ Import pyprobables and setup a Count-Min Sketch:
 
 Import pyprobables and setup a Cuckoo Filter:
 
-.. code:: python
+.. code:: python3
 
     >>> from probables import (CuckooFilter)
     >>> cko = CuckooFilter(capacity=100, max_swaps=10)
     >>> cko.add('google.com')
     >>> cko.check('facebook.com')  # should return False
     >>> cko.check('google.com')  # should return True
+
+Defining hashing function using the provided decorators:
+
+.. code:: python3
+
+    >>> import mmh3  # murmur hash 3 implemented (pip install mmh3)
+    >>> from pyprobables.hashes import (hash_with_depth_bytes)
+    >>> from pyprobables import (BloomFilter)
+    >>>
+    >>> @hash_with_depth_bytes
+    >>> def my_hash(key):
+    >>>     return mmh3.hash_bytes(key)
+    >>>
+    >>> blm = BloomFilter(est_elements=1000, false_positive_rate=0.05, hash_function=my_hash)
+
+.. code:: python3
+
+    >>> import mmh3  # murmur hash 3 implemented (pip install mmh3)
+    >>> from pyprobables.hashes import (hash_with_depth_bytes)
+    >>> from pyprobables import (BloomFilter)
+    >>>
+    >>> @hash_with_depth_int
+    >>> def my_hash(key, encoding='utf-8'):
+    >>>    max64mod = UINT64_T_MAX + 1
+    >>>    val = int(hashlib.sha512(key.encode(encoding)).hexdigest(), 16)
+    >>>    return val % max64mod
+    >>>
+    >>> blm = BloomFilter(est_elements=1000, false_positive_rate=0.05, hash_function=my_hash)
+
 
 See the `API documentation <http://pyprobables.readthedocs.io/en/latest/code.html#api>`__
 for other data structures available and the

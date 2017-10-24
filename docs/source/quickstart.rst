@@ -170,6 +170,109 @@ including an element to be tracked instead of tracking a certain number of
 elements.
 
 
+Cuckoo Filters
+----------------------------------
+
+Cuckoo Filters are a memory efficient method to approximate set membership.
+They allow for the ability to add, remove, and look elements from the set.
+They get the name cuckoo filter from the use of the
+`cuckoo hashing <https://en.wikipedia.org/wiki/Cuckoo_hashing>`__ strategy.
+
+Import, Initialize, and Train
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. code:: python3
+
+    >>> from probables import (CuckooFilter)
+    >>> ccf = CuckooFilter(capacity=100000, bucket_size=4, max_swaps=100)
+    >>> with open('war_and_peace.txt', 'r') as fp:
+    >>>     for line in fp:
+    >>>         for word in line.split():
+    >>>             ccf.add(word.lower())  # add each to the cuckoo filter!
+
+Query the Cuckoo Filter
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. code:: python3
+
+    >>> words_to_check = ['borzoi', 'diametrically', 'fleches', 'rain', 'foo']
+    >>> for word in words_to_check:
+    >>>     print(ccf.check(word))  # prints: True, True, True, True, False
+
+Export the Cuckoo Filter
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. code:: python3
+
+    >>> ccf.export('war_and_peace.cko')
+
+Import a Cuckoo Filter
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. code:: python3
+
+    >>> ccf2 = CuckooFilter(filepath='war_and_peace.cko')
+    >>> print(ccf2.check('fleches'))  # prints True
+
+
+Other Cuckoo Filters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Counting Cuckoo Filter
+"""""""""""""""""""""""""""""""""""""""""""""""
+The counting cuckoo filter is similar to the standard filter except that it
+tracks the number of times a fingerprint has been added to the filter.
+
+
+Custom Hashing Functions
+----------------------------------
+In many instances, to get the best raw performance out of the data structures,
+it is wise to use a non pure python hashing algorithm. It is recommended that
+one is used that is compiled such as `mmh3 <https://github.com/hajimes/mmh3>`__
+or `pyhash <https://github.com/flier/pyfasthash>`__.
+
+Decorators are provided to help make generating hashing strategies easier.
+
+
+Defining hashing function using the provided decorators:
+
+.. code:: python3
+
+    >>> import mmh3  # murmur hash 3 implementation (pip install mmh3)
+    >>> from pyprobables.hashes import (hash_with_depth_bytes)
+    >>> from pyprobables import (BloomFilter)
+    >>>
+    >>> @hash_with_depth_bytes
+    >>> def my_hash(key):
+    >>>     return mmh3.hash_bytes(key)
+    >>>
+    >>> blm = BloomFilter(est_elements=1000, false_positive_rate=0.05, hash_function=my_hash)
+
+.. code:: python3
+
+    >>> import mmh3  # murmur hash 3 implementation (pip install mmh3)
+    >>> from pyprobables.hashes import (hash_with_depth_bytes)
+    >>> from pyprobables import (BloomFilter)
+    >>>
+    >>> @hash_with_depth_int
+    >>> def my_hash(key, encoding='utf-8'):
+    >>>    max64mod = UINT64_T_MAX + 1
+    >>>    val = int(hashlib.sha512(key.encode(encoding)).hexdigest(), 16)
+    >>>    return val % max64mod
+    >>>
+    >>> blm = BloomFilter(est_elements=1000, false_positive_rate=0.05, hash_function=my_hash)
+
+Generate completely different hashing strategy
+
+.. code:: python3
+
+    >>> import mmh3  # murmur hash 3 implementation (pip install mmh3)
+    >>>
+    >>> def my_hash(key, depth, encoding='utf-8'):
+    >>>     max64mod = UINT64_T_MAX + 1
+    >>>     results = list()
+    >>>     for i in range(0, depth):
+    >>>         tmp = key[i:] + key[:i]
+    >>>         val = int(hashlib.sha512(tmp.encode(encoding)).hexdigest(), 16)
+    >>>         results.append(val % max64mod)
+    >>>     return results
+
 Indices and tables
 ==================
 

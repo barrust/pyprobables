@@ -2,8 +2,12 @@
 
 ### Version 0.1.3:
 * Better parameter validation
-* CuckooFilter types:
+* Cuckoo Filters:
     * Support passing different hash function
+* Utility to help generate valid hashing strategies using decorators
+    * hash_with_depth_bytes
+    * hash_with_depth_int
+* Updated documentation
 
 ### Version 0.1.2:
 * Counting Cuckoo Filter
