@@ -21,18 +21,20 @@ class CountingCuckooFilter(CuckooFilter):
             max_swaps (int): The number of cuckoo swaps before stopping
             expansion_rate (int): The rate at which to expand
             auto_expand (bool): If the filter should automatically expand
+            finger_size (int): The size of the fingerprint to use in bytes \
+            (between 1 and 4)
             filename (str): The path to the file to load or None if no file
         Returns:
             CountingCuckooFilter: A Cuckoo Filter object '''
     def __init__(self, capacity=10000, bucket_size=4, max_swaps=500,
-                 expansion_rate=2, auto_expand=True, filepath=None,
-                 hash_function=None):
+                 expansion_rate=2, auto_expand=True, finger_size=4,
+                 filepath=None, hash_function=None):
         ''' setup the data structure '''
         self.__unique_elements = 0
         super(CountingCuckooFilter,
               self).__init__(capacity, bucket_size, max_swaps,
-                             expansion_rate, auto_expand, filepath,
-                             hash_function)
+                             expansion_rate, auto_expand, finger_size,
+                             filepath, hash_function)
 
     def __contains__(self, val):
         ''' setup the `in` keyword '''

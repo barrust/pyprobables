@@ -92,6 +92,43 @@ class TestCuckooFilter(unittest.TestCase):
                 cko.add(str(i))
         self.assertRaises(CuckooFilterFullError, runner)
 
+    def test_cuckoo_filter_fing_size(self):
+        ''' test bad fingerprint size < 1 '''
+        def runner():
+            ''' runner '''
+            cko = CuckooFilter(capacity=100, bucket_size=2, finger_size=0)
+
+        self.assertRaises(ValueError, runner)
+
+    def test_cuckoo_filter_fing_size_2(self):
+        ''' test bad fingerprint size > 4 '''
+        def runner():
+            ''' runner '''
+            cko = CuckooFilter(capacity=100, bucket_size=2, finger_size=5)
+
+        self.assertRaises(ValueError, runner)
+
+    def test_cuckoo_filter_fing_size_3(self):
+        ''' test valid fingerprint size '''
+        try:
+            cko = CuckooFilter(capacity=100, bucket_size=2, finger_size=1)
+        except:
+            self.assertEqual(True, False)
+        self.assertEqual(True, True)
+
+    def test_cuckoo_filter_fing_msg(self):
+        ''' test valid fingerprint size message '''
+        def runner():
+            ''' runner '''
+            cko = CuckooFilter(capacity=100, bucket_size=2, finger_size=5)
+
+        self.assertRaises(ValueError, runner)
+        try:
+            runner()
+        except ValueError as ex:
+            msg = 'CuckooFilter: fingerprint size must be between 1 and 4'
+            self.assertEqual(str(ex), msg)
+
     def test_cuckoo_full_msg(self):
         ''' test exception message for full cuckoo filter '''
         try:

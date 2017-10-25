@@ -225,10 +225,25 @@ Custom Hashing Functions
 In many instances, to get the best raw performance out of the data structures,
 it is wise to use a non pure python hashing algorithm. It is recommended that
 one is used that is compiled such as `mmh3 <https://github.com/hajimes/mmh3>`__
-or `pyhash <https://github.com/flier/pyfasthash>`__.
+or `pyhash <https://github.com/flier/pyfasthash>`__ or even built in
+cryptographic hashes.
+
+Some pre-defined hashing strategies are provided that use built in
+cryptographic hashes.
+
+To use a pre-defined alternative hashing strategy:
+
+.. code:: python3
+
+    >>> from probables import (BloomFilter)
+    >>> from probables.hashes import (default_sha256, default_md5)
+    >>> blm = BloomFilter(est_elements=1000, false_positive_rate=0.05,
+                          hash_function=default_sha256)
+    >>> blm.add('google.com')
+    >>> blm.check('facebook.com')  # should return False
+    >>> blm.check('google.com')  # should return True
 
 Decorators are provided to help make generating hashing strategies easier.
-
 
 Defining hashing function using the provided decorators:
 

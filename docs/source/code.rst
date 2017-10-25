@@ -53,7 +53,7 @@ Cuckoo Filters
 
 Cuckoo filters are a space efficient data structure that supports set
 membership testing. Cuckoo filters support insertion, deletion, and lookup of
-elements with low overhead with few false positive results. The name is derived
+elements with low overhead and few false positive results. The name is derived
 from the `cuckoo hashing <https://en.wikipedia.org/wiki/Cuckoo_hashing>`__
 strategy used to resolve conflicts.
 `Further Reading <https://www.cs.cmu.edu/~dga/papers/cuckoo-conext2014.pdf>`__
@@ -76,9 +76,9 @@ Count-Min Sketches
 Count-Min Sketches, and its derivatives, are good for estimating the number of
 occurrences of an element in streaming data while not needing to retain all the
 data elements. The result is a probabilistic count of elements inserted into
-the data structure. It will always provide a **maximum** number of times
-encountered. Notice that the result may be **more** than the true number
-of times it was inserted, but never fewer.
+the data structure. It will always provide the **maximum** number of times a
+data element was encountered. Notice that the result may be **more** than the
+true number of times it was inserted, but never fewer.
 `Further Reading <https://en.wikipedia.org/wiki/Count%E2%80%93min_sketch>`__
 
 

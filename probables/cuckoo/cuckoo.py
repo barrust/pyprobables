@@ -24,14 +24,16 @@ class CuckooFilter(object):
             max_swaps (int): The number of cuckoo swaps before stopping
             expansion_rate (int): The rate at which to expand
             auto_expand (bool): If the filter should automatically expand
+            finger_size (int): The size of the fingerprint to use in bytes \
+            (between 1 and 4)
             filename (str): The path to the file to load or None if no file
             hash_function (function): Hashing strategy function to use \
             `hf(key)`
         Returns:
             CuckooFilter: A Cuckoo Filter object '''
     def __init__(self, capacity=10000, bucket_size=4, max_swaps=500,
-                 expansion_rate=2, auto_expand=True, filepath=None,
-                 hash_function=None):
+                 expansion_rate=2, auto_expand=True, finger_size=4,
+                 filepath=None, hash_function=None):
         ''' setup the data structure '''
         valid_prms = (isinstance(capacity, Number) and capacity >= 1 and
                       isinstance(bucket_size, Number) and bucket_size >= 1 and
@@ -47,6 +49,8 @@ class CuckooFilter(object):
         self.expansion_rate = expansion_rate
         self.__auto_expand = None
         self.auto_expand = auto_expand
+        self.__fingerprint_size = None
+        self.fingerprint_size = finger_size
 
         if hash_function is None:
             self.__hash_func = fnv_1a
@@ -142,6 +146,26 @@ class CuckooFilter(object):
     def auto_expand(self, val):
         ''' set the self expand value '''
         self.__auto_expand = bool(val)
+
+    @property
+    def fingerprint_size(self):
+        ''' int: The size in bytes of the fingerprint
+
+            Raises:
+                ValueError: If the size is not between 1 and 4
+            Note:
+                The size of the fingerprint must be between 1 and 4 '''
+        return self.__fingerprint_size / 8
+
+    @fingerprint_size.setter
+    def fingerprint_size(self, val):
+        ''' set the fingerprint size '''
+        tmp = int(val)
+        if not 1 <= tmp <= 4:
+            msg = ('{}: fingerprint size must be between 1 '
+                   'and 4').format(self.__class__.__name__)
+            raise ValueError(msg)
+        self.__fingerprint_size = tmp * 8  # bytes to bits
 
     def load_factor(self):
         ''' float: How full the Cuckoo Filter is currently '''
@@ -328,7 +352,7 @@ class CuckooFilter(object):
         '''
         # generate the fingerprint along with the two possible indecies
         hash_val = self.__hash_func(key)
-        fingerprint = get_x_bits(hash_val, 64, 32, True)
+        fingerprint = get_x_bits(hash_val, 64, self.__fingerprint_size, True)
         idx_1, idx_2 = self._indicies_from_fingerprint(fingerprint)
 
         # NOTE: This should never happen...

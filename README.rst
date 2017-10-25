@@ -14,14 +14,17 @@ PyProbables
     :target: https://opensource.org/licenses/MIT/
     :alt: License
 
-**pyprobables** is a python library for probabilistic data structures. The goal
-is to provide the developer with a pure-python implementation of common
-probabilistic data-structures to use in their work. To get better raw
-performance, it is recommended supplying a different hashing algorithm
-(hopefully compiled in C) such as the murmur hash
-`mmh3 <https://github.com/hajimes/mmh3>`__ or one from the
-`pyhash <https://github.com/flier/pyfasthash>`__ library. Each data object
-makes it easy to pass in a hashing function.
+**pyprobables** is a pure-python library for probabilistic data structures.
+The goal is to provide the developer with a pure-python implementation of
+common probabilistic data-structures to use in their work.
+
+To achieve better raw performance, it is recommended supplying an alternative
+hashing algorithm that has been compiled in C. This could include using the
+md5 and sha512 algorithms provided or installing a third party package and
+writing your own hashing strategy. Some options include the murmur hash
+`mmh3 <https://github.com/hajimes/mmh3>`__ or those from the
+`pyhash <https://github.com/flier/pyfasthash>`__ library. Each data object in
+**pyprobables** makes it easy to pass in a hashing function.
 
 Installation
 ------------------
@@ -106,11 +109,24 @@ Import pyprobables and setup a Cuckoo Filter:
     >>> cko.check('facebook.com')  # should return False
     >>> cko.check('google.com')  # should return True
 
+
+Supplying a pre-defined, alternative hashing strategies:
+
+.. code:: python3
+
+    >>> from probables import (BloomFilter)
+    >>> from probables.hashes import (default_sha256)
+    >>> blm = BloomFilter(est_elements=1000, false_positive_rate=0.05,
+                          hash_function=default_sha256)
+    >>> blm.add('google.com')
+    >>> blm.check('facebook.com')  # should return False
+    >>> blm.check('google.com')  # should return True
+
 Defining hashing function using the provided decorators:
 
 .. code:: python3
 
-    >>> import mmh3  # murmur hash 3 implemented (pip install mmh3)
+    >>> import mmh3  # murmur hash 3 implementation (pip install mmh3)
     >>> from pyprobables.hashes import (hash_with_depth_bytes)
     >>> from pyprobables import (BloomFilter)
     >>>
@@ -122,7 +138,7 @@ Defining hashing function using the provided decorators:
 
 .. code:: python3
 
-    >>> import mmh3  # murmur hash 3 implemented (pip install mmh3)
+    >>> import mmh3  # murmur hash 3 implementation (pip install mmh3)
     >>> from pyprobables.hashes import (hash_with_depth_bytes)
     >>> from pyprobables import (BloomFilter)
     >>>
