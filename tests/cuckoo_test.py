@@ -2,6 +2,7 @@
 ''' Unittest class '''
 from __future__ import (unicode_literals, absolute_import, print_function)
 import os
+import hashlib
 import unittest
 
 from probables import (CuckooFilter, CuckooFilterFullError,
@@ -20,16 +21,18 @@ class TestCuckooFilter(unittest.TestCase):
         self.assertEqual(500, cko.max_swaps)
         self.assertEqual(2, cko.expansion_rate)
         self.assertEqual(True, cko.auto_expand)
+        self.assertEqual(4, cko.fingerprint_size)
 
     def test_cuckoo_filter_diff(self):
         ''' test cuckoo filter non-standard properties '''
         cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=5,
-                           expansion_rate=4, auto_expand=False)
+                           expansion_rate=4, finger_size=2, auto_expand=False)
         self.assertEqual(100, cko.capacity)
         self.assertEqual(2, cko.bucket_size)
         self.assertEqual(5, cko.max_swaps)
         self.assertEqual(4, cko.expansion_rate)
         self.assertEqual(False, cko.auto_expand)
+        self.assertEqual(2, cko.fingerprint_size)
 
     def test_cuckoo_filter_add(self):
         ''' test adding to the cuckoo filter '''
@@ -40,6 +43,20 @@ class TestCuckooFilter(unittest.TestCase):
         self.assertEqual(cko.elements_added, 2)
         cko.add('this is yet another test')
         self.assertEqual(cko.elements_added, 3)
+
+    def test_cuckoo_filter_diff_hash(self):
+        ''' test using a different hash function '''
+        def my_hash(key):
+            return int(hashlib.sha512(key.encode('utf-8')).hexdigest(), 16)
+
+        cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=15,
+                           expansion_rate=4, finger_size=2, auto_expand=False,
+                           hash_function=my_hash)
+        for i in range(50):
+            cko.add('this is a test - {}'.format(i))
+
+        for i in range(50):
+            self.assertTrue('this is a test - {}'.format(i) in cko)
 
     def test_cuckoo_filter_remove(self):
         ''' test removing from the cuckoo filter '''

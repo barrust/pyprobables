@@ -155,7 +155,7 @@ class CuckooFilter(object):
                 ValueError: If the size is not between 1 and 4
             Note:
                 The size of the fingerprint must be between 1 and 4 '''
-        return self.__fingerprint_size / 8
+        return self.__fingerprint_size // 8
 
     @fingerprint_size.setter
     def fingerprint_size(self, val):
