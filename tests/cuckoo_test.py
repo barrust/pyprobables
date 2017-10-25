@@ -33,6 +33,7 @@ class TestCuckooFilter(unittest.TestCase):
         self.assertEqual(4, cko.expansion_rate)
         self.assertEqual(False, cko.auto_expand)
         self.assertEqual(2, cko.fingerprint_size)
+        self.assertTrue(isinstance(cko.fingerprint_size, int))
 
     def test_cuckoo_filter_add(self):
         ''' test adding to the cuckoo filter '''
