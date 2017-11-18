@@ -4,6 +4,7 @@
 * Better parameter validation
 * Cuckoo Filters:
     * Support passing different hash function
+    * Support for different fingerprint size
 * Utility to help generate valid hashing strategies using decorators
     * hash_with_depth_bytes
     * hash_with_depth_int

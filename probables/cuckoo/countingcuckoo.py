@@ -22,7 +22,8 @@ class CountingCuckooFilter(CuckooFilter):
             expansion_rate (int): The rate at which to expand
             auto_expand (bool): If the filter should automatically expand
             finger_size (int): The size of the fingerprint to use in bytes \
-            (between 1 and 4)
+            (between 1 and 4); exported as 4 bytes; up to the user to reset \
+            the size correctly on import
             filename (str): The path to the file to load or None if no file
         Returns:
             CountingCuckooFilter: A Cuckoo Filter object '''
