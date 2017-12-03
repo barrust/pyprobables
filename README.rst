@@ -26,6 +26,9 @@ writing your own hashing strategy. Some options include the murmur hash
 `pyhash <https://github.com/flier/pyfasthash>`__ library. Each data object in
 **pyprobables** makes it easy to pass in a custom hashing function.
 
+Read more about how to use `Supplying a pre-defined, alternative hashing strategies`_
+or `Defining hashing function using the provided decorators`_.
+
 Installation
 ------------------
 
@@ -78,7 +81,8 @@ downloaded folder:
 Quickstart
 ------------------
 
-Import pyprobables and setup a Bloom Filter:
+Import pyprobables and setup a Bloom Filter
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code:: python
 
@@ -89,7 +93,8 @@ Import pyprobables and setup a Bloom Filter:
     blm.check('google.com')  # should return True
 
 
-Import pyprobables and setup a Count-Min Sketch:
+Import pyprobables and setup a Count-Min Sketch
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code:: python
 
@@ -99,7 +104,8 @@ Import pyprobables and setup a Count-Min Sketch:
     cms.add('facebook.com', 25)  # insert 25 at once; should return 25
 
 
-Import pyprobables and setup a Cuckoo Filter:
+Import pyprobables and setup a Cuckoo Filter
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code:: python
 
@@ -110,7 +116,8 @@ Import pyprobables and setup a Cuckoo Filter:
     cko.check('google.com')  # should return True
 
 
-Supplying a pre-defined, alternative hashing strategies:
+Supplying a pre-defined, alternative hashing strategies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code:: python
 
@@ -122,7 +129,11 @@ Supplying a pre-defined, alternative hashing strategies:
     blm.check('facebook.com')  # should return False
     blm.check('google.com')  # should return True
 
-Defining hashing function using the provided decorators:
+
+.. _use-custom-hashing-strategies:
+
+Defining hashing function using the provided decorators
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code:: python
 
@@ -139,7 +150,7 @@ Defining hashing function using the provided decorators:
 .. code:: python
 
     import mmh3  # murmur hash 3 implementation (pip install mmh3)
-    from pyprobables.hashes import (hash_with_depth_bytes)
+    from pyprobables.hashes import (hash_with_depth_int)
     from pyprobables import (BloomFilter)
 
     @hash_with_depth_int
