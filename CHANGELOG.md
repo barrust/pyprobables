@@ -1,5 +1,15 @@
 # PyProbables Changelog
 
+### Version 0.1.3:
+* Better parameter validation
+* Cuckoo Filters:
+    * Support passing different hash function
+    * Support for different fingerprint size
+* Utility to help generate valid hashing strategies using decorators
+    * hash_with_depth_bytes
+    * hash_with_depth_int
+* Updated documentation
+
 ### Version 0.1.2:
 * Counting Cuckoo Filter
     * Basic functionality: add, remove, check

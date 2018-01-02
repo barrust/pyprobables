@@ -21,20 +21,21 @@ class CountingCuckooFilter(CuckooFilter):
             max_swaps (int): The number of cuckoo swaps before stopping
             expansion_rate (int): The rate at which to expand
             auto_expand (bool): If the filter should automatically expand
+            finger_size (int): The size of the fingerprint to use in bytes \
+            (between 1 and 4); exported as 4 bytes; up to the user to reset \
+            the size correctly on import
             filename (str): The path to the file to load or None if no file
         Returns:
-            CountingCuckooFilter: A Cuckoo Filter object
-        Raises:
-            NotSupportedError: Loading a previously exported filter is \
-            currently not supported
-    '''
+            CountingCuckooFilter: A Cuckoo Filter object '''
     def __init__(self, capacity=10000, bucket_size=4, max_swaps=500,
-                 expansion_rate=2, auto_expand=True, filepath=None):
+                 expansion_rate=2, auto_expand=True, finger_size=4,
+                 filepath=None, hash_function=None):
         ''' setup the data structure '''
         self.__unique_elements = 0
         super(CountingCuckooFilter,
               self).__init__(capacity, bucket_size, max_swaps,
-                             expansion_rate, auto_expand, filepath)
+                             expansion_rate, auto_expand, finger_size,
+                             filepath, hash_function)
 
     def __contains__(self, val):
         ''' setup the `in` keyword '''
@@ -69,13 +70,7 @@ class CountingCuckooFilter(CuckooFilter):
                     self._inserted_elements += 1
                     return
         finger = self._insert_fingerprint_alt(fingerprint, idx_1, idx_2)
-        if finger is None:
-            return
-        elif self.auto_expand:
-            self.__expand_logic(finger)
-        else:
-            msg = 'The CountingCuckooFilter is currently full'
-            raise CuckooFilterFullError(msg)
+        self._deal_with_insertion(finger)
 
     def check(self, key):
         ''' Check if an element is in the filter
@@ -113,14 +108,13 @@ class CountingCuckooFilter(CuckooFilter):
 
     def expand(self):
         ''' Expand the cuckoo filter '''
-        self.__expand_logic(None)
+        self._expand_logic(None)
 
     def export(self, filename):
         ''' Export cuckoo filter to file
 
             Args:
-                filename (str): Path to file to export
-        '''
+                filename (str): Path to file to export '''
         with open(filename, 'wb') as filepointer:
             for bucket in self.buckets:
                 # do something for each...
@@ -193,16 +187,16 @@ class CountingCuckooFilter(CuckooFilter):
             filepointer.seek(0, os.SEEK_SET)
             self._buckets = list()
             for i in range(self.capacity):
-                self._buckets.append(list())
+                self.buckets.append(list())
                 for _ in range(self.bucket_size):
                     finger, count = unpack('II', filepointer.read(int_size))
                     if finger > 0:
                         ccb = CountingCuckooBin(finger, count)
-                        self._buckets[i].append(ccb)
+                        self.buckets[i].append(ccb)
                         self._inserted_elements += count
                         self.__unique_elements += 1
 
-    def __expand_logic(self, extra_fingerprint):
+    def _expand_logic(self, extra_fingerprint):
         ''' the logic to acutally expand the cuckoo filter '''
         # get all the fingerprints
         fingerprints = self._setup_expand(extra_fingerprint)

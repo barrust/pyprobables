@@ -11,12 +11,13 @@ __author__ = 'Tyler Barrus'
 __maintainer__ = 'Tyler Barrus'
 __email__ = 'barrust@gmail.com'
 __license__ = 'MIT'
-__version__ = '0.1.2'
+__version__ = '0.1.3'
 __credits__ = []
 __url__ = 'https://github.com/barrust/pyprobables'
 __bugtrack_url__ = 'https://github.com/barrust/pyprobables/issues'
 
-__all__ = ['BloomFilter', 'BloomFilterOnDisk', 'CountMinSketch',
-           'HeavyHitters', 'StreamThreshold', 'CountMeanSketch',
-           'CountMeanMinSketch', 'CountingBloomFilter', 'CuckooFilter',
-           'CuckooFilterFullError', 'CountingCuckooFilter']
+__all__ = ['BloomFilter', 'BloomFilterOnDisk', 'CountingBloomFilter',
+           'CountMinSketch', 'CountMeanSketch', 'CountMeanMinSketch',
+           'HeavyHitters', 'StreamThreshold', 'CuckooFilter',
+           'CountingCuckooFilter', 'InitializationError', 'NotSupportedError',
+           'ProbablesBaseException', 'CuckooFilterFullError']
