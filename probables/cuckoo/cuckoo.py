@@ -240,10 +240,10 @@ class CuckooFilter(object):
         ''' insert a fingerprint '''
         if self.__insert_element(fingerprint, idx_1):
             self._inserted_elements += 1
-            return
+            return None
         elif self.__insert_element(fingerprint, idx_2):
             self._inserted_elements += 1
-            return
+            return None
 
         # we didn't insert, so now we need to randomly select one index to use
         # and move things around to the other index, if possible, until we
@@ -264,7 +264,7 @@ class CuckooFilter(object):
 
             if self.__insert_element(fingerprint, idx):
                 self._inserted_elements += 1
-                return
+                return None
 
         # if we got here we have an error... we might need to know what is left
         return fingerprint

@@ -152,12 +152,11 @@ class CountMinSketch(object):
                     * 'min' or None
                     * 'mean'
                     * 'mean-min' '''
-        if self.__query_method == self.__min_query:
-            return 'min'
-        elif self.__query_method == self.__mean_query:
+        if self.__query_method == self.__mean_query:
             return 'mean'
         elif self.__query_method == self.__mean_min_query:
             return 'mean-min'
+        return 'min'
 
     @query_type.setter
     def query_type(self, val):

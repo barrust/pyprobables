@@ -105,6 +105,7 @@ class CountingCuckooFilter(CuckooFilter):
                     self.buckets[idx].remove(bucket)
                     self.__unique_elements -= 1
                 return True
+        return False  # catch this...
 
     def expand(self):
         ''' Expand the cuckoo filter '''
@@ -133,11 +134,11 @@ class CountingCuckooFilter(CuckooFilter):
         if self.__insert_element(fingerprint, idx_1, count):
             self._inserted_elements += 1
             self.__unique_elements += 1
-            return
+            return None
         elif self.__insert_element(fingerprint, idx_2, count):
             self._inserted_elements += 1
             self.__unique_elements += 1
-            return
+            return None
 
         # we didn't insert, so now we need to randomly select one index to use
         # and move things around to the other index, if possible, until we
@@ -158,7 +159,7 @@ class CountingCuckooFilter(CuckooFilter):
             if self.__insert_element(prv_bin.finger, idx, prv_bin.count):
                 self._inserted_elements += 1
                 self.__unique_elements += 1
-                return
+                return None
 
         # if we got here we have an error... we might need to know what is left
         return prv_bin
