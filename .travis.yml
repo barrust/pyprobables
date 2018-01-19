@@ -1,7 +1,6 @@
 language: python
 python:
     - "2.7"
-    - "3.3"
     - "3.4"
     - "3.5"
     - "3.6"
@@ -14,6 +13,7 @@ install:
 script:
     - pep8 probables/
     - coverage run --source=probables setup.py test
+    - ./scripts/py-lint.sh
 
 # commands to run after the tests successfully complete
 after_success:
