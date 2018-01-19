@@ -11,7 +11,7 @@ install:
   - ./provision/python.sh
 
 script:
-    - pep8 probables/
+    - pycodestyle probables/
     - coverage run --source=probables setup.py test
     - ./scripts/py-lint.sh
 
