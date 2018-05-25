@@ -1,5 +1,9 @@
 # PyProbables Changelog
 
+### Version 0.1.4:
+* Drop support for python 3.3
+* Ensure passing parameters correctly to parent classes
+
 ### Version 0.1.3:
 * Better parameter validation
 * Cuckoo Filters:
