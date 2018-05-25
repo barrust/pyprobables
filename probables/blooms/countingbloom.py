@@ -42,10 +42,11 @@ class CountingBloomFilter(BaseBloom):
     def __init__(self, est_elements=None, false_positive_rate=None,
                  filepath=None, hex_string=None, hash_function=None):
         ''' setup the basic values needed '''
-        super(CountingBloomFilter, self).__init__('counting', est_elements,
-                                                  false_positive_rate,
-                                                  filepath, hex_string,
-                                                  hash_function)
+        super(CountingBloomFilter,
+              self).__init__('counting', est_elements=est_elements,
+                             false_positive_rate=false_positive_rate,
+                             filepath=filepath, hex_string=hex_string,
+                             hash_function=hash_function)
 
     def __str__(self):
         ''' correctly handle python 3 vs python2 encoding if necessary '''
