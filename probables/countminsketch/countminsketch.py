@@ -43,6 +43,11 @@ class CountMinSketch(object):
             For width and depth, width may realistically be in the thousands \
             while depth is in the single digit to teens '''
 
+    __slots__ = [
+        '__width', '__depth', '__confidence', '__error_rate',
+        '__elements_added', '__query_method', '_bins', '_hash_function'
+    ]
+
     def __init__(self, width=None, depth=None, confidence=None,
                  error_rate=None, filepath=None, hash_function=None):
         ''' default initilization function '''
@@ -373,6 +378,9 @@ class CountMeanSketch(CountMinSketch):
         Note:
             For width and depth, width may realistically be in the thousands \
             while depth is in the single digit to teens  '''
+
+    __slots__ = CountMinSketch.__slots__
+
     def __init__(self, width=None, depth=None, confidence=None,
                  error_rate=None, filepath=None, hash_function=None):
         super(CountMeanSketch, self).__init__(width, depth, confidence,
@@ -406,6 +414,9 @@ class CountMeanMinSketch(CountMinSketch):
         Note:
             For width and depth, width may realistically be in the thousands \
             while depth is in the single digit to teens  '''
+
+    __slots__ = CountMinSketch.__slots__
+
     def __init__(self, width=None, depth=None, confidence=None,
                  error_rate=None, filepath=None, hash_function=None):
         super(CountMeanMinSketch, self).__init__(width, depth, confidence,
@@ -439,6 +450,9 @@ class HeavyHitters(CountMinSketch):
         Note:
             For width and depth, width may realistically be in the thousands \
             while depth is in the single digit to teens  '''
+
+    __slots__ = CountMinSketch.__slots__
+    __slots__.extend(['__top_x', '__top_x_size', '__num_hitters', '__smallest'])
 
     def __init__(self, num_hitters=100, width=None, depth=None,
                  confidence=None, error_rate=None, filepath=None,
@@ -548,6 +562,8 @@ class HeavyHitters(CountMinSketch):
 
 class StreamThreshold(CountMinSketch):
     ''' keep track of those elements over a certain threshold '''
+
+    __slots__ = ['__threshold', '__meets_threshold']
 
     def __init__(self, threshold=100, width=None, depth=None,
                  confidence=None, error_rate=None, filepath=None,

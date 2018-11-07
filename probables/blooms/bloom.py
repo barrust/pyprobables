@@ -86,6 +86,8 @@ class BloomFilter(BaseBloom):
                 2) From Hex String
                 3) From params '''
 
+    __slots__ = []
+
     def __init__(self, est_elements=None, false_positive_rate=None,
                  filepath=None, hex_string=None, hash_function=None):
         ''' setup the basic values needed '''

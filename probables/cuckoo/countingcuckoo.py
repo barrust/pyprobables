@@ -27,6 +27,10 @@ class CountingCuckooFilter(CuckooFilter):
             filename (str): The path to the file to load or None if no file
         Returns:
             CountingCuckooFilter: A Cuckoo Filter object '''
+
+    __slots__ = CuckooFilter.__slots__
+    __slots__.extend(['__unique_elements'])
+
     def __init__(self, capacity=10000, bucket_size=4, max_swaps=500,
                  expansion_rate=2, auto_expand=True, finger_size=4,
                  filepath=None, hash_function=None):

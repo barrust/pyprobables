@@ -1,5 +1,8 @@
 # PyProbables Changelog
 
+### Version 0.2.0
+* Use __slots__
+
 ### Version 0.1.4:
 * Drop support for python 3.3
 * Ensure passing parameters correctly to parent classes
