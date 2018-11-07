@@ -19,6 +19,13 @@ from .. utilities import (is_hex_string, is_valid_file)
 
 class BaseBloom(object):
     ''' basic bloom filter object '''
+
+    __slots__ = [
+        '_bloom', '__num_bits', '__est_elements', '__fpr',
+        '__number_hashes', '__hash_func', '_els_added', '_on_disk',
+        '__impt_type', '__blm_type', '__bloom_length'
+    ]
+
     def __init__(self, blm_type, est_elements=None, false_positive_rate=None,
                  filepath=None, hex_string=None, hash_function=None):
         ''' setup the basic values needed '''

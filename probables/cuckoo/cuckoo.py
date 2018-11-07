@@ -32,6 +32,13 @@ class CuckooFilter(object):
             `hf(key)`
         Returns:
             CuckooFilter: A Cuckoo Filter object '''
+
+    __slots__ = [
+        '_bucket_size', '_cuckoo_capacity', '__max_cuckoo_swaps', '__expansion_rate',
+        '__auto_expand', '__fingerprint_size', '__hash_func', '_inserted_elements',
+        '_buckets'
+    ]
+
     def __init__(self, capacity=10000, bucket_size=4, max_swaps=500,
                  expansion_rate=2, auto_expand=True, finger_size=4,
                  filepath=None, hash_function=None):
