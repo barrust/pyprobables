@@ -82,6 +82,17 @@ Bloom Filter that is run directly off of disk instead of in memory. This
 can be useful for very large Bloom Filters or when needing to access many
 Blooms that are exported to file.
 
+Expanding Bloom Filter
+"""""""""""""""""""""""""""""""""""""""""""""""
+
+The **Expanding Bloom Filter** is a specialized version of the standard
+Bloom Filter that automatically grows to ensure that the desired false positive
+rate is not exceeded. This is ideal for situations that it is a wild guess to
+determine the number of elements that will be added.
+
+At this time, it is not possible to import or export an **Expanding Bloom
+Filter** but that is a planned feature.
+
 
 Counting Bloom Filter
 """""""""""""""""""""""""""""""""""""""""""""""

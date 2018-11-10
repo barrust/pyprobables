@@ -40,6 +40,12 @@ BloomFilterOnDisk
 
 For more information of all methods and properties, see `BloomFilter`_.
 
+ExpandingBloomFilter
++++++++++++++++++++++++++++++++
+
+.. autoclass:: probables.ExpandingBloomFilter
+    :members:
+
 CountingBloomFilter
 +++++++++++++++++++++++++++++++
 
