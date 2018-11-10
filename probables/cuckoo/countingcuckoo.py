@@ -28,8 +28,8 @@ class CountingCuckooFilter(CuckooFilter):
         Returns:
             CountingCuckooFilter: A Cuckoo Filter object '''
 
-    __slots__ = CuckooFilter.__slots__
-    __slots__.extend(['__unique_elements'])
+    __slots__ = ['__unique_elements', '_inserted_elements', '_bucket_size',
+                 '__max_cuckoo_swaps', '_cuckoo_capacity', '_buckets']
 
     def __init__(self, capacity=10000, bucket_size=4, max_swaps=500,
                  expansion_rate=2, auto_expand=True, finger_size=4,

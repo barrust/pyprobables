@@ -451,8 +451,7 @@ class HeavyHitters(CountMinSketch):
             For width and depth, width may realistically be in the thousands \
             while depth is in the single digit to teens  '''
 
-    __slots__ = CountMinSketch.__slots__
-    __slots__.extend(['__top_x', '__top_x_size', '__num_hitters', '__smallest'])
+    __slots__ = ['__top_x', '__top_x_size', '__num_hitters', '__smallest']
 
     def __init__(self, num_hitters=100, width=None, depth=None,
                  confidence=None, error_rate=None, filepath=None,
