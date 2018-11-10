@@ -38,12 +38,12 @@ class BaseBloom(object):
         self._els_added = 0
         self._on_disk = False  # not on disk
         self.__blm_type = blm_type
-        if self.__blm_type in ['regular', 'reg-ondisk']:
+        if self.__blm_type in ['regular', 'reg-ondisk', 'expanding']:
             self.__impt_type = 'B'
         else:
             self.__impt_type = 'I'
 
-        if blm_type in ['regular', 'reg-ondisk']:
+        if blm_type in ['regular', 'reg-ondisk', 'expanding']:
             msg = ('Insufecient parameters to set up the Bloom Filter')
         else:
             msg = ('Insufecient parameters to set up the Counting Bloom '

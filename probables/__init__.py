@@ -1,6 +1,7 @@
 ''' pyprobables module '''
 from __future__ import (unicode_literals, absolute_import, print_function)
-from . blooms import (BloomFilter, BloomFilterOnDisk, CountingBloomFilter)
+from . blooms import (BloomFilter, BloomFilterOnDisk, CountingBloomFilter,
+                      ExpandingBloomFilter)
 from . countminsketch import (CountMinSketch, HeavyHitters, StreamThreshold,
                               CountMeanSketch, CountMeanMinSketch)
 from . cuckoo import (CuckooFilter, CountingCuckooFilter)
@@ -20,4 +21,5 @@ __all__ = ['BloomFilter', 'BloomFilterOnDisk', 'CountingBloomFilter',
            'CountMinSketch', 'CountMeanSketch', 'CountMeanMinSketch',
            'HeavyHitters', 'StreamThreshold', 'CuckooFilter',
            'CountingCuckooFilter', 'InitializationError', 'NotSupportedError',
-           'ProbablesBaseException', 'CuckooFilterFullError']
+           'ProbablesBaseException', 'CuckooFilterFullError',
+           'ExpandingBloomFilter']
