@@ -9,14 +9,14 @@ class TestExpandingBloomFilter(unittest.TestCase):
     def test_ebf_init(self):
         ''' test the initialization of an expanding bloom filter '''
         blm = ExpandingBloomFilter(est_elements=10, false_positive_rate=0.05)
-        self.assertEqual(len(blm.blooms), 1)
+        self.assertEqual(blm.expansions, 0)
 
     def test_ebf_add_lots(self):
         ''' test adding "lots" of elements to force the expansion '''
         blm = ExpandingBloomFilter(est_elements=10, false_positive_rate=0.05)
         for i in range(100):
             blm.add("{}".format(i), True)
-        self.assertEqual(len(blm.blooms), 10)
+        self.assertEqual(blm.expansions, 9)
 
     def test_ebf_add_lots_without_force(self):
         ''' testing adding "lots" but force them to be inserted multiple times'''
@@ -24,7 +24,7 @@ class TestExpandingBloomFilter(unittest.TestCase):
         # simulate false positives... notice it didn't grow a few...
         for i in range(120):
             blm.add("{}".format(i))
-        self.assertEqual(len(blm.blooms), 10)
+        self.assertEqual(blm.expansions, 9)
         self.assertEqual(blm.elements_added, 120)
 
     def test_ebf_check(self):
@@ -35,7 +35,7 @@ class TestExpandingBloomFilter(unittest.TestCase):
             blm.add("{}".format(i))
         blm.add('this is a test')
         blm.add('this is another test')
-        self.assertGreater(len(blm.blooms), 2)
+        self.assertGreater(blm.expansions, 1)
         self.assertEqual(blm.check('this is a test'), True)
         self.assertEqual(blm.check('this is another test'), True)
         self.assertEqual(blm.check('this is yet another test'), False)
@@ -49,7 +49,7 @@ class TestExpandingBloomFilter(unittest.TestCase):
             blm.add("{}".format(i))
         blm.add('this is a test')
         blm.add('this is another test')
-        self.assertGreater(len(blm.blooms), 2)
+        self.assertGreater(blm.expansions, 1)
         self.assertEqual('this is a test' in blm, True)
         self.assertEqual('this is another test' in blm, True)
         self.assertEqual('this is yet another test' in blm, False)
