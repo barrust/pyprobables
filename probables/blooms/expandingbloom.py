@@ -25,6 +25,9 @@ class ExpandingBloomFilter(object):
             At this point, the expanding Bloom Filter does not support \
             `export` or `import` '''
 
+    __slots__ = ['_blooms', '__fpr', '__est_elements', '__hash_func',
+                 '__added_elements']
+
     def __init__(self, est_elements=None, false_positive_rate=None,
                  hash_function=None):
         ''' initialize '''
@@ -62,16 +65,6 @@ class ExpandingBloomFilter(object):
         ''' int: The total number of elements added '''
         return self.__added_elements
 
-    def __add_bloom_filter(self):
-        ''' build a new bloom and add it on! '''
-        blm = BloomFilter(self.__est_elements, self.__fpr, self.__hash_func)
-        self._blooms.append(blm)
-
-    def __check_for_growth(self):
-        ''' detereming if the bloom filter should automatically grow '''
-        if self._blooms[-1].elements_added >= self.__est_elements:
-            self.__add_bloom_filter()
-
     def check(self, key):
         ''' Check to see if the key is in the Bloom Filter
 
@@ -103,8 +96,8 @@ class ExpandingBloomFilter(object):
             Args:
                 key (str): The element to be inserted
                 force (bool): `True` will force it to be inserted, even if it \
-                              likely has been inserted before \
-                `False` will only insert if not found in the Bloom Filter '''
+                              likely has been inserted before `False` will \
+                              only insert if not found in the Bloom Filter '''
         hashes = self._blooms[0].hashes(key)
         self.add_alt(hashes, force)
 
@@ -115,8 +108,101 @@ class ExpandingBloomFilter(object):
                 hashes (list): A list of integers representing the key to insert
                 force (bool): `True` will force it to be inserted, even if \
                               it likely has been inserted before \
-                `False` will only insert if not found in the Bloom Filter '''
+                              `False` will only insert if not found in the \
+                              Bloom Filter '''
         self.__added_elements += 1
         if force or not self.check_alt(hashes):
             self.__check_for_growth()
             self._blooms[-1].add_alt(hashes)
+
+    def __add_bloom_filter(self):
+        ''' build a new bloom and add it on! '''
+        blm = BloomFilter(est_elements=self.__est_elements,
+                          false_positive_rate=self.__fpr,
+                          hash_function=self.__hash_func)
+        self._blooms.append(blm)
+
+    def __check_for_growth(self):
+        ''' detereming if the bloom filter should automatically grow '''
+        if self._blooms[-1].elements_added >= self.__est_elements:
+            self.__add_bloom_filter()
+
+
+class RotatingBloomFilter(ExpandingBloomFilter):
+    ''' Simple Rotating Bloom Filter implementation that allows for the "older"
+        elements added to be removed, in chunks. As the queue fills up, those
+        elements inserted earlier will be bulk removed. This also provides the
+        user with the oportunity to force the removal instead of it being time
+        based.
+
+        Args:
+            est_elements (int): The number of estimated elements to be added
+            false_positive_rate (float): The desired false positive rate
+            max_queue_size (int): This is the number is used to determine the \
+            maximum number of Bloom Filters. Total elements added is based on \
+            `max_queue_size * est_elements`
+            hash_function (function): Hashing strategy function to use \
+            `hf(key, number)`
+    '''
+    __slots__ = ['_blooms', '__fpr', '__est_elements', '__hash_func',
+                 '__added_elements', '_queue_size']
+
+    def __init__(self, est_elements=None, false_positive_rate=None,
+                 max_queue_size=10, hash_function=None):
+        ''' initialize '''
+        super(RotatingBloomFilter,
+              self).__init__(est_elements=est_elements,
+                             false_positive_rate=false_positive_rate,
+                             hash_function=hash_function)
+        self.__fpr = false_positive_rate
+        self.__est_elements = est_elements
+        self.__hash_func = hash_function
+        self._queue_size = max_queue_size
+        self.__added_elements = 0
+
+    @property
+    def max_queue_size(self):
+        ''' int: The maximum size for the queue '''
+        return self._queue_size
+
+    @property
+    def current_queue_size(self):
+        ''' int: The current size of the queue '''
+        return len(self._blooms)
+
+    def add_alt(self, hashes, force=False):
+        ''' Add the element represented by hashes into the Bloom Filter
+
+            Args:
+                hashes (list): A list of integers representing the key to insert
+                force (bool): `True` will force it to be inserted, even if \
+                              it likely has been inserted before \
+                              `False` will only insert if not found in the \
+                              Bloom Filter '''
+        self.__added_elements += 1
+        if force or not self.check_alt(hashes):
+            self.__rotate_bloom_filter()
+            self._blooms[-1].add_alt(hashes)
+
+    def pop(self):
+        ''' Pop an element off of the queue '''
+        self.__rotate_bloom_filter(force=True)
+
+    def __rotate_bloom_filter(self, force=False):
+        ''' handle determining if/when the Bloom Filter queue needs to be
+            rotated '''
+        blm = self._blooms[-1]
+        ready_to_rotate = blm.elements_added == blm.estimated_elements
+        neeeds_to_pop = self.current_queue_size < self._queue_size
+        if force or (ready_to_rotate and neeeds_to_pop):
+            self.__add_bloom_filter()
+        elif force or ready_to_rotate:
+            blm = self._blooms.pop(0)
+            self.__add_bloom_filter()
+
+    def __add_bloom_filter(self):
+        ''' build a new bloom and add it on! '''
+        blm = BloomFilter(est_elements=self.__est_elements,
+                          false_positive_rate=self.__fpr,
+                          hash_function=self.__hash_func)
+        self._blooms.append(blm)

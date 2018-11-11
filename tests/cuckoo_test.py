@@ -114,7 +114,7 @@ class TestCuckooFilter(unittest.TestCase):
         ''' test bad fingerprint size < 1 '''
         def runner():
             ''' runner '''
-            cko = CuckooFilter(capacity=100, bucket_size=2, finger_size=0)
+            CuckooFilter(capacity=100, bucket_size=2, finger_size=0)
 
         self.assertRaises(ValueError, runner)
 
@@ -122,15 +122,15 @@ class TestCuckooFilter(unittest.TestCase):
         ''' test bad fingerprint size > 4 '''
         def runner():
             ''' runner '''
-            cko = CuckooFilter(capacity=100, bucket_size=2, finger_size=5)
+            CuckooFilter(capacity=100, bucket_size=2, finger_size=5)
 
         self.assertRaises(ValueError, runner)
 
     def test_cuckoo_filter_fing_size_3(self):
         ''' test valid fingerprint size '''
         try:
-            cko = CuckooFilter(capacity=100, bucket_size=2, finger_size=1)
-        except:
+            CuckooFilter(capacity=100, bucket_size=2, finger_size=1)
+        except ValueError:
             self.assertEqual(True, False)
         self.assertEqual(True, True)
 
