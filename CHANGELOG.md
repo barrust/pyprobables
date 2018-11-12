@@ -1,5 +1,13 @@
 # PyProbables Changelog
 
+### Version 0.2.6
+* Bloom Filters:
+    * Addition of a Rotating Bloom Filter
+
+### Version 0.2.5
+* Bloom Filters:
+    * Addition of an Expanding Bloom Filter
+
 ### Version 0.2.0
 * Use __slots__
 

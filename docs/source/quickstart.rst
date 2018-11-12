@@ -93,6 +93,17 @@ determine the number of elements that will be added.
 At this time, it is not possible to import or export an **Expanding Bloom
 Filter** but that is a planned feature.
 
+Rotating Bloom Filter
+"""""""""""""""""""""""""""""""""""""""""""""""
+
+The **Rotating Bloom Filter** is a specialized version of the standard
+Bloom Filter that rolls of earlier entries into the filter as they become more
+stale. The popping of the queue can be done either programmatically or
+automatically.
+
+At this time, it is not possible to import or export an **Expanding Bloom
+Filter** but that is a planned feature.
+
 
 Counting Bloom Filter
 """""""""""""""""""""""""""""""""""""""""""""""

@@ -1,7 +1,7 @@
 ''' pyprobables module '''
 from __future__ import (unicode_literals, absolute_import, print_function)
 from . blooms import (BloomFilter, BloomFilterOnDisk, CountingBloomFilter,
-                      ExpandingBloomFilter)
+                      ExpandingBloomFilter, RotatingBloomFilter)
 from . countminsketch import (CountMinSketch, HeavyHitters, StreamThreshold,
                               CountMeanSketch, CountMeanMinSketch)
 from . cuckoo import (CuckooFilter, CountingCuckooFilter)
@@ -12,7 +12,7 @@ __author__ = 'Tyler Barrus'
 __maintainer__ = 'Tyler Barrus'
 __email__ = 'barrust@gmail.com'
 __license__ = 'MIT'
-__version__ = '0.2.5'
+__version__ = '0.2.6'
 __credits__ = []
 __url__ = 'https://github.com/barrust/pyprobables'
 __bugtrack_url__ = 'https://github.com/barrust/pyprobables/issues'
@@ -22,4 +22,4 @@ __all__ = ['BloomFilter', 'BloomFilterOnDisk', 'CountingBloomFilter',
            'HeavyHitters', 'StreamThreshold', 'CuckooFilter',
            'CountingCuckooFilter', 'InitializationError', 'NotSupportedError',
            'ProbablesBaseException', 'CuckooFilterFullError',
-           'ExpandingBloomFilter']
+           'ExpandingBloomFilter', 'RotatingBloomFilter']
