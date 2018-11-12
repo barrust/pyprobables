@@ -46,6 +46,13 @@ ExpandingBloomFilter
 .. autoclass:: probables.ExpandingBloomFilter
     :members:
 
+RotatingBloomFilter
++++++++++++++++++++++++++++++++
+
+.. autoclass:: probables.RotatingBloomFilter
+    :members:
+    :inherited-members:
+
 CountingBloomFilter
 +++++++++++++++++++++++++++++++
 
