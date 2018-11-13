@@ -243,7 +243,8 @@ class BloomFilterOnDisk(BaseBloom):
                          self)._set_optimized_params(est_elements, fpr,
                                                      hash_function)
             super(BloomFilterOnDisk,
-                  self).__init__('reg-ondisk', est_elements, vals[1],
+                  self).__init__('reg-ondisk', est_elements=est_elements,
+                                 false_positive_rate=vals[1],
                                  hash_function=vals[0])
             # do the on disk things
             with open(filepath, 'wb') as filepointer:
@@ -285,8 +286,8 @@ class BloomFilterOnDisk(BaseBloom):
                          self)._set_optimized_params(mybytes[0], mybytes[2],
                                                      hash_function)
         super(BloomFilterOnDisk,
-              self).__init__('reg-ondisk', mybytes[0], vals[1],
-                             hash_function=vals[0])
+              self).__init__('reg-ondisk', est_elements=mybytes[0],
+                             false_positive_rate=vals[1], hash_function=vals[0])
         self.__file_pointer = open(filepath, 'r+b')
         self._bloom = mmap.mmap(self.__file_pointer.fileno(), 0)
         self._on_disk = True
