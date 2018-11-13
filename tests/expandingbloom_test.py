@@ -10,6 +10,9 @@ class TestExpandingBloomFilter(unittest.TestCase):
         ''' test the initialization of an expanding bloom filter '''
         blm = ExpandingBloomFilter(est_elements=10, false_positive_rate=0.05)
         self.assertEqual(blm.expansions, 0)
+        self.assertEqual(blm.false_positive_rate, 0.05)
+        self.assertEqual(blm.estimated_elements, 10)
+        self.assertEqual(blm.elements_added, 0)
 
     def test_ebf_add_lots(self):
         ''' test adding "lots" of elements to force the expansion '''
@@ -55,6 +58,14 @@ class TestExpandingBloomFilter(unittest.TestCase):
         self.assertEqual('this is yet another test' in blm, False)
         self.assertEqual('this is not another test' in blm, False)
 
+    def test_ebf_push(self):
+        ''' ensure that we are able to push new Bloom Filters '''
+        blm = ExpandingBloomFilter(est_elements=25, false_positive_rate=0.05)
+        self.assertEqual(blm.expansions, 0)
+        blm.push()
+        self.assertEqual(blm.expansions, 1)
+        self.assertEqual(blm.elements_added, 0)
+
 
 class TestRotatingBloomFilter(unittest.TestCase):
 
@@ -97,3 +108,39 @@ class TestRotatingBloomFilter(unittest.TestCase):
             blm.add('{}'.format(i), force=True)
         self.assertEqual(blm.check('test'), False)  # it should roll off
         self.assertEqual(blm.current_queue_size, 5)
+
+    def test_rfb_push_pop(self):
+        blm = RotatingBloomFilter(est_elements=10, false_positive_rate=0.05,
+                                  max_queue_size=5)
+        self.assertEqual(blm.current_queue_size, 1)
+        blm.add('test')
+        blm.push()
+        self.assertEqual(blm.current_queue_size, 2)
+        self.assertEqual('test' in blm, True)
+        blm.push()
+        self.assertEqual(blm.current_queue_size, 3)
+        self.assertEqual('test' in blm, True)
+        blm.push()
+        self.assertEqual(blm.current_queue_size, 4)
+        self.assertEqual('test' in blm, True)
+        blm.push()
+        self.assertEqual(blm.current_queue_size, 5)
+        self.assertEqual('test' in blm, True)
+        blm.push()
+        self.assertEqual(blm.current_queue_size, 5)
+        self.assertEqual('test' in blm, False)
+
+        # test popping
+        blm.add("that")
+        blm.pop()
+        self.assertEqual(blm.current_queue_size, 4)
+        self.assertEqual('that' in blm, True)
+        blm.pop()
+        self.assertEqual(blm.current_queue_size, 3)
+        self.assertEqual('that' in blm, True)
+        blm.pop()
+        self.assertEqual(blm.current_queue_size, 2)
+        self.assertEqual('that' in blm, True)
+        blm.pop()
+        self.assertEqual(blm.current_queue_size, 1)
+        self.assertEqual('that' in blm, True)
