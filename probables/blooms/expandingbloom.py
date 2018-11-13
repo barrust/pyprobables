@@ -10,6 +10,7 @@ from struct import (pack, unpack, calcsize)
 
 from . bloom import (BloomFilter)
 from .. utilities import (is_valid_file)
+from .. exceptions import (RotatingBloomFilterError)
 
 
 class ExpandingBloomFilter(object):
@@ -21,6 +22,7 @@ class ExpandingBloomFilter(object):
         Args:
             est_elements (int): The number of estimated elements to be added
             false_positive_rate (float): The desired false positive rate
+            filepath (str): Path to file to load
             hash_function (function): Hashing strategy function to use \
             `hf(key, number)`
         Returns:
@@ -72,6 +74,10 @@ class ExpandingBloomFilter(object):
     def elements_added(self):
         ''' int: The total number of elements added '''
         return self.__added_elements
+
+    def push(self):
+        ''' Push a new expansion onto the Bloom Filter '''
+        self.__add_bloom_filter()
 
     def check(self, key):
         ''' Check to see if the key is in the Bloom Filter
@@ -187,6 +193,7 @@ class RotatingBloomFilter(ExpandingBloomFilter):
             max_queue_size (int): This is the number is used to determine the \
             maximum number of Bloom Filters. Total elements added is based on \
             `max_queue_size * est_elements`
+            filepath (str): Path to file to load
             hash_function (function): Hashing strategy function to use \
             `hf(key, number)`
     '''
@@ -232,7 +239,18 @@ class RotatingBloomFilter(ExpandingBloomFilter):
             self._blooms[-1].add_alt(hashes)
 
     def pop(self):
-        ''' Pop an element off of the queue '''
+        ''' Pop the oldest Bloom Filter off of the queue without pushing a new
+            Bloom Filter onto the queue
+
+            Raises:
+                RotatingBloomFilterError: Unable to rotate the Bloom Filter'''
+        if self.current_queue_size == 1:
+            msg = "Popping a Bloom Filter will result in an unusable system!"
+            raise RotatingBloomFilterError(msg)
+        self._blooms.pop(0)
+
+    def push(self):
+        ''' Push a new bloom filter onto the queue and rotate if necessary '''
         self.__rotate_bloom_filter(force=True)
 
     def __rotate_bloom_filter(self, force=False):
@@ -240,10 +258,15 @@ class RotatingBloomFilter(ExpandingBloomFilter):
             rotated '''
         blm = self._blooms[-1]
         ready_to_rotate = blm.elements_added == blm.estimated_elements
-        neeeds_to_pop = self.current_queue_size < self._queue_size
-        if force or (ready_to_rotate and neeeds_to_pop):
+        no_need_to_pop = self.current_queue_size < self._queue_size
+        if force and no_need_to_pop:
             self.__add_bloom_filter()
-        elif force or ready_to_rotate:
+        elif force:  # must need to be pop'd first!
+            blm = self._blooms.pop(0)
+            self.__add_bloom_filter()
+        elif ready_to_rotate and no_need_to_pop:
+            self.__add_bloom_filter()
+        elif ready_to_rotate:
             blm = self._blooms.pop(0)
             self.__add_bloom_filter()
 

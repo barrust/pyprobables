@@ -74,8 +74,8 @@ class BloomFilter(BaseBloom):
         Args:
             est_elements (int): The number of estimated elements to be added
             false_positive_rate (float): The desired false positive rate
-            filepath (string): Path to file to load
-            hex_string (string): Hex based representation to be loaded
+            filepath (str): Path to file to load
+            hex_string (str): Hex based representation to be loaded
             hash_function (function): Hashing strategy function to use \
             `hf(key, number)`
         Returns:
@@ -202,10 +202,10 @@ class BloomFilterOnDisk(BaseBloom):
         (https://github.com/barrust/bloom)
 
         Args:
-            filepath (string): Path to file to load
+            filepath (str): Path to file to load
             est_elements (int): The number of estimated elements to be added
             false_positive_rate (float): The desired false positive rate
-            hex_string (string): Hex based representation to be loaded
+            hex_string (str): Hex based representation to be loaded
             hash_function (function): Hashing strategy function to use \
             `hf(key, number)`
         Returns:

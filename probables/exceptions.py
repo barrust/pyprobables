@@ -46,3 +46,13 @@ class CuckooFilterFullError(ProbablesBaseException):
     def __init__(self, message):
         self.message = message
         super(CuckooFilterFullError, self).__init__(self.message)
+
+
+class RotatingBloomFilterError(ProbablesBaseException):
+    ''' RotatingBloomFilter unable to rotate Blooms Exceptions
+
+        Args:
+            message (str): The error message to be reported '''
+    def __init__(self, message):
+        self.message = message
+        super(RotatingBloomFilterError, self).__init__(self.message)

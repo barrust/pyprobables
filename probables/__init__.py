@@ -6,7 +6,8 @@ from . countminsketch import (CountMinSketch, HeavyHitters, StreamThreshold,
                               CountMeanSketch, CountMeanMinSketch)
 from . cuckoo import (CuckooFilter, CountingCuckooFilter)
 from . exceptions import (InitializationError, NotSupportedError,
-                          ProbablesBaseException, CuckooFilterFullError)
+                          ProbablesBaseException, CuckooFilterFullError,
+                          RotatingBloomFilterError)
 
 __author__ = 'Tyler Barrus'
 __maintainer__ = 'Tyler Barrus'
