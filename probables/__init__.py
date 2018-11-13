@@ -23,4 +23,5 @@ __all__ = ['BloomFilter', 'BloomFilterOnDisk', 'CountingBloomFilter',
            'HeavyHitters', 'StreamThreshold', 'CuckooFilter',
            'CountingCuckooFilter', 'InitializationError', 'NotSupportedError',
            'ProbablesBaseException', 'CuckooFilterFullError',
-           'ExpandingBloomFilter', 'RotatingBloomFilter']
+           'ExpandingBloomFilter', 'RotatingBloomFilter',
+           'RotatingBloomFilterError']
