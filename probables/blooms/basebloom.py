@@ -216,6 +216,8 @@ class BaseBloom(object):
             self.__fpr = vals[1]
             self.__number_hashes = vals[2]
             self.__num_bits = vals[3]
+            self.__est_elements = mybytes[0]
+            self._els_added = mybytes[1]
             if blm_type in ['regular', 'reg-ondisk']:
                 self.__bloom_length = int(math.ceil(self.__num_bits / 8.0))
             else:
@@ -237,6 +239,8 @@ class BaseBloom(object):
         self.__fpr = vals[1]
         self.__number_hashes = vals[2]
         self.__num_bits = vals[3]
+        self.__est_elements = tmp_data[0]
+        self._els_added = tmp_data[1]
         if self.__blm_type in ['regular', 'reg-ondisk']:
             self.__bloom_length = int(math.ceil(self.__num_bits / 8.0))
         else:
