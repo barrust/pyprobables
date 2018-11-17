@@ -28,8 +28,9 @@ class ExpandingBloomFilter(object):
         Returns:
             ExpandingBloomFilter: An expanding Bloom Filter object
         Note:
-            At this point, the expanding Bloom Filter does not support \
-            `export` or `import` '''
+            Initialization order of operations:
+                1) Filepath
+                2) est_elements and false_positive_rate'''
 
     __slots__ = ['_blooms', '__fpr', '__est_elements', '__hash_func',
                  '__added_elements']
@@ -165,7 +166,7 @@ class ExpandingBloomFilter(object):
 
             fileobj.seek(0, os.SEEK_SET)
             # set the basic defaults
-            self._blooms = []
+            self._blooms = list()
             self.__added_elements = els_added
             self.__fpr = fpr
             self.__est_elements = est_els
@@ -196,6 +197,10 @@ class RotatingBloomFilter(ExpandingBloomFilter):
             filepath (str): Path to file to load
             hash_function (function): Hashing strategy function to use \
             `hf(key, number)`
+        Note:
+            Initialization order of operations:
+                1) Filepath
+                2) est_elements and false_positive_rate
     '''
     __slots__ = ['_blooms', '__fpr', '__est_elements', '__hash_func',
                  '__added_elements', '_queue_size']

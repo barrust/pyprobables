@@ -97,7 +97,7 @@ def default_md5(key, depth=1):
             key (str): The element to be hashed
             depth (int): The number of hash permutations to compute
         Returns:
-            int: 64-bit hashed representation of key
+            list(int): List of 64-bit hashed representation of key hashes
         Note:
             Returns the upper-most 64 bits '''
     return md5(key).digest()
@@ -111,7 +111,7 @@ def default_sha256(key, depth=1):
             key (str): The element to be hashed
             depth (int): The number of hash permutations to compute
         Returns:
-            int: 64-bit hashed representation of key
+            list(int): List of 64-bit hashed representation of key hashes
         Note:
             Returns the upper-most 64 bits '''
     return sha256(key).digest()
