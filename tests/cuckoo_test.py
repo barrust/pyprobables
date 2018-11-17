@@ -138,7 +138,7 @@ class TestCuckooFilter(unittest.TestCase):
         ''' test valid fingerprint size message '''
         def runner():
             ''' runner '''
-            cko = CuckooFilter(capacity=100, bucket_size=2, finger_size=5)
+            CuckooFilter(capacity=100, bucket_size=2, finger_size=5)
 
         self.assertRaises(ValueError, runner)
         try:

@@ -5,7 +5,12 @@
 '''
 from __future__ import (unicode_literals, absolute_import, print_function)
 
+import os
+from struct import (pack, unpack, calcsize)
+
 from . bloom import (BloomFilter)
+from .. utilities import (is_valid_file)
+from .. exceptions import (RotatingBloomFilterError)
 
 
 class ExpandingBloomFilter(object):
@@ -17,27 +22,33 @@ class ExpandingBloomFilter(object):
         Args:
             est_elements (int): The number of estimated elements to be added
             false_positive_rate (float): The desired false positive rate
+            filepath (str): Path to file to load
             hash_function (function): Hashing strategy function to use \
             `hf(key, number)`
         Returns:
             ExpandingBloomFilter: An expanding Bloom Filter object
         Note:
-            At this point, the expanding Bloom Filter does not support \
-            `export` or `import` '''
+            Initialization order of operations:
+                1) Filepath
+                2) est_elements and false_positive_rate'''
 
     __slots__ = ['_blooms', '__fpr', '__est_elements', '__hash_func',
                  '__added_elements']
 
     def __init__(self, est_elements=None, false_positive_rate=None,
-                 hash_function=None):
+                 filepath=None, hash_function=None):
         ''' initialize '''
         self._blooms = list()
         self.__fpr = false_positive_rate
         self.__est_elements = est_elements
         self.__hash_func = hash_function
         self.__added_elements = 0  # total added...
-        # add in the initial bloom filter!
-        self.__add_bloom_filter()
+
+        if is_valid_file(filepath):
+            self.__load(filepath)
+        else:
+            # add in the initial bloom filter!
+            self.__add_bloom_filter()
 
     def __contains__(self, key):
         ''' setup the `in` functionality '''
@@ -64,6 +75,10 @@ class ExpandingBloomFilter(object):
     def elements_added(self):
         ''' int: The total number of elements added '''
         return self.__added_elements
+
+    def push(self):
+        ''' Push a new expansion onto the Bloom Filter '''
+        self.__add_bloom_filter()
 
     def check(self, key):
         ''' Check to see if the key is in the Bloom Filter
@@ -127,6 +142,44 @@ class ExpandingBloomFilter(object):
         if self._blooms[-1].elements_added >= self.__est_elements:
             self.__add_bloom_filter()
 
+    def export(self, filepath):
+        ''' Export an expanding Bloom Filter, or subclass, to disk
+
+            Args:
+                filepath (str): The path to the file to import '''
+        with open(filepath, 'wb') as fileobj:
+            # add all the different Bloom bit arrays...
+            for blm in self._blooms:
+                rep = 'B' * blm.bloom_length
+                fileobj.write(pack(rep, *blm.bloom))
+            fileobj.write(pack('QQQf', len(self._blooms),
+                               self.estimated_elements,
+                               self.elements_added,
+                               self.false_positive_rate))
+
+    def __load(self, filename):
+        ''' load a file '''
+        with open(filename, 'rb') as fileobj:
+            offset = calcsize('QQQf')
+            fileobj.seek(offset * -1, os.SEEK_END)
+            size, est_els, els_added, fpr = unpack('QQQf', fileobj.read(offset))
+
+            fileobj.seek(0, os.SEEK_SET)
+            # set the basic defaults
+            self._blooms = list()
+            self.__added_elements = els_added
+            self.__fpr = fpr
+            self.__est_elements = est_els
+            for _ in range(size):
+                blm = BloomFilter(est_elements=self.__est_elements,
+                                  false_positive_rate=self.__fpr,
+                                  hash_function=self.__hash_func)
+                # now we need to read in the correct number of bytes...
+                offset = calcsize('B') * blm.bloom_length
+                rep = 'B' * blm.bloom_length
+                blm._bloom = list(unpack(rep, fileobj.read(offset)))
+                self._blooms.append(blm)
+
 
 class RotatingBloomFilter(ExpandingBloomFilter):
     ''' Simple Rotating Bloom Filter implementation that allows for the "older"
@@ -141,24 +194,30 @@ class RotatingBloomFilter(ExpandingBloomFilter):
             max_queue_size (int): This is the number is used to determine the \
             maximum number of Bloom Filters. Total elements added is based on \
             `max_queue_size * est_elements`
+            filepath (str): Path to file to load
             hash_function (function): Hashing strategy function to use \
             `hf(key, number)`
+        Note:
+            Initialization order of operations:
+                1) Filepath
+                2) est_elements and false_positive_rate
     '''
     __slots__ = ['_blooms', '__fpr', '__est_elements', '__hash_func',
                  '__added_elements', '_queue_size']
 
     def __init__(self, est_elements=None, false_positive_rate=None,
-                 max_queue_size=10, hash_function=None):
+                 max_queue_size=10, filepath=None, hash_function=None):
         ''' initialize '''
         super(RotatingBloomFilter,
               self).__init__(est_elements=est_elements,
                              false_positive_rate=false_positive_rate,
+                             filepath=filepath,
                              hash_function=hash_function)
-        self.__fpr = false_positive_rate
-        self.__est_elements = est_elements
-        self.__hash_func = hash_function
         self._queue_size = max_queue_size
-        self.__added_elements = 0
+        self.__added_elements = self.elements_added
+        self.__est_elements = self.estimated_elements
+        self.__fpr = self.false_positive_rate
+        self.__hash_func = hash_function
 
     @property
     def max_queue_size(self):
@@ -185,7 +244,18 @@ class RotatingBloomFilter(ExpandingBloomFilter):
             self._blooms[-1].add_alt(hashes)
 
     def pop(self):
-        ''' Pop an element off of the queue '''
+        ''' Pop the oldest Bloom Filter off of the queue without pushing a new
+            Bloom Filter onto the queue
+
+            Raises:
+                RotatingBloomFilterError: Unable to rotate the Bloom Filter'''
+        if self.current_queue_size == 1:
+            msg = "Popping a Bloom Filter will result in an unusable system!"
+            raise RotatingBloomFilterError(msg)
+        self._blooms.pop(0)
+
+    def push(self):
+        ''' Push a new bloom filter onto the queue and rotate if necessary '''
         self.__rotate_bloom_filter(force=True)
 
     def __rotate_bloom_filter(self, force=False):
@@ -193,10 +263,15 @@ class RotatingBloomFilter(ExpandingBloomFilter):
             rotated '''
         blm = self._blooms[-1]
         ready_to_rotate = blm.elements_added == blm.estimated_elements
-        neeeds_to_pop = self.current_queue_size < self._queue_size
-        if force or (ready_to_rotate and neeeds_to_pop):
+        no_need_to_pop = self.current_queue_size < self._queue_size
+        if force and no_need_to_pop:
             self.__add_bloom_filter()
-        elif force or ready_to_rotate:
+        elif force:  # must need to be pop'd first!
+            blm = self._blooms.pop(0)
+            self.__add_bloom_filter()
+        elif ready_to_rotate and no_need_to_pop:
+            self.__add_bloom_filter()
+        elif ready_to_rotate:
             blm = self._blooms.pop(0)
             self.__add_bloom_filter()
 

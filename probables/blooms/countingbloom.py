@@ -27,8 +27,8 @@ class CountingBloomFilter(BaseBloom):
         Args:
             est_elements (int): The number of estimated elements to be added
             false_positive_rate (float): The desired false positive rate
-            filepath (string): Path to file to load
-            hex_string (string): Hex based representation to be loaded
+            filepath (str): Path to file to load
+            hex_string (str): Hex based representation to be loaded
             hash_function (function): Hashing strategy function to use \
             `hf(key, number)`
         Returns:

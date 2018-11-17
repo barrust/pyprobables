@@ -26,7 +26,7 @@ class CountMinSketch(object):
             depth (int): The depth of the count-min sketch
             confidence (float): The level of confidence desired
             error_rate (float): The desired error rate
-            filepath (string): Path to file to load
+            filepath (str): Path to file to load
             hash_function (function): Hashing strategy function to use \
             `hf(key, number)`
         Returns:
@@ -363,7 +363,7 @@ class CountMeanSketch(CountMinSketch):
             depth (int): The depth of the count-min sketch
             confidence (float): The level of confidence desired
             error_rate (float): The desired error rate
-            filepath (string): Path to file to load
+            filepath (str): Path to file to load
             hash_function (function): Hashing strategy function to use \
             `hf(key, number)`
         Returns:
@@ -399,7 +399,7 @@ class CountMeanMinSketch(CountMinSketch):
             depth (int): The depth of the count-min sketch
             confidence (float): The level of confidence desired
             error_rate (float): The desired error rate
-            filepath (string): Path to file to load
+            filepath (str): Path to file to load
             hash_function (function): Hashing strategy function to use \
             `hf(key, number)`
         Returns:
@@ -435,7 +435,7 @@ class HeavyHitters(CountMinSketch):
             depth (int): The depth of the count-min sketch
             confidence (float): The level of confidence desired
             error_rate (float): The desired error rate
-            filepath (string): Path to file to load
+            filepath (str): Path to file to load
             hash_function (function): Hashing strategy function to use \
             `hf(key, number)`
         Returns:
