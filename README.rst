@@ -13,6 +13,9 @@ PyProbables
 .. image:: https://img.shields.io/badge/license-MIT-blue.svg
     :target: https://opensource.org/licenses/MIT/
     :alt: License
+.. image:: https://pepy.tech/badge/pyprobables
+    :target: https://pepy.tech/project/pyprobables
+    :alt: Downloads
 
 **pyprobables** is a pure-python library for probabilistic data structures.
 The goal is to provide the developer with a pure-python implementation of
