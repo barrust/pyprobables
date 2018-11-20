@@ -1,5 +1,10 @@
 # PyProbables Changelog
 
+### Version 0.3.0
+* Bloom Filters:
+    * Import/Export of Expanding and Rotating Bloom Filters
+    * Fix for importing standard Bloom Filters
+
 ### Version 0.2.6
 * Bloom Filters:
     * Addition of a Rotating Bloom Filter
