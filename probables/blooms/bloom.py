@@ -218,6 +218,8 @@ class BloomFilterOnDisk(BaseBloom):
                 2) From Hex String
                 3) Only filepath provided '''
 
+    __slots__ = ['__file_pointer', '__filename', '__export_offset']
+
     def __init__(self, filepath, est_elements=None, false_positive_rate=None,
                  hex_string=None, hash_function=None):
         # since we cannot load from a file only (to memory), we can't pass
