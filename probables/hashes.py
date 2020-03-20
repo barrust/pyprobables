@@ -48,12 +48,10 @@ def hash_with_depth_int(func):
     def hashing_func(key, depth=1):
         ''' wrapper function '''
         res = list()
-        tmp = key
-        for _ in range(depth):
-            if tmp != key:
-                tmp = func("{0:x}".format(tmp))
-            else:
-                tmp = func(key)
+        tmp = func(key)
+        res.append(tmp)
+        for _ in range(depth - 1):
+            tmp = func("{0:x}".format(tmp))
             res.append(tmp)
         return res
     return hashing_func
@@ -83,9 +81,11 @@ def fnv_1a(key):
     max64mod = UINT64_T_MAX + 1
     hval = 14695981039346656073
     fnv_64_prime = 1099511628211
-    for t_str in key:
-        hval = hval ^ ord(t_str)
-        hval = (hval * fnv_64_prime) % max64mod
+    tmp = map(ord, key)
+    for t_str in tmp:
+        hval ^= t_str
+        hval *= fnv_64_prime
+        hval %= max64mod
     return hval
 
 

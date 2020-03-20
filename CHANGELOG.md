@@ -1,5 +1,9 @@
 # PyProbables Changelog
 
+### Version 0.3.1
+* Add additional __slots__
+* Very minor improvement to the hashing algorithm
+
 ### Version 0.3.0
 * Bloom Filters:
     * Import/Export of Expanding and Rotating Bloom Filters
