@@ -82,6 +82,7 @@ Bloom Filter that is run directly off of disk instead of in memory. This
 can be useful for very large Bloom Filters or when needing to access many
 Blooms that are exported to file.
 
+
 Expanding Bloom Filter
 """""""""""""""""""""""""""""""""""""""""""""""
 
@@ -90,8 +91,6 @@ Bloom Filter that automatically grows to ensure that the desired false positive
 rate is not exceeded. This is ideal for situations that it is a wild guess to
 determine the number of elements that will be added.
 
-At this time, it is not possible to import or export an **Expanding Bloom
-Filter** but that is a planned feature.
 
 Rotating Bloom Filter
 """""""""""""""""""""""""""""""""""""""""""""""
@@ -100,9 +99,6 @@ The **Rotating Bloom Filter** is a specialized version of the standard
 Bloom Filter that rolls of earlier entries into the filter as they become more
 stale. The popping of the queue can be done either programmatically or
 automatically.
-
-At this time, it is not possible to import or export an **Expanding Bloom
-Filter** but that is a planned feature.
 
 
 Counting Bloom Filter
@@ -211,6 +207,7 @@ Import, Initialize, and Train
     >>>         for word in line.split():
     >>>             ccf.add(word.lower())  # add each to the cuckoo filter!
 
+
 Query the Cuckoo Filter
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. code:: python3
@@ -219,11 +216,13 @@ Query the Cuckoo Filter
     >>> for word in words_to_check:
     >>>     print(ccf.check(word))  # prints: True, True, True, True, False
 
+
 Export the Cuckoo Filter
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 .. code:: python3
 
     >>> ccf.export('war_and_peace.cko')
+
 
 Import a Cuckoo Filter
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -284,7 +283,7 @@ Defining hashing function using the provided decorators:
 .. code:: python3
 
     >>> import mmh3  # murmur hash 3 implementation (pip install mmh3)
-    >>> from pyprobables.hashes import (hash_with_depth_bytes)
+    >>> from pyprobables.hashes import (hash_with_depth_int)
     >>> from pyprobables import (BloomFilter)
     >>>
     >>> @hash_with_depth_int
@@ -309,6 +308,7 @@ Generate completely different hashing strategy
     >>>         val = int(hashlib.sha512(tmp.encode(encoding)).hexdigest(), 16)
     >>>         results.append(val % max64mod)
     >>>     return results
+
 
 Indices and Tables
 ==================
