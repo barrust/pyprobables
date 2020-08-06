@@ -81,14 +81,14 @@ class TestExpandingBloomFilter(unittest.TestCase):
         ''' basic expanding Bloom Filter export test '''
         blm = ExpandingBloomFilter(est_elements=25, false_positive_rate=0.05)
         blm.export('test.ebf')
-        self.assertEqual(calc_file_md5('test.ebf'), '1581beab91f83b7e5aaf0f059ee94eaf')
+        self.assertEqual(calc_file_md5('test.ebf'), 'eb5769ae9babdf7b37d6ce64d58812bc')
         os.remove('test.ebf')
 
     def test_ebf_import_empty(self):
         ''' test that expanding Bloom Filter is correct on import '''
         blm = ExpandingBloomFilter(est_elements=25, false_positive_rate=0.05)
         blm.export('test.ebf')
-        self.assertEqual(calc_file_md5('test.ebf'), '1581beab91f83b7e5aaf0f059ee94eaf')
+        self.assertEqual(calc_file_md5('test.ebf'), 'eb5769ae9babdf7b37d6ce64d58812bc')
 
         blm2 = ExpandingBloomFilter(filepath='test.ebf')
         for bloom in blm2._blooms:
@@ -217,14 +217,14 @@ class TestRotatingBloomFilter(unittest.TestCase):
         ''' basic rotating Bloom Filter export test '''
         blm = RotatingBloomFilter(est_elements=25, false_positive_rate=0.05)
         blm.export('test.rbf')
-        self.assertEqual(calc_file_md5('test.rbf'), '1581beab91f83b7e5aaf0f059ee94eaf')
+        self.assertEqual(calc_file_md5('test.rbf'), 'eb5769ae9babdf7b37d6ce64d58812bc')
         os.remove('test.rbf')
 
     def test_rbf_import_empty(self):
         ''' test that rotating Bloom Filter is correct on import '''
         blm = RotatingBloomFilter(est_elements=25, false_positive_rate=0.05)
         blm.export('test.rbf')
-        self.assertEqual(calc_file_md5('test.rbf'), '1581beab91f83b7e5aaf0f059ee94eaf')
+        self.assertEqual(calc_file_md5('test.rbf'), 'eb5769ae9babdf7b37d6ce64d58812bc')
 
         blm2 = ExpandingBloomFilter(filepath='test.rbf')
         for bloom in blm2._blooms:

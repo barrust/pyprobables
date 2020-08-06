@@ -150,8 +150,8 @@ class ExpandingBloomFilter(object):
         with open(filepath, 'wb') as fileobj:
             # add all the different Bloom bit arrays...
             for blm in self._blooms:
-                rep = 'B' * blm.bloom_length
-                fileobj.write(pack(rep, *blm.bloom))
+                rep = 'Q' + 'B' * blm.bloom_length
+                fileobj.write(pack(rep, blm.elements_added, *blm.bloom))
             fileobj.write(pack('QQQf', len(self._blooms),
                                self.estimated_elements,
                                self.elements_added,
@@ -175,9 +175,11 @@ class ExpandingBloomFilter(object):
                                   false_positive_rate=self.__fpr,
                                   hash_function=self.__hash_func)
                 # now we need to read in the correct number of bytes...
-                offset = calcsize('B') * blm.bloom_length
-                rep = 'B' * blm.bloom_length
-                blm._bloom = list(unpack(rep, fileobj.read(offset)))
+                offset = calcsize('Q') + calcsize('B') * blm.bloom_length
+                rep = 'Q' + 'B' * blm.bloom_length
+                elements_added, *bloom_bytes = list(unpack(rep, fileobj.read(offset)))
+                blm._bloom = bloom_bytes
+                blm.elements_added = elements_added
                 self._blooms.append(blm)
 
 
