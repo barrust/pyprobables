@@ -177,9 +177,9 @@ class ExpandingBloomFilter(object):
                 # now we need to read in the correct number of bytes...
                 offset = calcsize('Q') + calcsize('B') * blm.bloom_length
                 rep = 'Q' + 'B' * blm.bloom_length
-                elements_added, *bloom_bytes = list(unpack(rep, fileobj.read(offset)))
-                blm._bloom = bloom_bytes
-                blm.elements_added = elements_added
+                unpacked = list(unpack(rep, fileobj.read(offset)))
+                blm._bloom = unpacked[1:]
+                blm.elements_added = unpacked[0]
                 self._blooms.append(blm)
 
 
