@@ -119,9 +119,7 @@ class TestCuckooFilter(unittest.TestCase):
 
         def runner():
             """ runner """
-            cko = CuckooFilter(
-                capacity=100, bucket_size=2, max_swaps=100, auto_expand=False
-            )
+            cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=100, auto_expand=False)
             for i in range(175):
                 cko.add(str(i))
 
@@ -170,9 +168,7 @@ class TestCuckooFilter(unittest.TestCase):
     def test_cuckoo_full_msg(self):
         """ test exception message for full cuckoo filter """
         try:
-            cko = CuckooFilter(
-                capacity=100, bucket_size=2, max_swaps=100, auto_expand=False
-            )
+            cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=100, auto_expand=False)
             for i in range(175):
                 cko.add(str(i))
         except CuckooFilterFullError as ex:
@@ -332,10 +328,7 @@ class TestCuckooFilter(unittest.TestCase):
             CuckooFilter(capacity=-100)
 
         self.assertRaises(InitializationError, runner)
-        msg = (
-            "CuckooFilter: capacity, bucket_size, and max_swaps "
-            "must be an integer greater than 0"
-        )
+        msg = "CuckooFilter: capacity, bucket_size, and max_swaps " "must be an integer greater than 0"
         try:
             runner()
         except InitializationError as ex:
@@ -351,10 +344,7 @@ class TestCuckooFilter(unittest.TestCase):
             CuckooFilter(bucket_size=0)
 
         self.assertRaises(InitializationError, runner)
-        msg = (
-            "CuckooFilter: capacity, bucket_size, and max_swaps "
-            "must be an integer greater than 0"
-        )
+        msg = "CuckooFilter: capacity, bucket_size, and max_swaps " "must be an integer greater than 0"
         try:
             runner()
         except InitializationError as ex:
@@ -370,10 +360,7 @@ class TestCuckooFilter(unittest.TestCase):
             CuckooFilter(max_swaps=0)
 
         self.assertRaises(InitializationError, runner)
-        msg = (
-            "CuckooFilter: capacity, bucket_size, and max_swaps "
-            "must be an integer greater than 0"
-        )
+        msg = "CuckooFilter: capacity, bucket_size, and max_swaps " "must be an integer greater than 0"
         try:
             runner()
         except InitializationError as ex:
@@ -389,10 +376,7 @@ class TestCuckooFilter(unittest.TestCase):
             CuckooFilter(capacity="abc")
 
         self.assertRaises(InitializationError, runner)
-        msg = (
-            "CuckooFilter: capacity, bucket_size, and max_swaps "
-            "must be an integer greater than 0"
-        )
+        msg = "CuckooFilter: capacity, bucket_size, and max_swaps " "must be an integer greater than 0"
         try:
             runner()
         except InitializationError as ex:
@@ -408,10 +392,7 @@ class TestCuckooFilter(unittest.TestCase):
             CuckooFilter(bucket_size=[0])
 
         self.assertRaises(InitializationError, runner)
-        msg = (
-            "CuckooFilter: capacity, bucket_size, and max_swaps "
-            "must be an integer greater than 0"
-        )
+        msg = "CuckooFilter: capacity, bucket_size, and max_swaps " "must be an integer greater than 0"
         try:
             runner()
         except InitializationError as ex:
@@ -427,10 +408,7 @@ class TestCuckooFilter(unittest.TestCase):
             CuckooFilter(max_swaps=None)
 
         self.assertRaises(InitializationError, runner)
-        msg = (
-            "CuckooFilter: capacity, bucket_size, and max_swaps "
-            "must be an integer greater than 0"
-        )
+        msg = "CuckooFilter: capacity, bucket_size, and max_swaps " "must be an integer greater than 0"
         try:
             runner()
         except InitializationError as ex:

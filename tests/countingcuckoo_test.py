@@ -101,9 +101,7 @@ class TestCountingCuckooFilter(unittest.TestCase):
 
         def runner():
             """ runner """
-            cko = CountingCuckooFilter(
-                capacity=100, bucket_size=2, max_swaps=100, auto_expand=False
-            )
+            cko = CountingCuckooFilter(capacity=100, bucket_size=2, max_swaps=100, auto_expand=False)
             for i in range(175):
                 cko.add(str(i))
 
@@ -112,9 +110,7 @@ class TestCountingCuckooFilter(unittest.TestCase):
     def test_c_cuckoo_full_msg(self):
         """ test exception message for full counting cuckoo filter """
         try:
-            cko = CountingCuckooFilter(
-                capacity=100, bucket_size=2, max_swaps=100, auto_expand=False
-            )
+            cko = CountingCuckooFilter(capacity=100, bucket_size=2, max_swaps=100, auto_expand=False)
             for i in range(175):
                 cko.add(str(i))
         except CuckooFilterFullError as ex:

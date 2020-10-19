@@ -75,12 +75,7 @@ class CountMinSketch(object):
         if is_valid_file(filepath):
             self.__load(filepath)
         elif width is not None and depth is not None:
-            valid_prms = (
-                isinstance(width, Number)
-                and width > 0
-                and isinstance(depth, Number)
-                and depth > 0
-            )
+            valid_prms = isinstance(width, Number) and width > 0 and isinstance(depth, Number) and depth > 0
             if not valid_prms:
                 msg = "CountMinSketch: width and depth must be greater than 0"
                 raise InitializationError(msg)
@@ -91,10 +86,7 @@ class CountMinSketch(object):
             self._bins = [0] * (self.width * self.depth)
         elif confidence is not None and error_rate is not None:
             valid_prms = (
-                isinstance(confidence, Number)
-                and confidence > 0
-                and isinstance(error_rate, Number)
-                and error_rate > 0
+                isinstance(confidence, Number) and confidence > 0 and isinstance(error_rate, Number) and error_rate > 0
             )
             if not valid_prms:
                 msg = "CountMinSketch: width and depth must be greater than 0"
@@ -419,9 +411,7 @@ class CountMeanSketch(CountMinSketch):
         filepath=None,
         hash_function=None,
     ):
-        super(CountMeanSketch, self).__init__(
-            width, depth, confidence, error_rate, filepath, hash_function
-        )
+        super(CountMeanSketch, self).__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.query_type = "mean"
 
 
@@ -462,9 +452,7 @@ class CountMeanMinSketch(CountMinSketch):
         filepath=None,
         hash_function=None,
     ):
-        super(CountMeanMinSketch, self).__init__(
-            width, depth, confidence, error_rate, filepath, hash_function
-        )
+        super(CountMeanMinSketch, self).__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.query_type = "mean-min"
 
 
@@ -507,9 +495,7 @@ class HeavyHitters(CountMinSketch):
         hash_function=None,
     ):
 
-        super(HeavyHitters, self).__init__(
-            width, depth, confidence, error_rate, filepath, hash_function
-        )
+        super(HeavyHitters, self).__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.__top_x = dict()  # top x heavy hitters
         self.__top_x_size = 0
         self.__num_hitters = num_hitters
@@ -624,20 +610,14 @@ class StreamThreshold(CountMinSketch):
         filepath=None,
         hash_function=None,
     ):
-        super(StreamThreshold, self).__init__(
-            width, depth, confidence, error_rate, filepath, hash_function
-        )
+        super(StreamThreshold, self).__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.__threshold = threshold
         self.__meets_threshold = dict()
 
     def __str__(self):
         """ stream threshold string rep """
         msg = super(StreamThreshold, self).__str__()
-        tmp = (
-            "Stream Threshold {0}\n"
-            "\tThreshold: {1}\n"
-            "\tNumber Meeting Threshold: {2}"
-        )
+        tmp = "Stream Threshold {0}\n" "\tThreshold: {1}\n" "\tNumber Meeting Threshold: {2}"
         return tmp.format(msg, self.threshold, len(self.__meets_threshold))
 
     @property

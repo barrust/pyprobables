@@ -15,9 +15,7 @@ from ..exceptions import InitializationError, NotSupportedError
 from ..utilities import is_hex_string, is_valid_file
 from .basebloom import BaseBloom
 
-MISMATCH_MSG = (
-    "The parameter second must be of type BloomFilter or " "a BloomFilterOnDisk"
-)
+MISMATCH_MSG = "The parameter second must be of type BloomFilter or " "a BloomFilterOnDisk"
 
 
 def _verify_not_type_mismatch(second):
@@ -273,9 +271,7 @@ class BloomFilterOnDisk(BaseBloom):
         if est_elements is not None and false_positive_rate is not None:
             # no need to check the file since this will over write it
             fpr = false_positive_rate
-            vals = super(BloomFilterOnDisk, self)._set_optimized_params(
-                est_elements, fpr, hash_function
-            )
+            vals = super(BloomFilterOnDisk, self)._set_optimized_params(est_elements, fpr, hash_function)
             super(BloomFilterOnDisk, self).__init__(
                 "reg-ondisk",
                 est_elements=est_elements,
@@ -317,9 +313,7 @@ class BloomFilterOnDisk(BaseBloom):
             offset = calcsize("QQf")
             filepointer.seek(offset * -1, os.SEEK_END)
             mybytes = unpack("QQf", filepointer.read(offset))
-            vals = super(BloomFilterOnDisk, self)._set_optimized_params(
-                mybytes[0], mybytes[2], hash_function
-            )
+            vals = super(BloomFilterOnDisk, self)._set_optimized_params(mybytes[0], mybytes[2], hash_function)
         super(BloomFilterOnDisk, self).__init__(
             "reg-ondisk",
             est_elements=mybytes[0],
@@ -423,10 +417,7 @@ class BloomFilterOnDisk(BaseBloom):
 
     def _load_hex(self, hex_string, hash_function=None):
         """ load from hex ... """
-        msg = (
-            "Loading from hex_string is currently not supported by the "
-            "on disk Bloom Filter"
-        )
+        msg = "Loading from hex_string is currently not supported by the " "on disk Bloom Filter"
         raise NotSupportedError(msg)
 
     def _get_element(self, idx):

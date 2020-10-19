@@ -86,9 +86,7 @@ class TestBloomFilter(unittest.TestCase):
         """ make sure checking for different bloom filters works union """
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         blm.add("this is a test")
-        blm2 = BloomFilter(
-            est_elements=10, false_positive_rate=0.05, hash_function=different_hash
-        )
+        blm2 = BloomFilter(est_elements=10, false_positive_rate=0.05, hash_function=different_hash)
 
         blm3 = blm.union(blm2)
         self.assertEqual(blm3, None)
@@ -150,9 +148,7 @@ class TestBloomFilter(unittest.TestCase):
 
     def test_bf_jaccard_invalid_msg(self):
         """ check invalid type in a jaccard index message """
-        msg = (
-            "The parameter second must be of type BloomFilter or " "a BloomFilterOnDisk"
-        )
+        msg = "The parameter second must be of type BloomFilter or " "a BloomFilterOnDisk"
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         blm.add("this is a test")
         try:
@@ -170,9 +166,7 @@ class TestBloomFilter(unittest.TestCase):
 
     def test_bf_union_invalid_msg(self):
         """ check invalid type in a union message """
-        msg = (
-            "The parameter second must be of type BloomFilter or " "a BloomFilterOnDisk"
-        )
+        msg = "The parameter second must be of type BloomFilter or " "a BloomFilterOnDisk"
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         blm.add("this is a test")
         try:
@@ -190,9 +184,7 @@ class TestBloomFilter(unittest.TestCase):
 
     def test_bf_intersec_invalid_msg(self):
         """ check invalid type in a intersection message """
-        msg = (
-            "The parameter second must be of type BloomFilter or " "a BloomFilterOnDisk"
-        )
+        msg = "The parameter second must be of type BloomFilter or " "a BloomFilterOnDisk"
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         blm.add("this is a test")
         try:
@@ -423,9 +415,7 @@ class TestBloomFilter(unittest.TestCase):
             val = int(hashlib.sha512(key.encode(encoding)).hexdigest(), 16)
             return val % max64mod
 
-        blm = BloomFilter(
-            est_elements=10, false_positive_rate=0.05, hash_function=my_hash
-        )
+        blm = BloomFilter(est_elements=10, false_positive_rate=0.05, hash_function=my_hash)
         self.assertEqual(blm.elements_added, 0)
         blm.add("this is a test")
         blm.export(filename)
@@ -471,9 +461,7 @@ class TestBloomFilter(unittest.TestCase):
                 results.append(val % max64mod)
             return results
 
-        blm = BloomFilter(
-            est_elements=10, false_positive_rate=0.05, hash_function=my_hash
-        )
+        blm = BloomFilter(est_elements=10, false_positive_rate=0.05, hash_function=my_hash)
 
         self.assertEqual(blm.elements_added, 0)
         blm.add("this is a test")
@@ -624,9 +612,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
     def test_bfod_load_invalid_file(self):
         """ test importing a bloom filter on disk from an invalid filepath """
         filename = "invalid.blm"
-        self.assertRaises(
-            InitializationError, lambda: BloomFilterOnDisk(filepath=filename)
-        )
+        self.assertRaises(InitializationError, lambda: BloomFilterOnDisk(filepath=filename))
 
     def test_bfod_invalid_params_msg(self):
         """test importing a bloom filter on disk from an invalid filepath msg"""
@@ -690,9 +676,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         try:
             blm.export_hex()
         except NotSupportedError as ex:
-            msg = (
-                "`export_hex` is currently not supported by the on disk " "Bloom Filter"
-            )
+            msg = "`export_hex` is currently not supported by the on disk " "Bloom Filter"
             self.assertEqual(str(ex), msg)
         else:
             self.assertEqual(True, False)
@@ -714,10 +698,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         try:
             BloomFilterOnDisk(filepath=filename, hex_string=hex_val)
         except NotSupportedError as ex:
-            msg = (
-                "Loading from hex_string is currently not supported by "
-                "the on disk Bloom Filter"
-            )
+            msg = "Loading from hex_string is currently not supported by " "the on disk Bloom Filter"
             self.assertEqual(str(ex), msg)
         else:
             self.assertEqual(True, False)
@@ -725,9 +706,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
     def test_bfod_clear(self):
         """ test clearing out the bloom filter on disk """
         filename = "tmp.blm"
-        blm = BloomFilterOnDisk(
-            filepath=filename, est_elements=10, false_positive_rate=0.05
-        )
+        blm = BloomFilterOnDisk(filepath=filename, est_elements=10, false_positive_rate=0.05)
         self.assertEqual(blm.elements_added, 0)
         for i in range(0, 10):
             tmp = "this is a test {0}".format(i)
@@ -746,9 +725,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         filename = "tmp.blm"
         blm = BloomFilterOnDisk(filename, est_elements=10, false_positive_rate=0.05)
         blm.add("this is a test")
-        blm2 = BloomFilter(
-            est_elements=10, false_positive_rate=0.05, hash_function=different_hash
-        )
+        blm2 = BloomFilter(est_elements=10, false_positive_rate=0.05, hash_function=different_hash)
 
         blm3 = blm.union(blm2)
         self.assertEqual(blm3, None)
@@ -761,9 +738,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         filename = "tmp.blm"
         blm = BloomFilterOnDisk(filename, est_elements=10, false_positive_rate=0.05)
         blm.add("this is a test")
-        blm2 = BloomFilter(
-            est_elements=10, false_positive_rate=0.05, hash_function=different_hash
-        )
+        blm2 = BloomFilter(est_elements=10, false_positive_rate=0.05, hash_function=different_hash)
 
         blm3 = blm.intersection(blm2)
         self.assertEqual(blm3, None)
@@ -776,9 +751,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         filename = "tmp.blm"
         blm = BloomFilterOnDisk(filename, est_elements=10, false_positive_rate=0.05)
         blm.add("this is a test")
-        blm2 = BloomFilter(
-            est_elements=10, false_positive_rate=0.05, hash_function=different_hash
-        )
+        blm2 = BloomFilter(est_elements=10, false_positive_rate=0.05, hash_function=different_hash)
 
         blm3 = blm.jaccard_index(blm2)
         self.assertEqual(blm3, None)
@@ -793,9 +766,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
 
     def test_cbf_jaccard_invalid_msg(self):
         """ check invalid type in a jaccard index message cbf """
-        msg = (
-            "The parameter second must be of type BloomFilter or " "a BloomFilterOnDisk"
-        )
+        msg = "The parameter second must be of type BloomFilter or " "a BloomFilterOnDisk"
         filename = "tmp.blm"
         blm = BloomFilterOnDisk(filename, est_elements=10, false_positive_rate=0.05)
         blm.add("this is a test")
@@ -817,9 +788,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
 
     def test_cbf_union_invalid_msg(self):
         """ check invalid type in a union message cbf """
-        msg = (
-            "The parameter second must be of type BloomFilter or " "a BloomFilterOnDisk"
-        )
+        msg = "The parameter second must be of type BloomFilter or " "a BloomFilterOnDisk"
         filename = "tmp.blm"
         blm = BloomFilterOnDisk(filename, est_elements=10, false_positive_rate=0.05)
         blm.add("this is a test")
@@ -841,9 +810,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
 
     def test_cbf_intersec_invalid_msg(self):
         """ check invalid type in a intersection message cbf """
-        msg = (
-            "The parameter second must be of type BloomFilter or " "a BloomFilterOnDisk"
-        )
+        msg = "The parameter second must be of type BloomFilter or " "a BloomFilterOnDisk"
         filename = "tmp.blm"
         blm = BloomFilterOnDisk(filename, est_elements=10, false_positive_rate=0.05)
         blm.add("this is a test")

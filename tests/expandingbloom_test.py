@@ -121,17 +121,13 @@ class TestExpandingBloomFilter(unittest.TestCase):
 class TestRotatingBloomFilter(unittest.TestCase):
     def test_rbf_init(self):
         """ test the initialization of an rotating bloom filter """
-        blm = RotatingBloomFilter(
-            est_elements=10, false_positive_rate=0.05, max_queue_size=10
-        )
+        blm = RotatingBloomFilter(est_elements=10, false_positive_rate=0.05, max_queue_size=10)
         self.assertEqual(blm.expansions, 0)
         self.assertEqual(blm.max_queue_size, 10)
 
     def test_rbf_rotate(self):
         """ test that the bloom filter rotates the first bloom off the stack """
-        blm = RotatingBloomFilter(
-            est_elements=10, false_positive_rate=0.05, max_queue_size=5
-        )
+        blm = RotatingBloomFilter(est_elements=10, false_positive_rate=0.05, max_queue_size=5)
         self.assertEqual(blm.expansions, 0)
         blm.add("test")
         self.assertEqual(blm.expansions, 0)
@@ -162,9 +158,7 @@ class TestRotatingBloomFilter(unittest.TestCase):
         self.assertEqual(blm.current_queue_size, 5)
 
     def test_rbf_push_pop(self):
-        blm = RotatingBloomFilter(
-            est_elements=10, false_positive_rate=0.05, max_queue_size=5
-        )
+        blm = RotatingBloomFilter(est_elements=10, false_positive_rate=0.05, max_queue_size=5)
         self.assertEqual(blm.current_queue_size, 1)
         blm.add("test")
         blm.push()
@@ -200,16 +194,12 @@ class TestRotatingBloomFilter(unittest.TestCase):
 
     def test_rbf_pop_exception(self):
         """ ensure the correct exception is thrown """
-        blm = RotatingBloomFilter(
-            est_elements=10, false_positive_rate=0.05, max_queue_size=5
-        )
+        blm = RotatingBloomFilter(est_elements=10, false_positive_rate=0.05, max_queue_size=5)
         self.assertRaises(RotatingBloomFilterError, lambda: blm.pop())
 
     def test_rbf_pop_exception_msg(self):
         """ rotating bloom filter error: check the resulting error message """
-        blm = RotatingBloomFilter(
-            est_elements=10, false_positive_rate=0.05, max_queue_size=5
-        )
+        blm = RotatingBloomFilter(est_elements=10, false_positive_rate=0.05, max_queue_size=5)
         try:
             blm.pop()
         except RotatingBloomFilterError as ex:

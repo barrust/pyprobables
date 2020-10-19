@@ -34,9 +34,7 @@ class TestCountingBloomFilter(unittest.TestCase):
 
     def test_cbf_ea_diff_hash(self):
         """ test elements added is correct """
-        blm1 = CountingBloomFilter(
-            est_elements=10, false_positive_rate=0.05, hash_function=different_hash
-        )
+        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.05, hash_function=different_hash)
         hsh1 = blm1.hashes("this is a test")
         blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
         hsh2 = blm2.hashes("this is a test")
@@ -134,9 +132,7 @@ class TestCountingBloomFilter(unittest.TestCase):
     def test_cbf_load_invalid_file(self):
         """ test importing a bloom filter from an invalid filepath """
         filename = "invalid.cbm"
-        self.assertRaises(
-            InitializationError, lambda: CountingBloomFilter(filepath=filename)
-        )
+        self.assertRaises(InitializationError, lambda: CountingBloomFilter(filepath=filename))
 
     def test_cbf_invalid_params_msg(self):
         """ test importing a bloom filter from an invalid filepath msg """
@@ -207,9 +203,7 @@ class TestCountingBloomFilter(unittest.TestCase):
             "10100020100010101000002000101000201000000020001000001010000"
             "01020002000000000000000a000000000000000a3d4ccccQ"
         )
-        self.assertRaises(
-            InitializationError, lambda: CountingBloomFilter(hex_string=h_val)
-        )
+        self.assertRaises(InitializationError, lambda: CountingBloomFilter(hex_string=h_val))
 
     def test_cbf_export_size(self):
         """ test the size of the exported file """

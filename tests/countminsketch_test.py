@@ -230,9 +230,7 @@ class TestCountMinSketch(unittest.TestCase):
     def test_cms_load_invalid_file(self):
         """ test loading a count-min sketch from invalid file """
         filename = "invalid.cms"
-        self.assertRaises(
-            InitializationError, lambda: CountMinSketch(filepath=filename)
-        )
+        self.assertRaises(InitializationError, lambda: CountMinSketch(filepath=filename))
 
     def test_cms_different_hash(self):
         """ test using a different hash function """
@@ -448,15 +446,11 @@ class TestHeavyHitters(unittest.TestCase):
         self.assertEqual(hh1.add("this is also a test"), 1)
         self.assertEqual(hh1.add("this is not a test"), 1)
         self.assertEqual(hh1.add("this is not a test"), 2)
-        self.assertEqual(
-            hh1.heavy_hitters, {"this is a test": 3, "this is not a test": 2}
-        )
+        self.assertEqual(hh1.heavy_hitters, {"this is a test": 3, "this is not a test": 2})
         self.assertEqual(hh1.add("this is also a test"), 2)
         self.assertEqual(hh1.add("this is also a test"), 3)
         self.assertEqual(hh1.add("this is also a test"), 4)
-        self.assertEqual(
-            hh1.heavy_hitters, {"this is a test": 3, "this is also a test": 4}
-        )
+        self.assertEqual(hh1.heavy_hitters, {"this is a test": 3, "this is also a test": 4})
 
     def test_heavyhitters_add_mult(self):
         """ test adding things (multiple) to the heavy hitters """
@@ -464,20 +458,14 @@ class TestHeavyHitters(unittest.TestCase):
         self.assertEqual(hh1.add("this is a test", 3), 3)
         self.assertEqual(hh1.add("this is also a test"), 1)
         self.assertEqual(hh1.add("this is not a test", 2), 2)
-        self.assertEqual(
-            hh1.heavy_hitters, {"this is a test": 3, "this is not a test": 2}
-        )
+        self.assertEqual(hh1.heavy_hitters, {"this is a test": 3, "this is not a test": 2})
         self.assertEqual(hh1.add("this is also a test", 3), 4)
-        self.assertEqual(
-            hh1.heavy_hitters, {"this is a test": 3, "this is also a test": 4}
-        )
+        self.assertEqual(hh1.heavy_hitters, {"this is a test": 3, "this is also a test": 4})
         self.assertEqual(hh1.add("this is not a test", 2), 4)
         self.assertEqual(hh1.add("this is not a test", 2), 6)
         self.assertEqual(hh1.add("this is not a test", 2), 8)
         self.assertEqual(hh1.add("this is not a test", 2), 10)
-        self.assertEqual(
-            hh1.heavy_hitters, {"this is not a test": 10, "this is also a test": 4}
-        )
+        self.assertEqual(hh1.heavy_hitters, {"this is not a test": 10, "this is also a test": 4})
 
     def test_hh_remove(self):
         """ test remove from heavy hitters exception """
@@ -630,9 +618,7 @@ class TestStreamThreshold(unittest.TestCase):
         self.assertEqual(st1.meets_threshold, {"this is a test": 3})
         self.assertEqual(st1.add("this is not a test"), 2)
         self.assertEqual(st1.add("this is still not a test"), 1)
-        self.assertEqual(
-            st1.meets_threshold, {"this is a test": 3, "this is not a test": 2}
-        )
+        self.assertEqual(st1.meets_threshold, {"this is a test": 3, "this is not a test": 2})
         self.assertEqual(st1.elements_added, 6)
 
     def test_streamthreshold_add_mult(self):
@@ -647,9 +633,7 @@ class TestStreamThreshold(unittest.TestCase):
         self.assertEqual(st1.add("this is a test", 20), 30)
         self.assertEqual(st1.meets_threshold, {"this is a test": 30})
         self.assertEqual(st1.add("this is not a test", 2), 11)
-        self.assertEqual(
-            st1.meets_threshold, {"this is a test": 30, "this is not a test": 11}
-        )
+        self.assertEqual(st1.meets_threshold, {"this is a test": 30, "this is not a test": 11})
         self.assertEqual(st1.elements_added, 41)
 
     def test_streamthreshold_clear(self):
@@ -664,9 +648,7 @@ class TestStreamThreshold(unittest.TestCase):
         self.assertEqual(st1.add("this is a test", 20), 30)
         self.assertEqual(st1.meets_threshold, {"this is a test": 30})
         self.assertEqual(st1.add("this is not a test", 2), 11)
-        self.assertEqual(
-            st1.meets_threshold, {"this is a test": 30, "this is not a test": 11}
-        )
+        self.assertEqual(st1.meets_threshold, {"this is a test": 30, "this is not a test": 11})
         self.assertEqual(st1.elements_added, 41)
 
         st1.clear()
@@ -685,13 +667,9 @@ class TestStreamThreshold(unittest.TestCase):
         self.assertEqual(st1.add("this is a test", 20), 30)
         self.assertEqual(st1.meets_threshold, {"this is a test": 30})
         self.assertEqual(st1.add("this is not a test", 2), 11)
-        self.assertEqual(
-            st1.meets_threshold, {"this is a test": 30, "this is not a test": 11}
-        )
+        self.assertEqual(st1.meets_threshold, {"this is a test": 30, "this is not a test": 11})
         self.assertEqual(st1.remove("this is a test"), 29)
-        self.assertEqual(
-            st1.meets_threshold, {"this is a test": 29, "this is not a test": 11}
-        )
+        self.assertEqual(st1.meets_threshold, {"this is a test": 29, "this is not a test": 11})
         self.assertEqual(st1.remove("this is not a test"), 10)
         self.assertEqual(st1.remove("this is not a test"), 9)
         self.assertEqual(st1.meets_threshold, {"this is a test": 29})
@@ -703,9 +681,7 @@ class TestStreamThreshold(unittest.TestCase):
         st1 = StreamThreshold(threshold=10, width=1000, depth=5)
         self.assertEqual(st1.add("this is a test", 30), 30)
         self.assertEqual(st1.add("this is not a test", 11), 11)
-        self.assertEqual(
-            st1.meets_threshold, {"this is a test": 30, "this is not a test": 11}
-        )
+        self.assertEqual(st1.meets_threshold, {"this is a test": 30, "this is not a test": 11})
         self.assertEqual(st1.elements_added, 41)
         self.assertEqual(st1.remove("this is not a test", 2), 9)
         self.assertEqual(st1.meets_threshold, {"this is a test": 30})
