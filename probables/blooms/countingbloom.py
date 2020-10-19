@@ -3,10 +3,10 @@
     Author: Tyler Barrus (barrust@gmail.com)
     URL: https://github.com/barrust/counting_bloom
 """
-from __future__ import unicode_literals, absolute_import, print_function, division
+from __future__ import absolute_import, division, print_function, unicode_literals
 
-from .basebloom import BaseBloom
 from ..constants import UINT32_T_MAX, UINT64_T_MAX
+from .basebloom import BaseBloom
 
 MISMATCH_MSG = "The parameter second must be of type CountingBloomFilter"
 

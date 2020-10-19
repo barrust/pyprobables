@@ -1,5 +1,5 @@
 """ Probables Hashing library """
-from __future__ import unicode_literals, absolute_import, print_function
+from __future__ import absolute_import, print_function, unicode_literals
 
 from functools import wraps
 from hashlib import md5, sha256

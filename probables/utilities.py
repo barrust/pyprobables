@@ -1,7 +1,8 @@
 """ some utility functions """
-from __future__ import unicode_literals, absolute_import, print_function
-import string
+from __future__ import absolute_import, print_function, unicode_literals
+
 import os
+import string
 
 
 def is_hex_string(hex_string):

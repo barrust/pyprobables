@@ -1,9 +1,11 @@
 """ probables utilitites tests """
-from __future__ import unicode_literals, absolute_import, print_function
-import unittest
-import os
+from __future__ import absolute_import, print_function, unicode_literals
 
-from probables.utilities import is_hex_string, is_valid_file, get_x_bits
+import os
+import unittest
+
+from probables.utilities import get_x_bits, is_hex_string, is_valid_file
+
 from .utilities import different_hash
 
 

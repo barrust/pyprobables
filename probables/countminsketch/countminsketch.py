@@ -3,16 +3,17 @@
     Author: Tyler Barrus (barrust@gmail.com)
     URL: https://github.com/barrust/count-min-sketch
 """
-from __future__ import unicode_literals, absolute_import, print_function, division
-import os
-import math
-from numbers import Number
-from struct import pack, unpack, calcsize
+from __future__ import absolute_import, division, print_function, unicode_literals
 
+import math
+import os
+from numbers import Number
+from struct import calcsize, pack, unpack
+
+from ..constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN
 from ..exceptions import InitializationError, NotSupportedError
 from ..hashes import default_fnv_1a
 from ..utilities import is_valid_file
-from ..constants import INT32_T_MIN, INT32_T_MAX, INT64_T_MIN, INT64_T_MAX
 
 
 class CountMinSketch(object):

@@ -3,14 +3,14 @@
     Author: Tyler Barrus (barrust@gmail.com)
     URL: https://github.com/barrust/pyprobables
 """
-from __future__ import unicode_literals, absolute_import, print_function
+from __future__ import absolute_import, print_function, unicode_literals
 
 import os
-from struct import pack, unpack, calcsize
+from struct import calcsize, pack, unpack
 
-from .bloom import BloomFilter
-from ..utilities import is_valid_file
 from ..exceptions import RotatingBloomFilterError
+from ..utilities import is_valid_file
+from .bloom import BloomFilter
 
 
 class ExpandingBloomFilter(object):

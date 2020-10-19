@@ -1,5 +1,6 @@
 """ pyprobables module """
-from __future__ import unicode_literals, absolute_import, print_function
+from __future__ import absolute_import, print_function, unicode_literals
+
 from .blooms import (
     BloomFilter,
     BloomFilterOnDisk,
@@ -8,18 +9,18 @@ from .blooms import (
     RotatingBloomFilter,
 )
 from .countminsketch import (
+    CountMeanMinSketch,
+    CountMeanSketch,
     CountMinSketch,
     HeavyHitters,
     StreamThreshold,
-    CountMeanSketch,
-    CountMeanMinSketch,
 )
-from .cuckoo import CuckooFilter, CountingCuckooFilter
+from .cuckoo import CountingCuckooFilter, CuckooFilter
 from .exceptions import (
+    CuckooFilterFullError,
     InitializationError,
     NotSupportedError,
     ProbablesBaseException,
-    CuckooFilterFullError,
     RotatingBloomFilterError,
 )
 

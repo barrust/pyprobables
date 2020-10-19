@@ -1,7 +1,7 @@
 """ Cuckoo Filter data structures """
-from __future__ import unicode_literals, absolute_import, print_function
+from __future__ import absolute_import, print_function, unicode_literals
 
-from .cuckoo import CuckooFilter
 from .countingcuckoo import CountingCuckooFilter
+from .cuckoo import CuckooFilter
 
 __all__ = ["CuckooFilter", "CountingCuckooFilter"]

@@ -3,16 +3,17 @@
     Author: Tyler Barrus (barrust@gmail.com)
     URL: https://github.com/barrust/bloom
 """
-from __future__ import unicode_literals, absolute_import, print_function, division
-import sys
-import os
-import mmap
-from struct import pack, unpack, calcsize
-from shutil import copyfile
+from __future__ import absolute_import, division, print_function, unicode_literals
 
-from .basebloom import BaseBloom
+import mmap
+import os
+import sys
+from shutil import copyfile
+from struct import calcsize, pack, unpack
+
 from ..exceptions import InitializationError, NotSupportedError
 from ..utilities import is_hex_string, is_valid_file
+from .basebloom import BaseBloom
 
 MISMATCH_MSG = (
     "The parameter second must be of type BloomFilter or " "a BloomFilterOnDisk"

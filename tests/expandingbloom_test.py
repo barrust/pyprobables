@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 """ Unittest class """
-from __future__ import unicode_literals, absolute_import, print_function
+from __future__ import absolute_import, print_function, unicode_literals
 
 import os
 import unittest
-from .utilities import calc_file_md5
+
 from probables import ExpandingBloomFilter, RotatingBloomFilter
 from probables.exceptions import RotatingBloomFilterError
+
+from .utilities import calc_file_md5
 
 
 class TestExpandingBloomFilter(unittest.TestCase):

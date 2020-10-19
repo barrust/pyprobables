@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """ Unittest class """
-from __future__ import unicode_literals, absolute_import, print_function
-import unittest
+from __future__ import absolute_import, print_function, unicode_literals
+
 import hashlib
+import unittest
+
 from probables.constants import UINT64_T_MAX
 from probables.hashes import (
     default_fnv_1a,

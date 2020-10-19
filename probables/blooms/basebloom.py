@@ -2,14 +2,15 @@
     License: MIT
     Author: Tyler Barrus (barrust@gmail.com)
 """
-from __future__ import unicode_literals, absolute_import, print_function, division
-import sys
+from __future__ import absolute_import, division, print_function, unicode_literals
+
 import math
 import os
-from numbers import Number
+import sys
 from abc import abstractmethod
-from struct import pack, unpack, calcsize, Struct
 from binascii import hexlify, unhexlify
+from numbers import Number
+from struct import Struct, calcsize, pack, unpack
 
 from ..exceptions import InitializationError
 from ..hashes import default_fnv_1a

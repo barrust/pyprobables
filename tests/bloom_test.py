@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
 """ Unittest class """
-from __future__ import unicode_literals, absolute_import, print_function
-import unittest
-import os
+from __future__ import absolute_import, print_function, unicode_literals
+
 import hashlib
+import os
+import unittest
+
 from probables import BloomFilter, BloomFilterOnDisk
+from probables.constants import UINT64_T_MAX
 from probables.exceptions import InitializationError, NotSupportedError
 from probables.hashes import hash_with_depth_int
-from probables.constants import UINT64_T_MAX
+
 from .utilities import calc_file_md5, different_hash
 
 

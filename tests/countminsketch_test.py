@@ -1,17 +1,20 @@
 # -*- coding: utf-8 -*-
 """ Unittest class """
-from __future__ import unicode_literals, absolute_import, print_function
-import unittest
+from __future__ import absolute_import, print_function, unicode_literals
+
 import os
+import unittest
+
 from probables import (
+    CountMeanMinSketch,
+    CountMeanSketch,
     CountMinSketch,
     HeavyHitters,
     StreamThreshold,
-    CountMeanSketch,
-    CountMeanMinSketch,
 )
+from probables.constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN
 from probables.exceptions import InitializationError, NotSupportedError
-from probables.constants import INT32_T_MIN, INT32_T_MAX, INT64_T_MAX, INT64_T_MIN
+
 from .utilities import calc_file_md5, different_hash
 
 

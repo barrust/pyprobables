@@ -1,13 +1,15 @@
 """ Module Installation script """
-import setuptools
 import io
+
+import setuptools
+
 from probables import (
-    __version__,
-    __url__,
     __author__,
+    __bugtrack_url__,
     __email__,
     __license__,
-    __bugtrack_url__,
+    __url__,
+    __version__,
 )
 
 

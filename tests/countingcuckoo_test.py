@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 """ Unittest class """
-from __future__ import unicode_literals, absolute_import, print_function
-import unittest
+from __future__ import absolute_import, print_function, unicode_literals
+
 import os
+import unittest
 
 from probables import CountingCuckooFilter, CuckooFilterFullError
 

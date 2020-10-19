@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "pyprobables"
+version = "0.3.2"
+description = "Probabilistic data structures in Python"
+authors = ["Tyler Barrus <barrust@gmail.com>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^2.7||^3.5"
+
+[tool.poetry.dev-dependencies]
+
+[tool.isort]
+profile = "black"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

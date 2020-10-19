@@ -1,14 +1,13 @@
 """ count-min sketch submodule """
-from __future__ import unicode_literals, absolute_import, print_function
+from __future__ import absolute_import, print_function, unicode_literals
 
 from .countminsketch import (
+    CountMeanMinSketch,
+    CountMeanSketch,
     CountMinSketch,
     HeavyHitters,
     StreamThreshold,
-    CountMeanSketch,
-    CountMeanMinSketch,
 )
-
 
 __all__ = [
     "CountMinSketch",
