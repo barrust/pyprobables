@@ -1,19 +1,18 @@
-''' Counting Cuckoo Filter, python implementation
+""" Counting Cuckoo Filter, python implementation
     License: MIT
     Author: Tyler Barrus (barrust@gmail.com)
-'''
-from __future__ import (unicode_literals, absolute_import, print_function,
-                        division)
+"""
+from __future__ import unicode_literals, absolute_import, print_function, division
 import os
 import random
-from struct import (pack, unpack, calcsize)
+from struct import pack, unpack, calcsize
 
-from . cuckoo import (CuckooFilter)
-from .. exceptions import (CuckooFilterFullError)
+from .cuckoo import CuckooFilter
+from ..exceptions import CuckooFilterFullError
 
 
 class CountingCuckooFilter(CuckooFilter):
-    ''' Simple Counting Cuckoo Filter implementation
+    """ Simple Counting Cuckoo Filter implementation
 
         Args:
             capacity (int): The number of bins
@@ -26,44 +25,64 @@ class CountingCuckooFilter(CuckooFilter):
             the size correctly on import
             filename (str): The path to the file to load or None if no file
         Returns:
-            CountingCuckooFilter: A Cuckoo Filter object '''
+            CountingCuckooFilter: A Cuckoo Filter object """
 
-    __slots__ = ['__unique_elements', '_inserted_elements', '_bucket_size',
-                 '__max_cuckoo_swaps', '_cuckoo_capacity', '_buckets']
+    __slots__ = [
+        "__unique_elements",
+        "_inserted_elements",
+        "_bucket_size",
+        "__max_cuckoo_swaps",
+        "_cuckoo_capacity",
+        "_buckets",
+    ]
 
-    def __init__(self, capacity=10000, bucket_size=4, max_swaps=500,
-                 expansion_rate=2, auto_expand=True, finger_size=4,
-                 filepath=None, hash_function=None):
-        ''' setup the data structure '''
+    def __init__(
+        self,
+        capacity=10000,
+        bucket_size=4,
+        max_swaps=500,
+        expansion_rate=2,
+        auto_expand=True,
+        finger_size=4,
+        filepath=None,
+        hash_function=None,
+    ):
+        """ setup the data structure """
         self.__unique_elements = 0
-        super(CountingCuckooFilter,
-              self).__init__(capacity, bucket_size, max_swaps,
-                             expansion_rate, auto_expand, finger_size,
-                             filepath, hash_function)
+        super(CountingCuckooFilter, self).__init__(
+            capacity,
+            bucket_size,
+            max_swaps,
+            expansion_rate,
+            auto_expand,
+            finger_size,
+            filepath,
+            hash_function,
+        )
 
     def __contains__(self, val):
-        ''' setup the `in` keyword '''
+        """ setup the `in` keyword """
         if self.check(val) > 0:
             return True
         return False
 
     @property
     def unique_elements(self):
-        ''' int: unique number of elements inserted '''
+        """ int: unique number of elements inserted """
         return self.__unique_elements
 
     def load_factor(self):
-        ''' float: How full the Cuckoo Filter is currently '''
+        """ float: How full the Cuckoo Filter is currently """
         return self.unique_elements / (self.capacity * self.bucket_size)
 
     def add(self, key):
-        ''' Add element key to the filter
+        """ Add element key to the filter
 
             Args:
                 key (str): The element to add
             Raises:
                 CuckooFilterFullError: When element not inserted after \
-                maximum number of swaps or 'kicks' '''
+                maximum number of swaps or 'kicks' """
         idx_1, idx_2, fingerprint = self._generate_fingerprint_info(key)
 
         is_present = self._check_if_present(idx_1, idx_2, fingerprint)
@@ -77,12 +96,12 @@ class CountingCuckooFilter(CuckooFilter):
         self._deal_with_insertion(finger)
 
     def check(self, key):
-        ''' Check if an element is in the filter
+        """Check if an element is in the filter
 
-            Args:
-                key (str): Element to check
-            Returns:
-                int: The number of times inserted into the filter '''
+        Args:
+            key (str): Element to check
+        Returns:
+            int: The number of times inserted into the filter"""
         idx_1, idx_2, fingerprint = self._generate_fingerprint_info(key)
         is_present = self._check_if_present(idx_1, idx_2, fingerprint)
         if is_present is not None:
@@ -93,10 +112,10 @@ class CountingCuckooFilter(CuckooFilter):
         return 0
 
     def remove(self, key):
-        ''' Remove an element from the filter
+        """Remove an element from the filter
 
-            Args:
-                key (str): Element to remove '''
+        Args:
+            key (str): Element to remove"""
         idx_1, idx_2, fingerprint = self._generate_fingerprint_info(key)
         idx = self._check_if_present(idx_1, idx_2, fingerprint)
         if idx is None:
@@ -112,29 +131,28 @@ class CountingCuckooFilter(CuckooFilter):
         return False  # catch this...
 
     def expand(self):
-        ''' Expand the cuckoo filter '''
+        """ Expand the cuckoo filter """
         self._expand_logic(None)
 
     def export(self, filename):
-        ''' Export cuckoo filter to file
+        """Export cuckoo filter to file
 
-            Args:
-                filename (str): Path to file to export '''
-        with open(filename, 'wb') as filepointer:
+        Args:
+            filename (str): Path to file to export"""
+        with open(filename, "wb") as filepointer:
             for bucket in self.buckets:
                 # do something for each...
-                rep = len(bucket) * 'II'
-                wbyt = pack(rep,
-                            *[x for x in self.__bucket_decomposition(bucket)])
+                rep = len(bucket) * "II"
+                wbyt = pack(rep, *[x for x in self.__bucket_decomposition(bucket)])
                 filepointer.write(wbyt)
                 leftover = self.bucket_size - len(bucket)
-                rep = leftover * 'II'
+                rep = leftover * "II"
                 filepointer.write(pack(rep, *([0] * (leftover * 2))))
             # now put out the required information at the end
-            filepointer.write(pack('II', self.bucket_size, self.max_swaps))
+            filepointer.write(pack("II", self.bucket_size, self.max_swaps))
 
     def _insert_fingerprint_alt(self, fingerprint, idx_1, idx_2, count=1):
-        ''' insert a fingerprint, but with a count parameter! '''
+        """ insert a fingerprint, but with a count parameter! """
         if self.__insert_element(fingerprint, idx_1, count):
             self._inserted_elements += 1
             self.__unique_elements += 1
@@ -169,7 +187,7 @@ class CountingCuckooFilter(CuckooFilter):
         return prv_bin
 
     def _check_if_present(self, idx_1, idx_2, fingerprint):
-        ''' wrapper for checking if fingerprint is already inserted '''
+        """ wrapper for checking if fingerprint is already inserted """
         if fingerprint in [x.finger for x in self.buckets[idx_1]]:
             return idx_1
         elif fingerprint in [x.finger for x in self.buckets[idx_2]]:
@@ -177,13 +195,13 @@ class CountingCuckooFilter(CuckooFilter):
         return None
 
     def _load(self, filename):
-        ''' load a cuckoo filter from file '''
-        with open(filename, 'rb') as filepointer:
-            offset = calcsize('II')
-            int_size = calcsize('II')
+        """ load a cuckoo filter from file """
+        with open(filename, "rb") as filepointer:
+            offset = calcsize("II")
+            int_size = calcsize("II")
             filepointer.seek(offset * -1, os.SEEK_END)
             list_size = filepointer.tell()
-            mybytes = unpack('II', filepointer.read(offset))
+            mybytes = unpack("II", filepointer.read(offset))
             self._bucket_size = mybytes[0]
             self.__max_cuckoo_swaps = mybytes[1]
             self._cuckoo_capacity = list_size // int_size // self.bucket_size
@@ -194,7 +212,7 @@ class CountingCuckooFilter(CuckooFilter):
             for i in range(self.capacity):
                 self.buckets.append(list())
                 for _ in range(self.bucket_size):
-                    finger, count = unpack('II', filepointer.read(int_size))
+                    finger, count = unpack("II", filepointer.read(int_size))
                     if finger > 0:
                         ccb = CountingCuckooBin(finger, count)
                         self.buckets[i].append(ccb)
@@ -202,21 +220,20 @@ class CountingCuckooFilter(CuckooFilter):
                         self.__unique_elements += 1
 
     def _expand_logic(self, extra_fingerprint):
-        ''' the logic to acutally expand the cuckoo filter '''
+        """ the logic to acutally expand the cuckoo filter """
         # get all the fingerprints
         fingerprints = self._setup_expand(extra_fingerprint)
         self.__unique_elements = 0  # this needs to be reset!
 
         for elm in fingerprints:
             idx_1, idx_2 = self._indicies_from_fingerprint(elm.finger)
-            res = self._insert_fingerprint_alt(elm.finger, idx_1, idx_2,
-                                               elm.count)
+            res = self._insert_fingerprint_alt(elm.finger, idx_1, idx_2, elm.count)
             if res is not None:  # again, this *shouldn't* happen
-                msg = ('The CountingCuckooFilter failed to expand')
+                msg = "The CountingCuckooFilter failed to expand"
                 raise CuckooFilterFullError(msg)
 
     def __insert_element(self, fingerprint, idx, count=1):
-        ''' insert an element '''
+        """ insert an element """
         if len(self.buckets[idx]) < self.bucket_size:
             self.buckets[idx].append(CountingCuckooBin(fingerprint, count))
             return True
@@ -230,45 +247,44 @@ class CountingCuckooFilter(CuckooFilter):
 
 
 class CountingCuckooBin(object):
-    ''' A container class for the counting cuckoo filter '''
+    """ A container class for the counting cuckoo filter """
 
     # keep it lightweight
-    __slots__ = ['__fingerprint', '__count']
+    __slots__ = ["__fingerprint", "__count"]
 
     def __init__(self, fingerprint, count):
-        ''' init '''
+        """ init """
         self.__fingerprint = fingerprint
         self.__count = count
 
     def __contains__(self, val):
-        ''' setup the `in` construct '''
+        """ setup the `in` construct """
         return self.__fingerprint == val
 
     @property
     def finger(self):
-        ''' fingerprint property '''
+        """ fingerprint property """
         return self.__fingerprint
 
     @property
     def count(self):
-        ''' count property '''
+        """ count property """
         return self.__count
 
     def __repr__(self):
-        ''' how do we represent this? '''
+        """ how do we represent this? """
         return self.__str__()
 
     def __str__(self):
-        ''' convert it into a string '''
-        return '(fingerprint:{} count:{})'.format(self.__fingerprint,
-                                                  self.__count)
+        """ convert it into a string """
+        return "(fingerprint:{} count:{})".format(self.__fingerprint, self.__count)
 
     def increment(self):
-        ''' increment '''
+        """ increment """
         self.__count += 1
         return self.__count
 
     def decrement(self):
-        ''' decrement '''
+        """ decrement """
         self.__count -= 1
         return self.__count
