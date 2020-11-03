@@ -1,9 +1,18 @@
-''' count-min sketch submodule '''
-from __future__ import (unicode_literals, absolute_import, print_function)
+""" count-min sketch submodule """
+from __future__ import absolute_import, print_function, unicode_literals
 
-from . countminsketch import (CountMinSketch, HeavyHitters, StreamThreshold,
-                              CountMeanSketch, CountMeanMinSketch)
+from .countminsketch import (
+    CountMeanMinSketch,
+    CountMeanSketch,
+    CountMinSketch,
+    HeavyHitters,
+    StreamThreshold,
+)
 
-
-__all__ = ['CountMinSketch', 'HeavyHitters', 'StreamThreshold',
-           'CountMeanSketch', 'CountMeanMinSketch']
+__all__ = [
+    "CountMinSketch",
+    "HeavyHitters",
+    "StreamThreshold",
+    "CountMeanSketch",
+    "CountMeanMinSketch",
+]

@@ -1,12 +1,13 @@
-''' PyProbables Exceptions '''
-from __future__ import (unicode_literals, absolute_import, print_function)
+""" PyProbables Exceptions """
+from __future__ import absolute_import, print_function, unicode_literals
 
 
 class ProbablesBaseException(Exception):
-    ''' Base ProbablesBaseException
+    """Base ProbablesBaseException
 
-        Args:
-            message (str): The error message to be reported '''
+    Args:
+        message (str): The error message to be reported"""
+
     def __init__(self, message):
         self.message = message
         super(ProbablesBaseException, self).__init__(self.message)
@@ -19,40 +20,44 @@ class ProbablesBaseException(Exception):
 
 
 class InitializationError(ProbablesBaseException):
-    ''' Initialization Exception
+    """Initialization Exception
 
-        Args:
-            message (str): The initialization error messge '''
+    Args:
+        message (str): The initialization error messge"""
+
     def __init__(self, message):
         self.message = message
         super(InitializationError, self).__init__(self.message)
 
 
 class NotSupportedError(ProbablesBaseException):
-    ''' Not Supported Functionality Exception
+    """Not Supported Functionality Exception
 
-        Args:
-            message (str): The error message to be reported '''
+    Args:
+        message (str): The error message to be reported"""
+
     def __init__(self, message):
         self.message = message
         super(NotSupportedError, self).__init__(self.message)
 
 
 class CuckooFilterFullError(ProbablesBaseException):
-    ''' Cuckoo Filter Full Exception
+    """Cuckoo Filter Full Exception
 
-        Args:
-            message (str): The error message to be reported '''
+    Args:
+        message (str): The error message to be reported"""
+
     def __init__(self, message):
         self.message = message
         super(CuckooFilterFullError, self).__init__(self.message)
 
 
 class RotatingBloomFilterError(ProbablesBaseException):
-    ''' RotatingBloomFilter unable to rotate Blooms Exceptions
+    """RotatingBloomFilter unable to rotate Blooms Exceptions
 
-        Args:
-            message (str): The error message to be reported '''
+    Args:
+        message (str): The error message to be reported"""
+
     def __init__(self, message):
         self.message = message
         super(RotatingBloomFilterError, self).__init__(self.message)

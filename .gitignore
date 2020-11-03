@@ -104,3 +104,8 @@ ENV/
 
 # mypy
 .mypy_cache/
+
+.idea
+.vscode
+
+poetry.lock
