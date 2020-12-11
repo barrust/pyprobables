@@ -1,8 +1,12 @@
 PyProbables
 ===========
 
-.. image:: https://badge.fury.io/py/pyprobables.svg
-    :target: https://badge.fury.io/py/pyprobables
+.. image:: https://img.shields.io/badge/license-MIT-blue.svg
+    :target: https://opensource.org/licenses/MIT/
+    :alt: License
+.. image:: https://img.shields.io/github/release/barrust/mediawiki.svg
+    :target: https://github.com/barrust/mediawiki/releases
+    :alt: GitHub release
 .. image:: https://coveralls.io/repos/github/barrust/pyprobables/badge.svg
     :target: https://coveralls.io/github/barrust/pyprobables
 .. image:: https://travis-ci.org/barrust/pyprobables.svg?branch=master
@@ -10,9 +14,9 @@ PyProbables
 .. image:: https://readthedocs.org/projects/pyprobables/badge/?version=latest
     :target: http://pyprobables.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
-.. image:: https://img.shields.io/badge/license-MIT-blue.svg
-    :target: https://opensource.org/licenses/MIT/
-    :alt: License
+.. image:: https://badge.fury.io/py/pyprobables.svg
+    :target: https://badge.fury.io/py/pyprobables
+    :alt: Pypi Release
 .. image:: https://pepy.tech/badge/pyprobables
     :target: https://pepy.tech/project/pyprobables
     :alt: Downloads
