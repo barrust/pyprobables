@@ -4,13 +4,15 @@ PyProbables
 .. image:: https://img.shields.io/badge/license-MIT-blue.svg
     :target: https://opensource.org/licenses/MIT/
     :alt: License
-.. image:: https://img.shields.io/github/release/barrust/mediawiki.svg
-    :target: https://github.com/barrust/mediawiki/releases
+.. image:: https://img.shields.io/github/release/barrust/pyprobables.svg
+    :target: https://github.com/barrust/pyprobables/releases
     :alt: GitHub release
-.. image:: https://coveralls.io/repos/github/barrust/pyprobables/badge.svg
-    :target: https://coveralls.io/github/barrust/pyprobables
-.. image:: https://travis-ci.org/barrust/pyprobables.svg?branch=master
-    :target: https://travis-ci.org/barrust/pyprobables
+.. image:: https://github.com/barrust/pyprobables/workflows/Python%20package/badge.svg
+    :target: https://github.com/barrust/pyprobables/actions?query=workflow%3A%22Python+package%22
+    :alt: Build Status
+.. image:: https://codecov.io/gh/barrust/pyprobables/branch/master/graph/badge.svg?token=OdETiNgz9k
+    :target: https://codecov.io/gh/barrust/pyprobables
+    :alt: Test Coverage
 .. image:: https://readthedocs.org/projects/pyprobables/badge/?version=latest
     :target: http://pyprobables.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
