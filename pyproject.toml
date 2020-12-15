@@ -24,8 +24,8 @@ python = "^2.7||^3.5"
 pre-commit = {version = "^2.7.1", python = "^3.6.1"}
 black = {version = "^20.8b1", python = "^3.6"}
 isort = {version = "^5.6.4", python = "^3.6"}
-coveralls = {version = "^2.1.2", python = "^3.5"}
 pytest = {version = "^6.1.1", python = "^3.5"}
+flake8 = {version = "^3.6.0", python = "^3.5"}
 
 [tool.isort]
 profile = "black"
