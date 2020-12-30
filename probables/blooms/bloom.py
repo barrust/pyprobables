@@ -3,11 +3,9 @@
     Author: Tyler Barrus (barrust@gmail.com)
     URL: https://github.com/barrust/bloom
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import mmap
 import os
-import sys
 from shutil import copyfile
 from struct import calcsize, pack, unpack
 
@@ -422,17 +420,7 @@ class BloomFilterOnDisk(BaseBloom):
 
     def _get_element(self, idx):
         """ wrappper to use similar functions always! """
-        if sys.version_info > (3, 0):  # python 3 wants a byte
-            return unpack("B", bytes([self._bloom[idx]]))[0]
-        # python 2 wants a string
-        return unpack("B", self._bloom[idx])[0]
-
-    @staticmethod
-    def _get_set_element(tmp_bit):
-        """ wrappper to use similar functions always! """
-        if sys.version_info > (3, 0):  # python 3 wants a byte
-            return tmp_bit
-        return pack("B", tmp_bit)
+        return unpack("B", bytes([self._bloom[idx]]))[0]
 
     def __update(self):
         """update the on disk Bloom Filter and ensure everything is out

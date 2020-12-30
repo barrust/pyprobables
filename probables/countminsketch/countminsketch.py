@@ -3,7 +3,6 @@
     Author: Tyler Barrus (barrust@gmail.com)
     URL: https://github.com/barrust/count-min-sketch
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import math
 import os
