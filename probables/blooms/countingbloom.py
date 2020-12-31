@@ -3,7 +3,6 @@
     Author: Tyler Barrus (barrust@gmail.com)
     URL: https://github.com/barrust/counting_bloom
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from ..constants import UINT32_T_MAX, UINT64_T_MAX
 from .basebloom import BaseBloom
@@ -136,7 +135,7 @@ class CountingBloomFilter(BaseBloom):
             j = self._get_element(k)
             tmp = j + num_els
             if tmp <= UINT32_T_MAX:
-                self.bloom[k] = self._get_set_element(j + num_els)
+                self.bloom[k] = j + num_els
             else:
                 self.bloom[k] = UINT32_T_MAX
             if self.bloom[k] < res:
@@ -208,7 +207,7 @@ class CountingBloomFilter(BaseBloom):
         for i in list(range(self.number_hashes)):
             k = int(hashes[i]) % self.number_bits
             j = self._get_element(k)
-            self.bloom[k] = self._get_set_element(j - t_num_els)
+            self.bloom[k] = j - t_num_els
         self.elements_added -= t_num_els
         return tmp - t_num_els
 
@@ -241,7 +240,7 @@ class CountingBloomFilter(BaseBloom):
         for i in list(range(self.bloom_length)):
             if self._get_element(i) > 0 and second._get_element(i) > 0:
                 tmp = self._get_element(i) + second._get_element(i)
-                res.bloom[i] = self._get_set_element(tmp)
+                res.bloom[i] = tmp
         res.elements_added = res.estimate_elements()
         return res
 
@@ -304,7 +303,7 @@ class CountingBloomFilter(BaseBloom):
         )
         for i in list(range(self.bloom_length)):
             tmp = self._get_element(i) + second._get_element(i)
-            res.bloom[i] = self._get_set_element(tmp)
+            res.bloom[i] = tmp
         res.elements_added = res.estimate_elements()
         return res
 

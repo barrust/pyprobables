@@ -3,7 +3,6 @@
     Author: Tyler Barrus (barrust@gmail.com)
     URL: https://github.com/barrust/pyprobables
 """
-from __future__ import absolute_import, print_function, unicode_literals
 
 import os
 from struct import calcsize, pack, unpack

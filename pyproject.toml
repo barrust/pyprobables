@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyprobables"
-version = "0.3.2"
+version = "0.4.0"
 description = "Probabilistic data structures in Python"
 authors = ["Tyler Barrus <barrust@gmail.com>"]
 license = "MIT"
@@ -18,7 +18,7 @@ classifiers = [
 readme = "README.rst"
 
 [tool.poetry.dependencies]
-python = "^2.7||^3.5"
+python = "^3.5"
 
 [tool.poetry.dev-dependencies]
 pre-commit = {version = "^2.7.1", python = "^3.6.1"}
@@ -32,7 +32,7 @@ profile = "black"
 
 [tool.black]
 line-length = 120
-target-version = ['py27']
+target-version = ['py35']
 include = '\.pyi?$'
 
 [build-system]

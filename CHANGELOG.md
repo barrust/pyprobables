@@ -1,6 +1,10 @@
 # PyProbables Changelog
 
+## Version 0.4.0
+* Remove **Python 2.7** support
+
 ### Version 0.3.2
+*
 * Fix `RotatingBloomFilter` to keep information on number of elements inserted when exported and loaded. [see PR #50](https://github.com/barrust/pyprobables/pull/50) Thanks [@dvolker48](https://github.com/volker48)
 
 ### Version 0.3.1

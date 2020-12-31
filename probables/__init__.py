@@ -1,5 +1,4 @@
 """ pyprobables module """
-from __future__ import absolute_import, print_function, unicode_literals
 
 from .blooms import (
     BloomFilter,
@@ -28,7 +27,7 @@ __author__ = "Tyler Barrus"
 __maintainer__ = "Tyler Barrus"
 __email__ = "barrust@gmail.com"
 __license__ = "MIT"
-__version__ = "0.3.2"
+__version__ = "0.4.0"
 __credits__ = []
 __url__ = "https://github.com/barrust/pyprobables"
 __bugtrack_url__ = "https://github.com/barrust/pyprobables/issues"

@@ -2,11 +2,9 @@
     License: MIT
     Author: Tyler Barrus (barrust@gmail.com)
 """
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 import math
 import os
-import sys
 from abc import abstractmethod
 from binascii import hexlify, unhexlify
 from numbers import Number
@@ -90,7 +88,7 @@ class BaseBloom(object):
         """ Clear or reset the Counting Bloom Filter """
         self._els_added = 0
         for idx in range(self.bloom_length):
-            self._bloom[idx] = self._get_set_element(0)
+            self._bloom[idx] = 0
 
     @property
     def false_positive_rate(self):
@@ -275,9 +273,7 @@ class BaseBloom(object):
             for val in self.bloom:
                 bytes_string += hexlify(pack(self.__impt_type, val))
             bytes_string += hexlify(mybytes)
-        if sys.version_info > (3, 0):  # python 3 gives us bytes
-            return str(bytes_string, "utf-8")
-        return bytes_string
+        return str(bytes_string, "utf-8")
 
     def export(self, filename):
         """ Export the Bloom Filter to disk
@@ -341,11 +337,6 @@ class BaseBloom(object):
         """ wrappper for getting an element from the Bloom Filter! """
         return self._bloom[idx]
 
-    @staticmethod
-    def _get_set_element(tmp_bit):
-        """ wrappper to use similar functions always! """
-        return tmp_bit
-
     def add(self, key):
         """Add the key to the Bloom Filter
 
@@ -365,7 +356,7 @@ class BaseBloom(object):
             idx = k // 8
             j = self._get_element(idx)
             tmp_bit = int(j) | int((1 << (k % 8)))
-            self._bloom[idx] = self._get_set_element(tmp_bit)
+            self._bloom[idx] = tmp_bit
         self._els_added += 1
 
     def check(self, key):
