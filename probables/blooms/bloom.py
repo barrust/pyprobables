@@ -362,7 +362,10 @@ class BloomFilterOnDisk(BaseBloom):
                 TypeError: When second is not either a :class:`BloomFilter` \
                 or :class:`BloomFilterOnDisk`
             Note:
-                `second` may be a BloomFilter object """
+                `second` may be a BloomFilter object
+            Note:
+                If `second` is not of the same size (false_positive_rate and \
+                est_elements) then this will return `None` """
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
@@ -384,7 +387,10 @@ class BloomFilterOnDisk(BaseBloom):
                 TypeError: When second is not either a :class:`BloomFilter` \
                 or :class:`BloomFilterOnDisk`
             Note:
-                `second` may be a BloomFilter object """
+                `second` may be a BloomFilter object
+            Note:
+                If `second` is not of the same size (false_positive_rate and \
+                est_elements) then this will return `None` """
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
@@ -405,7 +411,10 @@ class BloomFilterOnDisk(BaseBloom):
                 TypeError: When second is not either a :class:`BloomFilter` \
                 or :class:`BloomFilterOnDisk`
             Note:
-                `second` may be a BloomFilter object """
+                `second` may be a BloomFilter object
+            Note:
+                If `second` is not of the same size (false_positive_rate and \
+                est_elements) then this will return `None` """
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
