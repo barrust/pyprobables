@@ -225,7 +225,10 @@ class CountingBloomFilter(BaseBloom):
             Note:
                 The elements_added property will be set to the estimated \
                 number of unique elements added as found in \
-                estimate_elements() """
+                estimate_elements()
+            Note:
+                If `second` is not of the same size (false_positive_rate and \
+                est_elements) then this will return `None` """
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
@@ -257,7 +260,10 @@ class CountingBloomFilter(BaseBloom):
                 TypeError: When second is not a :class:`CountingBloomFilter`
             Note:
                 The Jaccard Index is based on the unique set of elements \
-                added and not the number of each element added """
+                added and not the number of each element added
+            Note:
+                If `second` is not of the same size (false_positive_rate and \
+                est_elements) then this will return `None` """
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
@@ -290,7 +296,10 @@ class CountingBloomFilter(BaseBloom):
             Note:
                 The elements_added property will be set to the estimated \
                 number of unique elements added as found in \
-                estimate_elements() """
+                estimate_elements()
+            Note:
+                If `second` is not of the same size (false_positive_rate and \
+                est_elements) then this will return `None` """
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
