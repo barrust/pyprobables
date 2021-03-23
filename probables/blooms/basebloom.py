@@ -30,6 +30,7 @@ class BaseBloom(object):
         "__impt_type",
         "__blm_type",
         "__bloom_length",
+        "_org_fpr",
     ]
 
     def __init__(
@@ -45,6 +46,7 @@ class BaseBloom(object):
         self._bloom = None
         self.__num_bits = 0  # number of bits
         self.__est_elements = est_elements
+        self._org_fpr = false_positive_rate
         self.__fpr = 0.0
         self.__number_hashes = 0
         self.__hash_func = default_fnv_1a

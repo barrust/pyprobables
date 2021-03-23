@@ -236,7 +236,7 @@ class CountingBloomFilter(BaseBloom):
             return None
         res = CountingBloomFilter(
             est_elements=self.estimated_elements,
-            false_positive_rate=self.false_positive_rate,
+            false_positive_rate=self._org_fpr,
             hash_function=self.hash_function,
         )
 
@@ -307,7 +307,7 @@ class CountingBloomFilter(BaseBloom):
             return None
         res = CountingBloomFilter(
             est_elements=self.estimated_elements,
-            false_positive_rate=self.false_positive_rate,
+            false_positive_rate=self._org_fpr,
             hash_function=self.hash_function,
         )
         for i in list(range(self.bloom_length)):
