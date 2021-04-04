@@ -107,6 +107,23 @@ class TestBloomFilter(unittest.TestCase):
         self.assertEqual(blm3.check("this is yet another test"), False)
         self.assertEqual(blm3.check("this is not another test"), False)
 
+    def test_bf_intersection_issue_57(self):
+        """ test the union of two bloom filters - issue 57 """
+        blm = BloomFilter(est_elements=6425, false_positive_rate=0.001)
+        blm.add("this is a test")
+        blm.add("this is another test")
+        blm2 = BloomFilter(est_elements=6425, false_positive_rate=0.001)
+        blm2.add("this is another test")
+        blm2.add("this is yet another test")
+
+        blm3 = blm.intersection(blm2)
+        self.assertEqual(blm3.estimate_elements(), 1)
+        self.assertEqual(blm3.elements_added, 1)
+        self.assertEqual(blm3.check("this is a test"), False)
+        self.assertEqual(blm3.check("this is another test"), True)
+        self.assertEqual(blm3.check("this is yet another test"), False)
+        self.assertEqual(blm3.check("this is not another test"), False)
+
     def test_bf_intersection_diff(self):
         """make sure checking for different bloom filters works
         intersection"""

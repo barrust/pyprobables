@@ -30,7 +30,6 @@ class BaseBloom(object):
         "__impt_type",
         "__blm_type",
         "__bloom_length",
-        "_org_fpr",
     ]
 
     def __init__(
@@ -46,7 +45,6 @@ class BaseBloom(object):
         self._bloom = None
         self.__num_bits = 0  # number of bits
         self.__est_elements = est_elements
-        self._org_fpr = false_positive_rate
         self.__fpr = 0.0
         self.__number_hashes = 0
         self.__hash_func = default_fnv_1a
@@ -201,9 +199,8 @@ class BaseBloom(object):
         t_fpr = unpack("f", fpr)[0]  # to mimic the c version!
         # optimal caluclations
         n_els = estimated_elements
-        fpr = float(false_positive_rate)
-        m_bt = math.ceil((-n_els * math.log(fpr)) / 0.4804530139182)  # ln(2)^2
-        number_hashes = int(round(math.log(2.0) * m_bt / n_els))
+        m_bt = math.ceil((-n_els * math.log(t_fpr)) / 0.4804530139182)  # ln(2)^2
+        number_hashes = int(round(0.6931471805599453 * m_bt / n_els))  # math.log(2.0)
 
         if number_hashes <= 0:  # this should never happen...
             msg = "Bloom: Number hashes is zero; unusable parameters provided"

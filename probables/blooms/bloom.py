@@ -46,7 +46,7 @@ def _tmp_union(first, second):
     """ encapsulate the basics of the union """
     res = BloomFilter(
         first.estimated_elements,
-        first._org_fpr,
+        first.false_positive_rate,
         hash_function=first.hash_function,
     )
     for i in list(range(first.bloom_length)):
@@ -59,7 +59,7 @@ def _tmp_intersection(first, second):
     """ encapsulate the basics of the intersection """
     res = BloomFilter(
         first.estimated_elements,
-        first._org_fpr,
+        first.false_positive_rate,
         hash_function=first.hash_function,
     )
 
