@@ -66,7 +66,7 @@ class BaseBloom(object):
         elif is_hex_string(hex_string):
             self._load_hex(hex_string, hash_function)
         elif est_elements is not None and false_positive_rate is not None:
-            vals = self._set_optimized_params(est_elements, false_positive_rate, hash_function)
+            vals = self._set_optimized_params(est_elements, float(false_positive_rate), hash_function)
             self.__hash_func = vals[0]
             self.__fpr = vals[1]
             self.__number_hashes = vals[2]
@@ -199,9 +199,8 @@ class BaseBloom(object):
         t_fpr = unpack("f", fpr)[0]  # to mimic the c version!
         # optimal caluclations
         n_els = estimated_elements
-        fpr = float(false_positive_rate)
-        m_bt = math.ceil((-n_els * math.log(fpr)) / 0.4804530139182)  # ln(2)^2
-        number_hashes = int(round(math.log(2.0) * m_bt / n_els))
+        m_bt = math.ceil((-n_els * math.log(t_fpr)) / 0.4804530139182)  # ln(2)^2
+        number_hashes = int(round(0.6931471805599453 * m_bt / n_els))  # math.log(2.0)
 
         if number_hashes <= 0:  # this should never happen...
             msg = "Bloom: Number hashes is zero; unusable parameters provided"
