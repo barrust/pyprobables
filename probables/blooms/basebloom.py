@@ -66,7 +66,7 @@ class BaseBloom(object):
         elif is_hex_string(hex_string):
             self._load_hex(hex_string, hash_function)
         elif est_elements is not None and false_positive_rate is not None:
-            vals = self._set_optimized_params(est_elements, false_positive_rate, hash_function)
+            vals = self._set_optimized_params(est_elements, float(false_positive_rate), hash_function)
             self.__hash_func = vals[0]
             self.__fpr = vals[1]
             self.__number_hashes = vals[2]
