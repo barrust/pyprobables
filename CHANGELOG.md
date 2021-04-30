@@ -1,5 +1,8 @@
 # PyProbables Changelog
 
+## Version 0.4.1
+* Resolve [issue 57](https://github.com/barrust/pyprobables/issues/57) where false positive rate not stored / used the same in some instances
+
 ## Version 0.4.0
 * Remove **Python 2.7** support
 
