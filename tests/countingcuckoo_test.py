@@ -190,7 +190,7 @@ class TestCountingCuckooFilter(unittest.TestCase):
     def test_c_cuckoo_filter_export(self):
         """ test exporting a counting cuckoo filter """
         filename = "./test.cck"
-        md5sum = "60e7072e44947b9b6e5d7bd08a64d8a3"
+        md5sum = "6a98c2df1ec9fbb4f75f8e6392696b9b"
         cko = CountingCuckooFilter(capacity=1000, bucket_size=2, auto_expand=False)
         for i in range(100):
             cko.add(str(i))
@@ -203,7 +203,7 @@ class TestCountingCuckooFilter(unittest.TestCase):
     def test_c_cuckoo_filter_load(self):
         """ test loading a saved counting cuckoo filter """
         filename = "./test.cck"
-        md5sum = "60e7072e44947b9b6e5d7bd08a64d8a3"
+        md5sum = "6a98c2df1ec9fbb4f75f8e6392696b9b"
         cko = CountingCuckooFilter(capacity=1000, bucket_size=2, auto_expand=False)
         for i in range(100):
             cko.add(str(i))
@@ -246,7 +246,7 @@ class TestCountingCuckooFilter(unittest.TestCase):
         """ test the cuckoo bin repr """
         cko = CountingCuckooFilter(capacity=1, bucket_size=2, max_swaps=100)
         cko.add("this is a test")
-        self.assertEqual("[(fingerprint:3057276164 count:1)]", str(cko.buckets[0]))
+        self.assertEqual("[(fingerprint:4280557824 count:1)]", str(cko.buckets[0]))
 
     def test_c_cuckoo_filter_str(self):
         """ test the str representation of the counting cuckoo filter """
