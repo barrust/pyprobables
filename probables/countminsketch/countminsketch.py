@@ -8,6 +8,7 @@ import math
 import os
 from numbers import Number
 from struct import calcsize, pack, unpack
+import numpy as np
 
 from ..constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN
 from ..exceptions import InitializationError, NotSupportedError
@@ -54,13 +55,13 @@ class CountMinSketch(object):
     ]
 
     def __init__(
-        self,
-        width=None,
-        depth=None,
-        confidence=None,
-        error_rate=None,
-        filepath=None,
-        hash_function=None,
+            self,
+            width=None,
+            depth=None,
+            confidence=None,
+            error_rate=None,
+            filepath=None,
+            hash_function=None
     ):
         """ default initilization function """
         # default values
@@ -82,10 +83,11 @@ class CountMinSketch(object):
             self.__depth = int(depth)
             self.__confidence = 1 - (1 / math.pow(2, self.depth))
             self.__error_rate = 2 / self.width
-            self._bins = [0] * (self.width * self.depth)
+            self._bins = np.zeros((self.width, self.depth), dtype=np.int32)
         elif confidence is not None and error_rate is not None:
             valid_prms = (
-                isinstance(confidence, Number) and confidence > 0 and isinstance(error_rate, Number) and error_rate > 0
+                    isinstance(confidence, Number) and confidence > 0 and isinstance(error_rate,
+                                                                                     Number) and error_rate > 0
             )
             if not valid_prms:
                 msg = "CountMinSketch: width and depth must be greater than 0"
@@ -95,7 +97,7 @@ class CountMinSketch(object):
             self.__width = math.ceil(2 / error_rate)
             numerator = -1 * math.log(1 - confidence)
             self.__depth = math.ceil(numerator / 0.6931471805599453)
-            self._bins = [0] * int(self.width * self.depth)
+            self._bins = np.zeros((int(self.width), int(self.depth)), dtype=np.int32)
         else:
             msg = (
                 "Must provide one of the following to initialize the "
@@ -204,8 +206,7 @@ class CountMinSketch(object):
     def clear(self):
         """ Reset the count-min sketch to an empty state """
         self.__elements_added = 0
-        for i, _ in enumerate(self._bins):
-            self._bins[i] = 0
+        self._bins = np.zeros((self.width, self.depth), dtype=np.int32)
 
     def hashes(self, key, depth=None):
         """ Return the hashes based on the provided key
@@ -243,11 +244,9 @@ class CountMinSketch(object):
                 after the insertion """
         res = list()
         for i, val in enumerate(hashes):
-            t_bin = (val % self.width) + (i * self.width)
-            self._bins[t_bin] += num_els
-            if self._bins[t_bin] > INT32_T_MAX:
-                self._bins[t_bin] = INT32_T_MAX
-            res.append(self._bins[t_bin])
+            t_bin = val % self.width
+            self._bins[t_bin, i] = min(self._bins[t_bin, i] + num_els, INT32_T_MAX)
+            res.append(self._bins[t_bin, i])
         self.__elements_added += num_els
 
         if self.elements_added > INT64_T_MAX:
@@ -277,11 +276,9 @@ class CountMinSketch(object):
                 after the removal """
         res = list()
         for i, val in enumerate(hashes):
-            t_bin = (val % self.width) + (i * self.width)
-            self._bins[t_bin] -= num_els
-            if self._bins[t_bin] < INT32_T_MIN:
-                self._bins[t_bin] = INT32_T_MIN
-            res.append(self._bins[t_bin])
+            t_bin = val % self.width
+            self._bins[t_bin, i] = max(self._bins[t_bin, i]-num_els, INT32_T_MIN)
+            res.append(self._bins[t_bin, i])
         self.__elements_added -= num_els
         if self.elements_added < INT64_T_MIN:
             self.__elements_added = INT64_T_MIN
@@ -317,8 +314,9 @@ class CountMinSketch(object):
                 will be written. """
         with open(filepath, "wb") as filepointer:
             # write out the bins
-            rep = "i" * len(self._bins)
-            filepointer.write(pack(rep, *self._bins))
+            flattened_bins = self._bins.flatten(order='F').tolist()
+            rep = "i" * len(flattened_bins)
+            filepointer.write(pack(rep, *flattened_bins))
             filepointer.write(pack("IIq", self.width, self.depth, self.elements_added))
 
     def __load(self, filepath):
@@ -337,14 +335,15 @@ class CountMinSketch(object):
             length = self.width * self.depth
             rep = "i" * length
             offset = calcsize(rep)
-            self._bins = list(unpack(rep, filepointer.read(offset)))
+            self._bins = np.asarray(list(unpack(rep, filepointer.read(offset))), dtype=np.int32).reshape(
+                (self.width, self.depth), order='F')
 
     def __get_values_sorted(self, hashes):
         """ get the values sorted """
         bins = list()
         for i, val in enumerate(hashes):
-            t_bin = (val % self.width) + (i * self.width)
-            bins.append(self._bins[t_bin])
+            t_bin = val % self.width
+            bins.append(self._bins[t_bin, i])
         bins.sort()
         return bins
 
@@ -402,13 +401,13 @@ class CountMeanSketch(CountMinSketch):
     __slots__ = CountMinSketch.__slots__
 
     def __init__(
-        self,
-        width=None,
-        depth=None,
-        confidence=None,
-        error_rate=None,
-        filepath=None,
-        hash_function=None,
+            self,
+            width=None,
+            depth=None,
+            confidence=None,
+            error_rate=None,
+            filepath=None,
+            hash_function=None,
     ):
         super(CountMeanSketch, self).__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.query_type = "mean"
@@ -443,13 +442,13 @@ class CountMeanMinSketch(CountMinSketch):
     __slots__ = CountMinSketch.__slots__
 
     def __init__(
-        self,
-        width=None,
-        depth=None,
-        confidence=None,
-        error_rate=None,
-        filepath=None,
-        hash_function=None,
+            self,
+            width=None,
+            depth=None,
+            confidence=None,
+            error_rate=None,
+            filepath=None,
+            hash_function=None,
     ):
         super(CountMeanMinSketch, self).__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.query_type = "mean-min"
@@ -484,14 +483,14 @@ class HeavyHitters(CountMinSketch):
     __slots__ = ["__top_x", "__top_x_size", "__num_hitters", "__smallest"]
 
     def __init__(
-        self,
-        num_hitters=100,
-        width=None,
-        depth=None,
-        confidence=None,
-        error_rate=None,
-        filepath=None,
-        hash_function=None,
+            self,
+            num_hitters=100,
+            width=None,
+            depth=None,
+            confidence=None,
+            error_rate=None,
+            filepath=None,
+            hash_function=None,
     ):
 
         super(HeavyHitters, self).__init__(width, depth, confidence, error_rate, filepath, hash_function)
@@ -600,14 +599,14 @@ class StreamThreshold(CountMinSketch):
     __slots__ = ["__threshold", "__meets_threshold"]
 
     def __init__(
-        self,
-        threshold=100,
-        width=None,
-        depth=None,
-        confidence=None,
-        error_rate=None,
-        filepath=None,
-        hash_function=None,
+            self,
+            threshold=100,
+            width=None,
+            depth=None,
+            confidence=None,
+            error_rate=None,
+            filepath=None,
+            hash_function=None,
     ):
         super(StreamThreshold, self).__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.__threshold = threshold

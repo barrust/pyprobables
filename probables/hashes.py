@@ -83,6 +83,8 @@ def fnv_1a(key):
         Uses the lower 64 bits when overflows occur"""
     max64mod = UINT64_T_MAX + 1
     hval = 14695981039346656073
+    # int version of 0xcbf29ce484222325
+    #hval = 14695981039346656037
     fnv_64_prime = 1099511628211
     tmp = map(ord, key)
     for t_str in tmp:
