@@ -8,6 +8,8 @@ import math
 import os
 from numbers import Number
 from struct import calcsize, pack, unpack
+from typing import Iterable
+
 import numpy as np
 
 from ..constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN
@@ -370,6 +372,18 @@ class CountMinSketch(object):
         else:
             res = meanmin[self.depth // 2]
         return res
+
+    @classmethod
+    def join(cls, sketches: Iterable['CountMinSketch']):
+        depths = set(map(lambda x: x.depth, sketches))
+        widths = set(map(lambda x: x.width, sketches))
+        assert len(widths) == 1, "Widths must be the same"
+        assert len(depths) == 1, "Depths must be the same"
+        res_cms = cls(list(widths)[0], list(depths)[0], next(iter(sketches))._hash_function)
+        for sketch in sketches:
+            res_cms._bins += sketch._bins
+            res_cms.__elements_added += sketch.elements_added
+        return res_cms
 
 
 class CountMeanSketch(CountMinSketch):
