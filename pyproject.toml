@@ -15,6 +15,9 @@ classifiers = [
         "Topic :: Software Development :: Libraries",
         "Topic :: Utilities",
 ]
+packages = [
+        { include = "probables" },
+]
 readme = "README.rst"
 
 [tool.poetry.dependencies]
