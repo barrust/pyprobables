@@ -231,7 +231,7 @@ class TestBloomFilter(unittest.TestCase):
             "\testimated elements added: 9\n"
             "\tcurrent false positive rate: 0.048806\n"
             "\texport size (bytes): 28\n"
-            "\tnumber bits set: 29\n"
+            "\tnumber bits set: 28\n"
             "\tis on disk: no\n"
         )
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
@@ -243,7 +243,7 @@ class TestBloomFilter(unittest.TestCase):
 
     def test_bf_export_hex(self):
         """ test the exporting of the bloom filter to a hex string """
-        hex_val = "85f240623b6d9459000000000000000a000000000000000a3d4ccccd"
+        hex_val = "ab749caa12683303000000000000000a000000000000000a3d4ccccd"
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         for i in range(0, 10):
             tmp = "this is a test {0}".format(i)
@@ -254,7 +254,7 @@ class TestBloomFilter(unittest.TestCase):
 
     def test_bf_load_hex(self):
         """ test importing a bloom filter from hex value """
-        hex_val = "85f240623b6d9459000000000000000a000000000000000a3d4ccccd"
+        hex_val = "ab749caa12683303000000000000000a000000000000000a3d4ccccd"
         blm = BloomFilter(hex_string=hex_val)
 
         self.assertEqual("this is a test 0" in blm, True)
@@ -270,7 +270,8 @@ class TestBloomFilter(unittest.TestCase):
 
         self.assertEqual("this is a test 10" in blm, False)
         self.assertEqual("this is a test 11" in blm, False)
-        self.assertEqual("this is a test 12" in blm, False)
+        # self.assertEqual("this is a test 12" in blm, False)  # This is a false positive!
+        self.assertEqual("this is a test 15" in blm, False)
 
     def test_bf_load_invalid_hex(self):
         """ test importing a bloom filter from an invalid hex value """
@@ -280,7 +281,7 @@ class TestBloomFilter(unittest.TestCase):
     def test_bf_export_file(self):
         """ test exporting bloom filter to file """
         filename = "test.blm"
-        md5_val = "7f590086f9b962387e145899dd001256"
+        md5_val = "f964432791d3fe72c8fe9c24dfd577ae"
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         blm.add("this is a test")
         blm.export(filename)

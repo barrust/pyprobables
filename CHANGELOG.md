@@ -1,5 +1,9 @@
 # PyProbables Changelog
 
+### FUTURE VERSION
+* ***BACKWARD INCOMPATIBLE CHANGES***
+ * Update to the FNV_1a hash function **NOTE:** Breaks backwards compatibility with previously exported blooms, counting-blooms, cuckoo filter, or count-min-sketch files using the default hash!
+
 ## Version 0.4.1
 * Resolve [issue 57](https://github.com/barrust/pyprobables/issues/57) where false positive rate not stored / used the same in some instances
 
