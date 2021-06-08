@@ -606,6 +606,9 @@ class HeavyHitters(CountMinSketch):
         self.__top_x_size = 0
         self.__smallest = 0
 
+    @classmethod
+    def join(cls, sketches: Iterable['HeavyHitters']):
+        raise NotImplementedError()
 
 class StreamThreshold(CountMinSketch):
     """ keep track of those elements over a certain threshold """
@@ -713,3 +716,7 @@ class StreamThreshold(CountMinSketch):
         else:
             self.__meets_threshold[key] = res
         return res
+
+    @classmethod
+    def join(cls, sketches: Iterable['StreamThreshold']):
+        raise NotImplementedError()
