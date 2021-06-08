@@ -52,6 +52,8 @@ class CountMinSketch(object):
         "__error_rate",
         "__elements_added",
         "__query_method",
+        "__val_min",
+        "__val_max",
         "_bins",
         "_hash_function",
     ]
@@ -63,7 +65,8 @@ class CountMinSketch(object):
             confidence=None,
             error_rate=None,
             filepath=None,
-            hash_function=None
+            hash_function=None,
+            dtype=np.int32
     ):
         """ default initilization function """
         # default values
@@ -73,6 +76,8 @@ class CountMinSketch(object):
         self.__error_rate = 0.0
         self.__elements_added = 0
         self.__query_method = self.__min_query
+        self.__val_min = np.iinfo(dtype).min
+        self.__val_max = np.iinfo(dtype).max
 
         if is_valid_file(filepath):
             self.__load(filepath)
@@ -85,7 +90,7 @@ class CountMinSketch(object):
             self.__depth = int(depth)
             self.__confidence = 1 - (1 / math.pow(2, self.depth))
             self.__error_rate = 2 / self.width
-            self._bins = np.zeros((self.width, self.depth), dtype=np.int32)
+            self._bins = np.zeros((self.width, self.depth), dtype=dtype)
         elif confidence is not None and error_rate is not None:
             valid_prms = (
                     isinstance(confidence, Number) and confidence > 0 and isinstance(error_rate,
@@ -99,7 +104,7 @@ class CountMinSketch(object):
             self.__width = math.ceil(2 / error_rate)
             numerator = -1 * math.log(1 - confidence)
             self.__depth = math.ceil(numerator / 0.6931471805599453)
-            self._bins = np.zeros((int(self.width), int(self.depth)), dtype=np.int32)
+            self._bins = np.zeros((int(self.width), int(self.depth)), dtype=dtype)
         else:
             msg = (
                 "Must provide one of the following to initialize the "
@@ -208,7 +213,7 @@ class CountMinSketch(object):
     def clear(self):
         """ Reset the count-min sketch to an empty state """
         self.__elements_added = 0
-        self._bins = np.zeros((self.width, self.depth), dtype=np.int32)
+        self._bins = np.zeros((self.width, self.depth), dtype=self._bins.dtype)
 
     def hashes(self, key, depth=None):
         """ Return the hashes based on the provided key
@@ -247,7 +252,7 @@ class CountMinSketch(object):
         res = list()
         for i, val in enumerate(hashes):
             t_bin = val % self.width
-            self._bins[t_bin, i] = min(self._bins[t_bin, i] + num_els, INT32_T_MAX)
+            self._bins[t_bin, i] = min(self._bins[t_bin, i] + num_els, self.__val_max)
             res.append(self._bins[t_bin, i])
         self.__elements_added += num_els
 
@@ -279,7 +284,7 @@ class CountMinSketch(object):
         res = list()
         for i, val in enumerate(hashes):
             t_bin = val % self.width
-            self._bins[t_bin, i] = max(self._bins[t_bin, i] - num_els, INT32_T_MIN)
+            self._bins[t_bin, i] = max(self._bins[t_bin, i] - num_els, self.__val_min)
             res.append(self._bins[t_bin, i])
         self.__elements_added -= num_els
         if self.elements_added < INT64_T_MIN:
