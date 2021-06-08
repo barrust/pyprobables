@@ -279,7 +279,7 @@ class CountMinSketch(object):
         res = list()
         for i, val in enumerate(hashes):
             t_bin = val % self.width
-            self._bins[t_bin, i] = max(self._bins[t_bin, i]-num_els, INT32_T_MIN)
+            self._bins[t_bin, i] = max(self._bins[t_bin, i] - num_els, INT32_T_MIN)
             res.append(self._bins[t_bin, i])
         self.__elements_added -= num_els
         if self.elements_added < INT64_T_MIN:
@@ -609,6 +609,7 @@ class HeavyHitters(CountMinSketch):
     @classmethod
     def join(cls, sketches: Iterable['HeavyHitters']):
         raise NotImplementedError()
+
 
 class StreamThreshold(CountMinSketch):
     """ keep track of those elements over a certain threshold """
