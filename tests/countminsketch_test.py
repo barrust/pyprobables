@@ -119,6 +119,55 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertEqual(cms.check("this is a test"), 255)
         self.assertEqual(cms.elements_added, 5 + 16 + 189 + 255)
 
+    def test_cms_check_join(self):
+        """ test checking number elements using min algorithm """
+        cms1 = CountMinSketch(width=1000, depth=5)
+        self.assertEqual(255, cms1.add("this is a test", 255))
+        self.assertEqual(189, cms1.add("this is another test", 189))
+        self.assertEqual(16, cms1.add("this is also a test", 16))
+        self.assertEqual(5, cms1.add("this is something to test", 5))
+
+        self.assertEqual(5, cms1.check("this is something to test"))
+        self.assertEqual(16, cms1.check("this is also a test"))
+        self.assertEqual(189, cms1.check("this is another test"))
+        self.assertEqual(255, cms1.check("this is a test"))
+
+        cms2 = CountMinSketch(width=1000, depth=5)
+        self.assertEqual(255, cms2.add("this is a test", 255))
+        self.assertEqual(189, cms2.add("this is another test", 189))
+        self.assertEqual(16, cms2.add("this is also a test", 16))
+        self.assertEqual(5, cms2.add("this is something to test", 5))
+
+        self.assertEqual(5, cms2.check("this is something to test"))
+        self.assertEqual(16, cms2.check("this is also a test"))
+        self.assertEqual(189, cms2.check("this is another test"))
+        self.assertEqual(255, cms2.check("this is a test"))
+
+        cms_total = CountMinSketch(width=1000, depth=5)
+        self.assertEqual(255*2, cms_total.add("this is a test", 255*2))
+        self.assertEqual(189*2, cms_total.add("this is another test", 189*2))
+        self.assertEqual(16*2, cms_total.add("this is also a test", 16*2))
+        self.assertEqual(5*2, cms_total.add("this is something to test", 5*2))
+
+        self.assertEqual(5*2, cms_total.check("this is something to test"))
+        self.assertEqual(16*2, cms_total.check("this is also a test"))
+        self.assertEqual(189*2, cms_total.check("this is another test"))
+        self.assertEqual(255*2, cms_total.check("this is a test"))
+
+        cms_joined = CountMinSketch.join([cms1, cms2])
+        self.assertEqual(cms1.elements_added, 5 + 16 + 189 + 255)
+        self.assertEqual(cms2.elements_added, 5 + 16 + 189 + 255)
+        self.assertEqual(cms_total.elements_added, (5 + 16 + 189 + 255)*2)
+        self.assertEqual(cms_joined.elements_added, (5 + 16 + 189 + 255)*2)
+
+        self.assertEqual(5*2, cms_joined.check("this is something to test"))
+        self.assertEqual(16*2, cms_joined.check("this is also a test"))
+        self.assertEqual(189*2, cms_joined.check("this is another test"))
+        self.assertEqual(255*2, cms_joined.check("this is a test"))
+
+        self.assertEqual(cms_joined._bins, cms_total._bins)
+        self.assertEqual(cms_joined.elements_added, cms_total.elements_added)
+
     def test_cms_check_min_called(self):
         """ test checking number elements using min algorithm called out """
         cms = CountMinSketch(width=1000, depth=5)

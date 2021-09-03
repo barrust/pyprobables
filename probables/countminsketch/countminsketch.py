@@ -8,6 +8,7 @@ import math
 import os
 from numbers import Number
 from struct import calcsize, pack, unpack
+from typing import Iterable
 
 from ..constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN
 from ..exceptions import InitializationError, NotSupportedError
@@ -372,6 +373,19 @@ class CountMinSketch(object):
             res = meanmin[self.depth // 2]
         return res
 
+    @classmethod
+    def join(cls, sketches: Iterable['CountMinSketch']):
+        depths = set(map(lambda x: x.depth, sketches))
+        widths = set(map(lambda x: x.width, sketches))
+        assert len(widths) == 1, "Widths must be the same"
+        assert len(depths) == 1, "Depths must be the same"
+        res_cms = cls(list(widths)[0], list(depths)[0], next(iter(sketches))._hash_function)
+        for sketch in sketches:
+            for (i, v) in enumerate(sketch._bins):
+                res_cms._bins[i] += v
+            res_cms.__elements_added += sketch.elements_added
+        return res_cms
+
 
 class CountMeanSketch(CountMinSketch):
     """ Simple Count-Mean Sketch implementation for use in python;
@@ -593,6 +607,10 @@ class HeavyHitters(CountMinSketch):
         self.__top_x_size = 0
         self.__smallest = 0
 
+    @classmethod
+    def join(cls, sketches: Iterable['HeavyHitters']):
+        raise NotImplementedError()
+
 
 class StreamThreshold(CountMinSketch):
     """ keep track of those elements over a certain threshold """
@@ -700,3 +718,7 @@ class StreamThreshold(CountMinSketch):
         else:
             self.__meets_threshold[key] = res
         return res
+
+    @classmethod
+    def join(cls, sketches: Iterable['StreamThreshold']):
+        raise NotImplementedError()
