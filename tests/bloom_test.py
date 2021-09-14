@@ -124,6 +124,14 @@ class TestBloomFilter(unittest.TestCase):
         self.assertEqual(blm3.check("this is yet another test"), False)
         self.assertEqual(blm3.check("this is not another test"), False)
 
+    def test_large_one_off_logl_compatibility(self):
+        """ test C version logl compatibility """
+        blm = BloomFilter(est_elements=16000000, false_positive_rate=0.0010)
+        # in g++ using log instead of logl would give a different number of
+        # bits and bloom length!
+        self.assertEqual(28755175, blm.bloom_length)
+        self.assertEqual(230041400, blm.number_bits)
+
     def test_bf_intersection_diff(self):
         """make sure checking for different bloom filters works
         intersection"""
