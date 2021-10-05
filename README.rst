@@ -189,3 +189,33 @@ Changelog
 Please see the `changelog
 <https://github.com/barrust/pyprobables/blob/master/CHANGELOG.md>`__ for a list
 of all changes.
+
+
+Backward Compatible Changes
+---------------------------
+
+If you are using previously exported probablistic data structure (v0.4.1 or below)
+and used the default hashing strategy, you will want to use the following code
+to mimic the original default hashing algorithm.
+
+.. code:: python
+
+    from probables import BloomFilter
+    from probables.hashes import hash_with_depth_int
+
+    @hash_with_depth_int
+    def old_fnv1a(key, depth=1):
+        return tmp_fnv_1a(key)
+
+    def tmp_fnv_1a(key):
+        max64mod = UINT64_T_MAX + 1
+        hval = 14695981039346656073
+        fnv_64_prime = 1099511628211
+        tmp = map(ord, key)
+        for t_str in tmp:
+            hval ^= t_str
+            hval *= fnv_64_prime
+            hval %= max64mod
+        return hval
+
+    blm = BloomFilter(filpath="old-file-path.blm", hash_function=old_fnv1a)

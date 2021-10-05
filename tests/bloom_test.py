@@ -434,7 +434,7 @@ class TestBloomFilter(unittest.TestCase):
         ]
 
         @hash_with_depth_int
-        def my_hash(key, encoding="utf-8"):
+        def my_hash(key, depth=1, encoding="utf-8"):
             """ my hash function """
             max64mod = UINT64_T_MAX + 1
             val = int(hashlib.sha512(key.encode(encoding)).hexdigest(), 16)
