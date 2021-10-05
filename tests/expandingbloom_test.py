@@ -46,7 +46,7 @@ class TestExpandingBloomFilter(unittest.TestCase):
         self.assertGreater(blm.expansions, 1)
         self.assertEqual(blm.check("this is a test"), True)
         self.assertEqual(blm.check("this is another test"), True)
-        self.assertEqual(blm.check("this is yet another test"), False)
+        self.assertEqual(blm.check("this is yet another test!"), False)
         self.assertEqual(blm.check("this is not another test"), False)
 
     def test_ebf_contains(self):
@@ -60,7 +60,7 @@ class TestExpandingBloomFilter(unittest.TestCase):
         self.assertGreater(blm.expansions, 1)
         self.assertEqual("this is a test" in blm, True)
         self.assertEqual("this is another test" in blm, True)
-        self.assertEqual("this is yet another test" in blm, False)
+        self.assertEqual("this is yet another test!" in blm, False)
         self.assertEqual("this is not another test" in blm, False)
 
     def test_ebf_push(self):

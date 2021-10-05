@@ -25,8 +25,8 @@ def hash_with_depth_bytes(func):
         """ wrapper function """
         res = list()
         tmp = key.encode("utf-8")
-        for _ in range(depth):
-            tmp = func(tmp)
+        for idx in range(depth):
+            tmp = func(tmp, idx)
             res.append(unpack("Q", tmp[:8])[0])  # turn into 64 bit number
         return res
 
@@ -52,8 +52,8 @@ def hash_with_depth_int(func):
         res = list()
         tmp = func(key)
         res.append(tmp)
-        for _ in range(depth - 1):
-            tmp = func("{0:x}".format(tmp))
+        for idx in range(depth - 1):
+            tmp = func("{0:x}".format(tmp), idx)
             res.append(tmp)
         return res
 
@@ -82,7 +82,7 @@ def fnv_1a(key):
     Note:
         Uses the lower 64 bits when overflows occur"""
     max64mod = UINT64_T_MAX + 1
-    hval = 14695981039346656073
+    hval = 14695981039346656037
     fnv_64_prime = 1099511628211
     tmp = map(ord, key)
     for t_str in tmp:

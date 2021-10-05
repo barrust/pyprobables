@@ -1,5 +1,10 @@
 # PyProbables Changelog
 
+### FUTURE VERSION
+* ***BACKWARD INCOMPATIBLE CHANGES***
+ * Update to the FNV_1a hash function **NOTE:** Breaks backwards compatibility with previously exported blooms, counting-blooms, cuckoo filter, or count-min-sketch files using the default hash!
+* Ensure passing of depth to hashing function when using `hash_with_depth_int` or `hash_with_depth_bytes`
+
 ## Version 0.4.1
 * Resolve [issue 57](https://github.com/barrust/pyprobables/issues/57) where false positive rate not stored / used the same in some instances
 
@@ -7,7 +12,6 @@
 * Remove **Python 2.7** support
 
 ### Version 0.3.2
-*
 * Fix `RotatingBloomFilter` to keep information on number of elements inserted when exported and loaded. [see PR #50](https://github.com/barrust/pyprobables/pull/50) Thanks [@dvolker48](https://github.com/volker48)
 
 ### Version 0.3.1

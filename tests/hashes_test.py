@@ -20,18 +20,18 @@ class TestHashes(unittest.TestCase):
     def test_default_fnv_1a(self):
         """ test default fnv-1a algorithm """
         this_is_a_test = [
-            9816036922139235588,
-            2145700485193733482,
-            7867438058777009799,
-            2613940029162144156,
-            15037760171607947637,
+            4040040117721899264,
+            7326330105942325821,
+            8819633152923803461,
+            14146050053107405593,
+            13925615927040059026,
         ]
         this_is_also = [
-            10902608370166828599,
-            16977303254360886697,
-            1544262284344120700,
-            16848374648812395126,
-            4258802402957842529,
+            7925790280716546811,
+            15685750377656552874,
+            8466555553162239494,
+            5830090715839298056,
+            8315420506003269424,
         ]
         hashes = default_fnv_1a("this is a test", 5)
         self.assertEqual(hashes, this_is_a_test)
@@ -91,7 +91,7 @@ class TestHashes(unittest.TestCase):
         ]
 
         @hash_with_depth_bytes
-        def my_hash(key):
+        def my_hash(key, depth=1):
             """  my hash function """
             return hashlib.sha512(key).digest()
 
@@ -111,7 +111,7 @@ class TestHashes(unittest.TestCase):
         ]
 
         @hash_with_depth_int
-        def my_hash(key, encoding="utf-8"):
+        def my_hash(key, depth=1, encoding="utf-8"):
             """  my hash function """
             max64mod = UINT64_T_MAX + 1
             val = int(hashlib.sha512(key.encode(encoding)).hexdigest(), 16)

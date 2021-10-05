@@ -238,7 +238,7 @@ class TestCuckooFilter(unittest.TestCase):
     def test_cuckoo_filter_export(self):
         """ test exporting a cuckoo filter """
         filename = "./test.cko"
-        md5sum = "49b947ddf364d27934570a6b33076b93"
+        md5sum = "1371760d4ee9ccbe83e0144919750140"
         cko = CuckooFilter()
         for i in range(1000):
             cko.add(str(i))
@@ -250,7 +250,7 @@ class TestCuckooFilter(unittest.TestCase):
     def test_cuckoo_filter_load(self):
         """ test loading a saved cuckoo filter """
         filename = "./test.cko"
-        md5sum = "49b947ddf364d27934570a6b33076b93"
+        md5sum = "1371760d4ee9ccbe83e0144919750140"
         cko = CuckooFilter()
         for i in range(1000):
             cko.add(str(i))
