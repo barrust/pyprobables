@@ -50,9 +50,9 @@ def hash_with_depth_int(func):
     def hashing_func(key, depth=1):
         """ wrapper function """
         res = list()
-        tmp = func(key)
+        tmp = func(key, 0)
         res.append(tmp)
-        for idx in range(depth - 1):
+        for idx in range(1, depth):
             tmp = func("{0:x}".format(tmp), idx)
             res.append(tmp)
         return res
