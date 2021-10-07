@@ -21,22 +21,31 @@ class TestHashes(unittest.TestCase):
         """ test default fnv-1a algorithm """
         this_is_a_test = [
             4040040117721899264,
-            7326330105942325821,
-            8819633152923803461,
-            14146050053107405593,
-            13925615927040059026,
+            3916497180155386777,
+            468410530588793106,
+            13781401791305604595,
+            321382271269641900,
         ]
         this_is_also = [
             7925790280716546811,
-            15685750377656552874,
-            8466555553162239494,
-            5830090715839298056,
-            8315420506003269424,
+            13347851945403505568,
+            17775584719969392601,
+            10279404995231728046,
+            13802534855964835503,
         ]
         hashes = default_fnv_1a("this is a test", 5)
         self.assertEqual(hashes, this_is_a_test)
         hashes = default_fnv_1a("this is also a test", 5)
         self.assertEqual(hashes, this_is_also)
+
+    def test_default_hash_colision(self):
+        """ test when different strings start with the same hash value (issue 62)"""
+        h1 = default_fnv_1a("gMPflVXtwGDXbIhP73TX", 5)
+        h2 = default_fnv_1a("LtHf1prlU1bCeYZEdqWf", 5)
+
+        self.assertEqual(h1[0], h2[0])  # these should match
+        for i in range(1, 5):
+            self.assertNotEqual(h1[i], h2[i])
 
     def test_default_md5(self):
         """ test default md5 algorithm """
