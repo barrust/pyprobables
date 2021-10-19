@@ -36,7 +36,7 @@ class TestBloomFilter(unittest.TestCase):
 
     def test_bf_add(self):
         """ test estimate elements is correct """
-        blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm = BloomFilter(est_elements=20, false_positive_rate=0.05)
         res1 = blm.estimate_elements()
         blm.add("this is a test")
         res2 = blm.estimate_elements()
@@ -67,10 +67,10 @@ class TestBloomFilter(unittest.TestCase):
 
     def test_bf_union(self):
         """ test the union of two bloom filters """
-        blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm = BloomFilter(est_elements=20, false_positive_rate=0.05)
         blm.add("this is a test")
         blm.add("this is another test")
-        blm2 = BloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm2 = BloomFilter(est_elements=20, false_positive_rate=0.05)
         blm2.add("this is yet another test")
 
         blm3 = blm.union(blm2)
@@ -152,8 +152,8 @@ class TestBloomFilter(unittest.TestCase):
         blm2.add("this is yet another test")
 
         res = blm.jaccard_index(blm2)
-        self.assertGreater(res, 0.33)
-        self.assertLess(res, 0.50)
+        self.assertGreater(res, 0.50)
+        self.assertLess(res, 0.75)
 
     def test_bf_jaccard_diff(self):
         """ make sure checking for different bloom filters works jaccard """
@@ -236,10 +236,10 @@ class TestBloomFilter(unittest.TestCase):
             "\tmax false positive rate: 0.050000\n"
             "\tbloom length (8 bits): 8\n"
             "\telements added: 10\n"
-            "\testimated elements added: 9\n"
+            "\testimated elements added: 10\n"
             "\tcurrent false positive rate: 0.048806\n"
             "\texport size (bytes): 28\n"
-            "\tnumber bits set: 28\n"
+            "\tnumber bits set: 31\n"
             "\tis on disk: no\n"
         )
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
@@ -251,7 +251,7 @@ class TestBloomFilter(unittest.TestCase):
 
     def test_bf_export_hex(self):
         """ test the exporting of the bloom filter to a hex string """
-        hex_val = "ab749caa12683303000000000000000a000000000000000a3d4ccccd"
+        hex_val = "6da491461a6bba4d000000000000000a000000000000000a3d4ccccd"
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         for i in range(0, 10):
             tmp = "this is a test {0}".format(i)
@@ -262,7 +262,7 @@ class TestBloomFilter(unittest.TestCase):
 
     def test_bf_load_hex(self):
         """ test importing a bloom filter from hex value """
-        hex_val = "ab749caa12683303000000000000000a000000000000000a3d4ccccd"
+        hex_val = "6da491461a6bba4d000000000000000a000000000000000a3d4ccccd"
         blm = BloomFilter(hex_string=hex_val)
 
         self.assertEqual("this is a test 0" in blm, True)
@@ -289,7 +289,7 @@ class TestBloomFilter(unittest.TestCase):
     def test_bf_export_file(self):
         """ test exporting bloom filter to file """
         filename = "test.blm"
-        md5_val = "f964432791d3fe72c8fe9c24dfd577ae"
+        md5_val = "8d27e30e1c5875b0edcf7413c7bdb221"
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         blm.add("this is a test")
         blm.export(filename)
@@ -542,7 +542,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
     def test_bfod_ee(self):
         """ test on disk estimate elements is correct on disk """
         filename = "tmp.blm"
-        blmd = BloomFilterOnDisk(filename, 10, 0.05)
+        blmd = BloomFilterOnDisk(filename, 20, 0.05)
         res1 = blmd.estimate_elements()
         blmd.add("this is a test")
         res2 = blmd.estimate_elements()
@@ -568,10 +568,10 @@ class TestBloomFilterOnDisk(unittest.TestCase):
     def test_bfod_union(self):
         """ test the union of two bloom filters on disk """
         filename = "tmp.blm"
-        blm = BloomFilterOnDisk(filename, 10, 0.05)
+        blm = BloomFilterOnDisk(filename, 20, 0.05)
         blm.add("this is a test")
         blm.add("this is another test")
-        blm2 = BloomFilter(10, 0.05)
+        blm2 = BloomFilter(20, 0.05)
         blm2.add("this is yet another test")
 
         blm3 = blm.union(blm2)
@@ -607,10 +607,10 @@ class TestBloomFilterOnDisk(unittest.TestCase):
     def test_bfod_jaccard(self):
         """ test the on disk jaccard index of two bloom filters """
         filename = "tmp.blm"
-        blm = BloomFilterOnDisk(filename, 10, 0.05)
+        blm = BloomFilterOnDisk(filename, 20, 0.05)
         blm.add("this is a test")
         blm.add("this is another test")
-        blm2 = BloomFilter(10, 0.05)
+        blm2 = BloomFilter(20, 0.05)
         blm2.add("this is another test")
         blm2.add("this is yet another test")
 

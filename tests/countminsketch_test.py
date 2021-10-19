@@ -183,7 +183,7 @@ class TestCountMinSketch(unittest.TestCase):
 
     def test_cms_export(self):
         """ test exporting a count-min sketch """
-        md5_val = "a53b06b40aae73ae2b8fc6c9dd113781"
+        md5_val = "fb1c39dd1a73f1ef0d7fc79f60fc028e"
         filename = "test.cms"
         cms = CountMinSketch(width=1000, depth=5)
         cms.add("this is a test", 100)
@@ -195,7 +195,7 @@ class TestCountMinSketch(unittest.TestCase):
 
     def test_cms_load(self):
         """ test loading a count-min sketch from file """
-        md5_val = "a53b06b40aae73ae2b8fc6c9dd113781"
+        md5_val = "fb1c39dd1a73f1ef0d7fc79f60fc028e"
         filename = "test.cms"
         cms = CountMinSketch(width=1000, depth=5)
         self.assertEqual(cms.add("this is a test", 100), 100)
@@ -211,7 +211,7 @@ class TestCountMinSketch(unittest.TestCase):
 
     def test_cms_load_diff_hash(self):
         """ test loading a count-min sketch from file """
-        md5_val = "a53b06b40aae73ae2b8fc6c9dd113781"
+        md5_val = "fb1c39dd1a73f1ef0d7fc79f60fc028e"
         filename = "test.cms"
         cms = CountMinSketch(width=1000, depth=5)
         self.assertEqual(cms.add("this is a test", 100), 100)
@@ -509,7 +509,7 @@ class TestHeavyHitters(unittest.TestCase):
 
     def test_hh_export(self):
         """ test exporting a heavy hitters sketch """
-        md5_val = "a53b06b40aae73ae2b8fc6c9dd113781"
+        md5_val = "fb1c39dd1a73f1ef0d7fc79f60fc028e"
         filename = "test.cms"
         hh1 = HeavyHitters(num_hitters=1000, width=1000, depth=5)
         hh1.add("this is a test", 100)
@@ -521,7 +521,7 @@ class TestHeavyHitters(unittest.TestCase):
 
     def test_hh_load(self):
         """ test loading a heavy hitters from file """
-        md5_val = "a53b06b40aae73ae2b8fc6c9dd113781"
+        md5_val = "fb1c39dd1a73f1ef0d7fc79f60fc028e"
         filename = "test.cms"
         hh1 = HeavyHitters(num_hitters=1000, width=1000, depth=5)
         self.assertEqual(hh1.add("this is a test", 100), 100)
@@ -688,7 +688,7 @@ class TestStreamThreshold(unittest.TestCase):
 
     def test_streamthreshold_export(self):
         """ test exporting a stream threshold sketch """
-        md5_val = "a53b06b40aae73ae2b8fc6c9dd113781"
+        md5_val = "fb1c39dd1a73f1ef0d7fc79f60fc028e"
         filename = "test.cms"
         st1 = StreamThreshold(threshold=10, width=1000, depth=5)
         st1.add("this is a test", 100)
@@ -700,7 +700,7 @@ class TestStreamThreshold(unittest.TestCase):
 
     def test_streamthreshold_load(self):
         """ test loading a stream threshold sketch from file """
-        md5_val = "a53b06b40aae73ae2b8fc6c9dd113781"
+        md5_val = "fb1c39dd1a73f1ef0d7fc79f60fc028e"
         filename = "test.cms"
         st1 = StreamThreshold(threshold=10, width=1000, depth=5)
         self.assertEqual(st1.add("this is a test", 100), 100)

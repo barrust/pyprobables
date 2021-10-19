@@ -60,7 +60,6 @@ def hash_with_depth_int(func):
     return hashing_func
 
 
-@hash_with_depth_int
 def default_fnv_1a(key, depth=1):
     """The default fnv-1a hashing routine
 
@@ -69,20 +68,25 @@ def default_fnv_1a(key, depth=1):
         depth (int): The number of hash permutations to compute
     Returns:
         list(int): List of size depth hashes"""
-    return fnv_1a(key)
+
+    res = list()
+    for idx in range(depth):
+        res.append(fnv_1a(key, idx))
+    return res
 
 
-def fnv_1a(key):
+def fnv_1a(key, seed=0):
     """Pure python implementation of the 64 bit fnv-1a hash
 
     Args:
         key (str): The element to be hashed
+        seed (int): Add a seed to the initial starting point (0 means no seed)
     Returns:
         int: 64-bit hashed representation of key
     Note:
         Uses the lower 64 bits when overflows occur"""
     max64mod = UINT64_T_MAX + 1
-    hval = 14695981039346656037
+    hval = (14695981039346656037 + (31 * seed)) % max64mod
     fnv_64_prime = 1099511628211
     tmp = map(ord, key)
     for t_str in tmp:

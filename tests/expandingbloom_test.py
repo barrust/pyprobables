@@ -32,12 +32,12 @@ class TestExpandingBloomFilter(unittest.TestCase):
         # simulate false positives... notice it didn't grow a few...
         for i in range(120):
             blm.add("{}".format(i))
-        self.assertEqual(blm.expansions, 9)
+        self.assertEqual(blm.expansions, 8)
         self.assertEqual(blm.elements_added, 120)
 
     def test_ebf_check(self):
         """ ensure that checking the expanding bloom filter works """
-        blm = ExpandingBloomFilter(est_elements=25, false_positive_rate=0.05)
+        blm = ExpandingBloomFilter(est_elements=30, false_positive_rate=0.05)
         # expand it out some first!
         for i in range(100):
             blm.add("{}".format(i))
@@ -51,7 +51,7 @@ class TestExpandingBloomFilter(unittest.TestCase):
 
     def test_ebf_contains(self):
         """ ensure that "in" functionality for the expanding bloom filter works """
-        blm = ExpandingBloomFilter(est_elements=25, false_positive_rate=0.05)
+        blm = ExpandingBloomFilter(est_elements=30, false_positive_rate=0.05)
         # expand it out some first!
         for i in range(100):
             blm.add("{}".format(i))

@@ -72,7 +72,7 @@ class TestCountingBloomFilter(unittest.TestCase):
             "\tis on disk: no\n"
             "\tindex fullness: 0.634921\n"
             "\tmax index usage: 3\n"
-            "\tmax index id: 0\n"
+            "\tmax index id: 56\n"
             "\tcalculated elements: 10\n"
         )
         blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
@@ -97,7 +97,7 @@ class TestCountingBloomFilter(unittest.TestCase):
     def test_cbf_export_file(self):
         """ test exporting bloom filter to file """
         filename = "test.cbm"
-        md5_val = "8483b05d0872d6951ef94096cc9d6ce5"
+        md5_val = "0b83c837da30e25f768f0527c039d341"
         blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
         blm.add("test")
         blm.add("out")
@@ -145,16 +145,16 @@ class TestCountingBloomFilter(unittest.TestCase):
     def test_cbf_export_hex(self):
         """ test the exporting of the bloom filter to a hex string """
         h_val = (
-            "030000000100000000000000020000000000000001000000000000000"
-            "200000000000000000000000200000000000000020000000100000001"
-            "000000000000000000000000000000010000000100000002000000000"
-            "000000000000002000000000000000100000000000000010000000000"
-            "000001000000000000000100000000000000020000000000000000000"
-            "000020000000000000000000000000000000000000000000000000000"
-            "000100000000000000010000000200000000000000010000000200000"
-            "000000000000000000100000001000000000000000000000001000000"
-            "010000000000000000000000000000000000000000000000000000000"
-            "000000a000000000000000a3d4ccccd"
+            "01000000000000000100000002000000000000000100000001000000"
+            "00000000000000000000000001000000000000000000000002000000"
+            "00000000010000000200000000000000000000000000000001000000"
+            "00000000000000000200000000000000010000000200000000000000"
+            "00000000000000000100000000000000000000000100000000000000"
+            "01000000020000000000000000000000000000000100000001000000"
+            "00000000010000000000000001000000020000000000000000000000"
+            "01000000000000000100000001000000010000000000000001000000"
+            "03000000000000000100000001000000000000000000000001000000"
+            "000000000000000a000000000000000a3d4ccccd"
         )
 
         blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
@@ -168,16 +168,16 @@ class TestCountingBloomFilter(unittest.TestCase):
     def test_cbf_load_hex(self):
         """ test importing a bloom filter from hex value """
         h_val = (
-            "030000000100000000000000020000000000000001000000000000000"
-            "200000000000000000000000200000000000000020000000100000001"
-            "000000000000000000000000000000010000000100000002000000000"
-            "000000000000002000000000000000100000000000000010000000000"
-            "000001000000000000000100000000000000020000000000000000000"
-            "000020000000000000000000000000000000000000000000000000000"
-            "000100000000000000010000000200000000000000010000000200000"
-            "000000000000000000100000001000000000000000000000001000000"
-            "010000000000000000000000000000000000000000000000000000000"
-            "000000a000000000000000a3d4ccccd"
+            "01000000000000000100000002000000000000000100000001000000"
+            "00000000000000000000000001000000000000000000000002000000"
+            "00000000010000000200000000000000000000000000000001000000"
+            "00000000000000000200000000000000010000000200000000000000"
+            "00000000000000000100000000000000000000000100000000000000"
+            "01000000020000000000000000000000000000000100000001000000"
+            "00000000010000000000000001000000020000000000000000000000"
+            "01000000000000000100000001000000010000000000000001000000"
+            "03000000000000000100000001000000000000000000000001000000"
+            "000000000000000a000000000000000a3d4ccccd"
         )
         blm = CountingBloomFilter(hex_string=h_val)
         self.assertEqual("this is a test 0" in blm, True)
@@ -235,8 +235,8 @@ class TestCountingBloomFilter(unittest.TestCase):
         blm2.add("this is a test", 10)
         blm2.add("this is also a test", 10)
         res = blm1.jaccard_index(blm2)
-        self.assertGreater(res, 0.33)
-        self.assertLessEqual(res, 0.50)
+        self.assertGreater(res, 0.50)
+        self.assertLessEqual(res, 0.60)
 
     def test_cbf_jaccard_similar_2(self):
         """ test jaccard of two similar counting bloom filters - again """
@@ -250,9 +250,9 @@ class TestCountingBloomFilter(unittest.TestCase):
 
     def test_cbf_jaccard_different(self):
         """ test jaccard of two completly different counting bloom filters """
-        blm1 = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm1 = CountingBloomFilter(est_elements=20, false_positive_rate=0.05)
         blm1.add("this is a test", 10)
-        blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm2 = CountingBloomFilter(est_elements=20, false_positive_rate=0.05)
         blm2.add("this is also a test", 10)
         self.assertEqual(blm1.jaccard_index(blm2), 0.0)
 
@@ -295,14 +295,14 @@ class TestCountingBloomFilter(unittest.TestCase):
 
     def test_cbf_estimate_easy(self):
         """ check estimate elements """
-        blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm = CountingBloomFilter(est_elements=20, false_positive_rate=0.05)
         blm.add("this is a test", 10)
         blm.add("this is also a test", 5)
         self.assertEqual(blm.estimate_elements(), 2)
 
     def test_cbf_estimate_2(self):
         """ check estimate elements - different """
-        blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm = CountingBloomFilter(est_elements=20, false_positive_rate=0.05)
         blm.add("this is a test", 10)
         blm.add("this is a different test", 5)
         self.assertEqual(blm.estimate_elements(), 2)
