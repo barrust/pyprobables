@@ -194,7 +194,7 @@ of all changes.
 Backward Compatible Changes
 ---------------------------
 
-If you are using previously exported probablistic data structure (v0.4.1 or below)
+If you are using previously exported probablistic data structures (v0.4.1 or below)
 and used the default hashing strategy, you will want to use the following code
 to mimic the original default hashing algorithm.
 
