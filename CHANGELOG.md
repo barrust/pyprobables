@@ -1,9 +1,9 @@
 # PyProbables Changelog
 
-### FUTURE VERSION
+### Version 0.5.0
 * ***BACKWARD INCOMPATIBLE CHANGES***
    * **NOTE:** Breaks backwards compatibility with previously exported blooms, counting-blooms, cuckoo filter, or count-min-sketch files using the default hash!
-   * Update to the FNV_1a hash function 
+   * Update to the FNV_1a hash function
    * Simplified the default hash to use a seed value
 * Ensure passing of depth to hashing function when using `hash_with_depth_int` or `hash_with_depth_bytes`
 
