@@ -9,8 +9,6 @@ from abc import abstractmethod
 from binascii import hexlify, unhexlify
 from numbers import Number
 from struct import Struct, calcsize, pack, unpack
-from textwrap import wrap
-from itertools import chain
 
 from ..exceptions import InitializationError
 from ..hashes import default_fnv_1a
@@ -256,21 +254,17 @@ class BaseBloom(object):
         rep = self.__impt_type * self.bloom_length
         self._bloom = list(unpack(rep, tmp_bloom))
 
-    def __pack_trailer(self):
-        """Pack trailer values for export."""
-        return pack(
-            ">QQf",
-            self.estimated_elements,
-            self.elements_added,
-            self.false_positive_rate,
-        )
-
     def export_hex(self):
         """Export the Bloom Filter as a hex string
 
         Return:
             str: Hex representation of the Bloom Filter"""
-        mybytes = self.__pack_trailer()
+        mybytes = pack(
+            ">QQf",
+            self.estimated_elements,
+            self.elements_added,
+            self.false_positive_rate,
+        )
         if self.__blm_type in ["regular", "reg-ondisk"]:
             bytes_string = hexlify(bytearray(self.bloom)) + hexlify(mybytes)
         else:
@@ -289,7 +283,14 @@ class BaseBloom(object):
         with open(filename, "wb") as filepointer:
             rep = self.__impt_type * self.bloom_length
             filepointer.write(pack(rep, *self.bloom))
-            filepointer.write(self.__pack_trailer())
+            filepointer.write(
+                pack(
+                    "QQf",
+                    self.estimated_elements,
+                    self.elements_added,
+                    self.false_positive_rate,
+                )
+            )
 
     def export_size(self):
         """Calculate the size of the bloom on disk
@@ -298,25 +299,6 @@ class BaseBloom(object):
             int: Size of the Bloom Filter when exported to disk"""
         tmp_b = calcsize(self.__impt_type)
         return (self.bloom_length * tmp_b) + calcsize("QQf")
-
-    def export_c_header(self, filename):
-        """ Export the Bloom Filter to disk as a C header file.
-
-            Args:
-                filename (str): The filename to which the Bloom Filter will \
-                be written. """
-        data = (
-            "  " + line for line in
-            wrap(", ".join(("0x{:02x}".format(e) for e in chain(self.bloom, self.__pack_trailer()))), 80)
-        )
-        with open(filename, "w") as file:
-            print("#include <inttypes.h>", file=file)
-            print("const uint64_t estimated_elements = ", self.estimated_elements, ";", sep = "", file=file)
-            print("const uint64_t elements_added = ", self.elements_added, ";", sep = "", file=file)
-            print("const float false_positive_rate = ", self.false_positive_rate, ";", sep = "", file=file)
-            print("const uint64_t number_bits = ", self.number_bits, ";", sep = "", file=file)
-            print("const unsigned int number_hashes = ", self.number_hashes, ";", sep = "", file=file)
-            print("const unsigned char bloom[] = {", *data, "};", sep="\n", file=file)
 
     def current_false_positive_rate(self):
         """Calculate the current false positive rate based on elements added
