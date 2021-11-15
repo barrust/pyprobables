@@ -7,10 +7,10 @@ import math
 import os
 from abc import abstractmethod
 from binascii import hexlify, unhexlify
+from itertools import chain
 from numbers import Number
 from struct import Struct, calcsize, pack, unpack
 from textwrap import wrap
-from itertools import chain
 
 from ..exceptions import InitializationError
 from ..hashes import default_fnv_1a
@@ -301,23 +301,20 @@ class BaseBloom(object):
                 filename (str): The filename to which the Bloom Filter will \
                 be written. """
         trailer = pack(
-            "QQf",
+            ">QQf",
             self.estimated_elements,
             self.elements_added,
             self.false_positive_rate,
         )
-        data = (
-            "  " + line for line in
-            wrap(", ".join(("0x{:02x}".format(e) for e in chain(self.bloom, trailer))), 80)
-        )
+        data = ("  " + line for line in wrap(", ".join(("0x{:02x}".format(e) for e in chain(self.bloom, trailer))), 80))
         with open(filename, "w") as file:
             print("#include <inttypes.h>", file=file)
-            print("const uint64_t estimated_elements = ", self.estimated_elements, ";", sep = "", file = file)
-            print("const uint64_t elements_added = ", self.elements_added, ";", sep = "", file = file)
-            print("const float false_positive_rate = ", self.false_positive_rate, ";", sep = "", file = file)
-            print("const uint64_t number_bits = ", self.number_bits, ";", sep = "", file = file)
-            print("const unsigned int number_hashes = ", self.number_hashes, ";", sep = "", file = file)
-            print("const unsigned char bloom[] = {", *data, "};", sep = "\n", file = file)
+            print("const uint64_t estimated_elements = ", self.estimated_elements, ";", sep="", file=file)
+            print("const uint64_t elements_added = ", self.elements_added, ";", sep="", file=file)
+            print("const float false_positive_rate = ", self.false_positive_rate, ";", sep="", file=file)
+            print("const uint64_t number_bits = ", self.number_bits, ";", sep="", file=file)
+            print("const unsigned int number_hashes = ", self.number_hashes, ";", sep="", file=file)
+            print("const unsigned char bloom[] = {", *data, "};", sep="\n", file=file)
 
     def export_size(self):
         """Calculate the size of the bloom on disk
