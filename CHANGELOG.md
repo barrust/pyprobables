@@ -1,5 +1,9 @@
 # PyProbables Changelog
 
+### Version 0.5.1 (future release)
+* Bloom Filter:
+    * Export as a C header (**\*.h**)
+
 ### Version 0.5.0
 * ***BACKWARD INCOMPATIBLE CHANGES***
    * **NOTE:** Breaks backwards compatibility with previously exported blooms, counting-blooms, cuckoo filter, or count-min-sketch files using the default hash!
