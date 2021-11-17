@@ -129,6 +129,10 @@ class CountMinSketch(object):
             self.elements_added,
         )
 
+    def __contains__(self, key):
+        """ setup the `in` keyword """
+        return True if self.check(key) != 0 else False
+
     @property
     def width(self):
         """int: The width of the count-min sketch
@@ -345,7 +349,7 @@ class CountMinSketch(object):
         for i in range(size):
             if self._bins[i] == INT32_T_MIN or self._bins[i] == INT32_T_MAX:
                 continue
-            self._bins[i] += second.bins[i]
+            self._bins[i] += second._bins[i]
             if self._bins[i] > INT32_T_MAX:
                 self._bins[i] = INT32_T_MAX
             elif self._bins[i] < INT32_T_MIN:
@@ -397,6 +401,8 @@ class CountMinSketch(object):
 
     def __mean_min_query(self, results):
         """ generate the mean-min query; assumes sorted list """
+        if results[0] == 0 and results[-1] == 0:
+            return 0
         meanmin = list()
         for t_bin in results:
             diff = self.elements_added - t_bin
@@ -631,6 +637,15 @@ class HeavyHitters(CountMinSketch):
         self.__top_x_size = 0
         self.__smallest = 0
 
+    def join(self, second):
+        """ Join is not supported by HeavyHitters
+
+            Raises:
+                NotSupportedError: This functionality is currently not \
+                supported """
+        msg = "Joining is not supported for heavy hitters"
+        raise NotSupportedError(msg)
+
 
 class StreamThreshold(CountMinSketch):
     """ keep track of those elements over a certain threshold """
@@ -738,3 +753,12 @@ class StreamThreshold(CountMinSketch):
         else:
             self.__meets_threshold[key] = res
         return res
+
+    def join(self, second):
+        """ Join is not supported by StreamThreshold
+
+            Raises:
+                NotSupportedError: This functionality is currently not \
+                supported """
+        msg = "Joining is not supported for stream threshold"
+        raise NotSupportedError("")
