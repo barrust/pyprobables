@@ -386,6 +386,24 @@ class TestCountMinSketch(unittest.TestCase):
         else:
             self.assertEqual(True, False)
 
+    def test_cms_mismatch_hash_function(self):
+        """ test joining when hash functions do not match """
+        cms1 = CountMinSketch(width=1000, depth=5)
+        cms2 = CountMinSketch(width=1000, depth=5, hash_function=different_hash)
+
+        def runner():
+            """ runner """
+            cms1.join(cms2)
+
+        self.assertRaises(CountMinSketchError, runner)
+        try:
+            cms1.join(cms2)
+        except CountMinSketchError as ex:
+            msg = "Unable to merge as the count-min sketches are mismatched"
+            self.assertEqual(ex.message, msg)
+        else:
+            self.assertEqual(True, False)
+
     def test_cms_join_invalid(self):
         """ test joing a cms with an invalid type """
         cms = CountMinSketch(width=1000, depth=5)

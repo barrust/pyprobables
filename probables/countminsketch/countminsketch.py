@@ -343,7 +343,11 @@ class CountMinSketch(object):
         if not isinstance(second, (CountMinSketch)):
             msg = "Unable to merge a count-min sketch with {}".format(type(second))
             raise TypeError(msg)
-        if (self.width != second.width) or (self.depth != second.depth):
+        if (
+            (self.width != second.width)
+            or (self.depth != second.depth)
+            or (self.hashes("test") != second.hashes("test"))
+        ):
             raise CountMinSketchError("Unable to merge as the count-min sketches are mismatched")
 
         size = self.width * self.depth
