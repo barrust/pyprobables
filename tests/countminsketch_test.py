@@ -316,7 +316,8 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertEqual(INT32_T_MAX, cms.check("this is a test"))
         self.assertEqual(cms.elements_added, too_large)
 
-        cms.add("this is a test", INT64_T_MAX)
+        cms.add("this is a test 2 ", INT64_T_MAX // 2)
+        cms.join(cms)
         self.assertEqual(cms.elements_added, INT64_T_MAX)
 
     def test_cms_join_underflow(self):
@@ -328,7 +329,8 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertEqual(INT32_T_MIN, cms.check("this is a test"))
         self.assertEqual(cms.elements_added, -too_large)
 
-        cms.remove("this is a test", INT64_T_MAX)
+        cms.remove("this is a test 2 ", INT64_T_MAX // 2)
+        cms.join(cms)
         self.assertEqual(cms.elements_added, INT64_T_MIN)
 
     def test_cms_join_mixed_types(self):
@@ -353,10 +355,10 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertFalse("foobar" in cmeans)
 
         cmms.join(cms)
-        # self.assertFalse("this is a test" in cmms)
+        self.assertTrue("this is a test" in cmms)
         self.assertTrue("this is another test" in cmms)
-        print("blah" in cmms)
         self.assertTrue("this is yet another test" in cmms)
+        self.assertFalse("this is yet another test!" in cmms)
 
     def test_cms_join_mismatch_width(self):
         """ test joining cms with mismatch width  """
