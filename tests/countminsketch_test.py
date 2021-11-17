@@ -12,7 +12,11 @@ from probables import (
     StreamThreshold,
 )
 from probables.constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN
-from probables.exceptions import InitializationError, NotSupportedError
+from probables.exceptions import (
+    CountMinSketchError,
+    InitializationError,
+    NotSupportedError,
+)
 
 from .utilities import calc_file_md5, different_hash
 
@@ -305,20 +309,26 @@ class TestCountMinSketch(unittest.TestCase):
 
     def test_cms_join_overflow(self):
         """ test count-min sketch overflow """
-        too_large = INT64_T_MAX + 5
+        too_large = INT32_T_MAX + 5
         cms = CountMinSketch(width=1000, depth=5)
         cms.add("this is a test", too_large // 2)
         cms.join(cms)
         self.assertEqual(INT32_T_MAX, cms.check("this is a test"))
+        self.assertEqual(cms.elements_added, too_large)
+
+        cms.add("this is a test", INT64_T_MAX)
         self.assertEqual(cms.elements_added, INT64_T_MAX)
 
     def test_cms_join_underflow(self):
         """ test count-min sketch underflow """
-        too_large = INT64_T_MAX + 5
+        too_large = INT32_T_MAX + 5
         cms = CountMinSketch(width=1000, depth=5)
-        cms.remove("this is a test", too_large)
+        cms.remove("this is a test", too_large // 2)
         cms.join(cms)
         self.assertEqual(INT32_T_MIN, cms.check("this is a test"))
+        self.assertEqual(cms.elements_added, -too_large)
+
+        cms.remove("this is a test", INT64_T_MAX)
         self.assertEqual(cms.elements_added, INT64_T_MIN)
 
     def test_cms_join_mixed_types(self):
@@ -347,6 +357,44 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertTrue("this is another test" in cmms)
         print("blah" in cmms)
         self.assertTrue("this is yet another test" in cmms)
+
+    def test_cms_join_mismatch_width(self):
+        """ test joining cms with mismatch width  """
+        cms1 = CountMinSketch(width=1000, depth=5)
+        cms2 = CountMinSketch(width=1001, depth=5)
+
+        try:
+            cms1.join(cms2)
+        except CountMinSketchError as ex:
+            msg = "Unable to merge as the count-min sketches are mismatched"
+            self.assertEqual(ex.message, msg)
+        else:
+            self.assertEqual(True, False)
+
+    def test_cms_join_mismatch_depth(self):
+        """ test joining cms with mismatch depth  """
+        cms1 = CountMinSketch(width=1000, depth=5)
+        cms2 = CountMinSketch(width=1000, depth=4)
+
+        try:
+            cms1.join(cms2)
+        except CountMinSketchError as ex:
+            msg = "Unable to merge as the count-min sketches are mismatched"
+            self.assertEqual(ex.message, msg)
+        else:
+            self.assertEqual(True, False)
+
+    def test_cms_join_invalid(self):
+        """ test joing a cms with an invalid type """
+        cms = CountMinSketch(width=1000, depth=5)
+
+        try:
+            cms.join(1)
+        except TypeError as ex:
+            msg = "Unable to merge a count-min sketch with {}".format("<class 'int'>")
+            self.assertEqual(str(ex), msg)
+        else:
+            self.assertEqual(True, False)
 
     def test_cms_invalid_width(self):
         """ test invalid width """
