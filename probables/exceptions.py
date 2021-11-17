@@ -60,3 +60,14 @@ class RotatingBloomFilterError(ProbablesBaseException):
     def __init__(self, message):
         self.message = message
         super(RotatingBloomFilterError, self).__init__(self.message)
+
+
+class CountMinSketchError(ProbablesBaseException):
+    """CountMinSketch Exception
+
+    Args:
+        message (str): The error message to be reported"""
+
+    def __init__(self, message):
+        self.message = message
+        super(CountMinSketchError, self).__init__(self.message)

@@ -12,7 +12,11 @@ from probables import (
     StreamThreshold,
 )
 from probables.constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN
-from probables.exceptions import InitializationError, NotSupportedError
+from probables.exceptions import (
+    CountMinSketchError,
+    InitializationError,
+    NotSupportedError,
+)
 
 from .utilities import calc_file_md5, different_hash
 
@@ -281,6 +285,136 @@ class TestCountMinSketch(unittest.TestCase):
             "\tElements Added: 100"
         )
         self.assertEqual(str(cms), msg)
+
+    def test_cms_join(self):
+        """ test standard count-min sketch join """
+        cms1 = CountMinSketch(width=1000, depth=5)
+        cms2 = CountMinSketch(width=1000, depth=5)
+
+        self.assertEqual(255, cms1.add("this is a test", 255))
+        self.assertEqual(189, cms1.add("this is another test", 189))
+        self.assertEqual(16, cms1.add("this is also a test", 16))
+        self.assertEqual(5, cms1.add("this is something to test", 5))
+
+        self.assertEqual(255, cms2.add("this is a test", 255))
+        self.assertEqual(189, cms2.add("this is another test", 189))
+        self.assertEqual(16, cms2.add("this is also a test", 16))
+        self.assertEqual(5, cms2.add("this is something to test", 5))
+
+        cms1.join(cms2)
+        self.assertEqual(255 * 2, cms1.check("this is a test"))
+        self.assertEqual(189 * 2, cms1.check("this is another test"))
+        self.assertEqual(16 * 2, cms1.check("this is also a test"))
+        self.assertEqual(5 * 2, cms1.check("this is something to test"))
+
+    def test_cms_join_overflow(self):
+        """ test count-min sketch overflow """
+        too_large = INT32_T_MAX + 5
+        cms = CountMinSketch(width=1000, depth=5)
+        cms.add("this is a test", too_large // 2)
+        cms.join(cms)
+        self.assertEqual(INT32_T_MAX, cms.check("this is a test"))
+        self.assertEqual(cms.elements_added, too_large)
+
+        cms.add("this is a test 2 ", INT64_T_MAX // 2)
+        cms.join(cms)
+        self.assertEqual(cms.elements_added, INT64_T_MAX)
+
+    def test_cms_join_underflow(self):
+        """ test count-min sketch underflow """
+        too_large = INT32_T_MAX + 5
+        cms = CountMinSketch(width=1000, depth=5)
+        cms.remove("this is a test", too_large // 2)
+        cms.join(cms)
+        self.assertEqual(INT32_T_MIN, cms.check("this is a test"))
+        self.assertEqual(cms.elements_added, -too_large)
+
+        cms.remove("this is a test 2 ", INT64_T_MAX // 2)
+        cms.join(cms)
+        self.assertEqual(cms.elements_added, INT64_T_MIN)
+
+    def test_cms_join_mixed_types(self):
+        """ test count-min, count-mean, and count-meanmin joining """
+        cms = CountMinSketch(width=1000, depth=5)
+        cmeans = CountMeanSketch(width=1000, depth=5)
+        cmms = CountMeanMinSketch(width=1000, depth=5)
+
+        cms.add("this is a test", 500)
+        cmeans.add("this is another test", 500)
+        cmms.add("this is yet another test", 500)
+
+        cms.join(cmeans)
+        self.assertTrue("this is a test" in cms)
+        self.assertTrue("this is another test" in cms)
+        self.assertFalse("this is yet another test" in cms)
+
+        cmeans.join(cmms)
+        self.assertFalse("this is a test" in cmeans)
+        self.assertTrue("this is another test" in cmeans)
+        self.assertTrue("this is yet another test" in cmeans)
+        self.assertFalse("foobar" in cmeans)
+
+        cmms.join(cms)
+        self.assertTrue("this is a test" in cmms)
+        self.assertTrue("this is another test" in cmms)
+        self.assertTrue("this is yet another test" in cmms)
+        self.assertFalse("this is yet another test!" in cmms)
+
+    def test_cms_join_mismatch_width(self):
+        """ test joining cms with mismatch width  """
+        cms1 = CountMinSketch(width=1000, depth=5)
+        cms2 = CountMinSketch(width=1001, depth=5)
+
+        try:
+            cms1.join(cms2)
+        except CountMinSketchError as ex:
+            msg = "Unable to merge as the count-min sketches are mismatched"
+            self.assertEqual(ex.message, msg)
+        else:
+            self.assertEqual(True, False)
+
+    def test_cms_join_mismatch_depth(self):
+        """ test joining cms with mismatch depth  """
+        cms1 = CountMinSketch(width=1000, depth=5)
+        cms2 = CountMinSketch(width=1000, depth=4)
+
+        try:
+            cms1.join(cms2)
+        except CountMinSketchError as ex:
+            msg = "Unable to merge as the count-min sketches are mismatched"
+            self.assertEqual(ex.message, msg)
+        else:
+            self.assertEqual(True, False)
+
+    def test_cms_mismatch_hash_function(self):
+        """ test joining when hash functions do not match """
+        cms1 = CountMinSketch(width=1000, depth=5)
+        cms2 = CountMinSketch(width=1000, depth=5, hash_function=different_hash)
+
+        def runner():
+            """ runner """
+            cms1.join(cms2)
+
+        self.assertRaises(CountMinSketchError, runner)
+        try:
+            cms1.join(cms2)
+        except CountMinSketchError as ex:
+            msg = "Unable to merge as the count-min sketches are mismatched"
+            self.assertEqual(ex.message, msg)
+        else:
+            self.assertEqual(True, False)
+
+    def test_cms_join_invalid(self):
+        """ test joing a cms with an invalid type """
+        cms = CountMinSketch(width=1000, depth=5)
+
+        try:
+            cms.join(1)
+        except TypeError as ex:
+            msg = "Unable to merge a count-min sketch with {}".format("<class 'int'>")
+            self.assertEqual(str(ex), msg)
+        else:
+            self.assertEqual(True, False)
 
     def test_cms_invalid_width(self):
         """ test invalid width """
@@ -559,6 +693,12 @@ class TestHeavyHitters(unittest.TestCase):
         )
         self.assertEqual(str(hh1), msg)
 
+    def test_hh_join(self):
+        """ test that stream threshold raises exception """
+        hh1 = HeavyHitters(num_hitters=2, width=1000, depth=5)
+        hh2 = HeavyHitters(num_hitters=2, width=1000, depth=5)
+        self.assertRaises(NotSupportedError, lambda: hh1.join(hh2))
+
 
 class TestCountMeanSketch(unittest.TestCase):
     """ test the basic count-mean sketch """
@@ -737,3 +877,9 @@ class TestStreamThreshold(unittest.TestCase):
             "\tNumber Meeting Threshold: 1"
         )
         self.assertEqual(str(st1), msg)
+
+    def test_streamthreshold_join(self):
+        """ test that stream threshold raises exception """
+        st1 = StreamThreshold(threshold=1000, width=1000, depth=5)
+        st2 = StreamThreshold(threshold=1000, width=1000, depth=5)
+        self.assertRaises(NotSupportedError, lambda: st1.join(st2))

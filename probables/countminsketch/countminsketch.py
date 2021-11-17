@@ -10,7 +10,7 @@ from numbers import Number
 from struct import calcsize, pack, unpack
 
 from ..constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN
-from ..exceptions import InitializationError, NotSupportedError
+from ..exceptions import CountMinSketchError, InitializationError, NotSupportedError
 from ..hashes import default_fnv_1a
 from ..utilities import is_valid_file
 
@@ -128,6 +128,10 @@ class CountMinSketch(object):
             self.error_rate,
             self.elements_added,
         )
+
+    def __contains__(self, key):
+        """ setup the `in` keyword """
+        return True if self.check(key) != 0 else False
 
     @property
     def width(self):
@@ -321,6 +325,49 @@ class CountMinSketch(object):
             filepointer.write(pack(rep, *self._bins))
             filepointer.write(pack("IIq", self.width, self.depth, self.elements_added))
 
+    def join(self, second):
+        """ Join two count-min sketchs into a single count-min sketch; the
+            calling count-min sketch will have the resulting combined data
+
+            Args:
+                second (CountMinSketch): The count-min sketch to merge
+            Raises:
+                TypeError: When second is not either a :class:`CountMinSketch`,\
+                    :class:`CountMeanSketch` or :class:`CountMeanMinSketch`
+                CountMinSketchError: Raised when the count-min sketches are \
+                    not of the same dimensions
+            Note:
+                The calling count-min sketch will contain the combined data
+                once complete
+        """
+        if not isinstance(second, (CountMinSketch)):
+            msg = "Unable to merge a count-min sketch with {}".format(type(second))
+            raise TypeError(msg)
+        if (
+            (self.width != second.width)
+            or (self.depth != second.depth)
+            or (self.hashes("test") != second.hashes("test"))
+        ):
+            raise CountMinSketchError("Unable to merge as the count-min sketches are mismatched")
+
+        size = self.width * self.depth
+        for i in range(size):
+            if self._bins[i] == INT32_T_MIN or self._bins[i] == INT32_T_MAX:
+                continue
+            self._bins[i] += second._bins[i]
+            if self._bins[i] > INT32_T_MAX:
+                self._bins[i] = INT32_T_MAX
+            elif self._bins[i] < INT32_T_MIN:
+                self._bins[i] = INT32_T_MIN
+
+        # handle adding and removing elements added including handling overflow
+        self.__elements_added += self.elements_added
+
+        if self.elements_added > INT64_T_MAX:
+            self.__elements_added = INT64_T_MAX
+        elif self.elements_added < INT64_T_MIN:
+            self.__elements_added = INT64_T_MIN
+
     def __load(self, filepath):
         """ load the count-min sketch from file """
         with open(filepath, "rb") as filepointer:
@@ -359,6 +406,8 @@ class CountMinSketch(object):
 
     def __mean_min_query(self, results):
         """ generate the mean-min query; assumes sorted list """
+        if results[0] == 0 and results[-1] == 0:
+            return 0
         meanmin = list()
         for t_bin in results:
             diff = self.elements_added - t_bin
@@ -593,6 +642,15 @@ class HeavyHitters(CountMinSketch):
         self.__top_x_size = 0
         self.__smallest = 0
 
+    def join(self, second):
+        """ Join is not supported by HeavyHitters
+
+            Raises:
+                NotSupportedError: This functionality is currently not \
+                supported """
+        msg = "Joining is not supported for heavy hitters"
+        raise NotSupportedError(msg)
+
 
 class StreamThreshold(CountMinSketch):
     """ keep track of those elements over a certain threshold """
@@ -700,3 +758,12 @@ class StreamThreshold(CountMinSketch):
         else:
             self.__meets_threshold[key] = res
         return res
+
+    def join(self, second):
+        """ Join is not supported by StreamThreshold
+
+            Raises:
+                NotSupportedError: This functionality is currently not \
+                supported """
+        msg = "Joining is not supported for stream threshold"
+        raise NotSupportedError(msg)
