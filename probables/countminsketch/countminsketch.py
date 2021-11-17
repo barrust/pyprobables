@@ -10,7 +10,7 @@ from numbers import Number
 from struct import calcsize, pack, unpack
 
 from ..constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN
-from ..exceptions import InitializationError, NotSupportedError
+from ..exceptions import CountMinSketchError, InitializationError, NotSupportedError
 from ..hashes import default_fnv_1a
 from ..utilities import is_valid_file
 
@@ -761,4 +761,4 @@ class StreamThreshold(CountMinSketch):
                 NotSupportedError: This functionality is currently not \
                 supported """
         msg = "Joining is not supported for stream threshold"
-        raise NotSupportedError("")
+        raise NotSupportedError(msg)
