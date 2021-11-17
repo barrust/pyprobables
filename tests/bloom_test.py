@@ -281,6 +281,35 @@ class TestBloomFilter(unittest.TestCase):
         # self.assertEqual("this is a test 12" in blm, False)  # This is a false positive!
         self.assertEqual("this is a test 15" in blm, False)
 
+    def test_bf_export_c_header(self):
+        """ test exporting a c header """
+        filename = "test.h"
+        hex_val = "6da491461a6bba4d000000000000000a000000000000000a3d4ccccd"
+        blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
+        for i in range(0, 10):
+            tmp = "this is a test {0}".format(i)
+            blm.add(tmp)
+        hex_out = blm.export_c_header(filename)
+
+        # now load the file, parse it and do some tests!
+        with open(filename, "r") as fobj:
+            data = fobj.readlines()
+        data = [x.strip() for x in data]
+
+        self.assertEqual("#include <inttypes.h>", data[0])
+        self.assertEqual("const uint64_t estimated_elements = {};".format(blm.estimated_elements), data[1])
+        self.assertEqual("const uint64_t elements_added = {};".format(blm.elements_added), data[2])
+        self.assertEqual("const float false_positive_rate = {};".format(blm.false_positive_rate), data[3])
+        self.assertEqual("const uint64_t number_bits = {};".format(blm.number_bits), data[4])
+        self.assertEqual("const unsigned int number_hashes = {};".format(blm.number_hashes), data[5])
+        self.assertEqual("const unsigned char bloom[] = {", data[6])
+        self.assertEqual("};", data[-1])
+
+        # rebuild the hex version!
+        new_hex = "".join([x.strip().replace("0x", "") for x in " ".join(data[7:-1]).split(",")])
+        self.assertEqual(hex_val, new_hex)
+        os.remove(filename)
+
     def test_bf_load_invalid_hex(self):
         """ test importing a bloom filter from an invalid hex value """
         hex_val = "85f240623b6d9459000000000000000a000000000000000a3d4ccccQ"
