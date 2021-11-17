@@ -321,6 +321,44 @@ class CountMinSketch(object):
             filepointer.write(pack(rep, *self._bins))
             filepointer.write(pack("IIq", self.width, self.depth, self.elements_added))
 
+    def join(self, second):
+        """ Join two count-min sketchs into a single count-min sketch; the
+            calling count-min sketch will have the resulting combined data
+
+            Args:
+                second (CountMinSketch): The count-min sketch to merge
+            Raises:
+                TypeError: When second is not either a :class:`CountMinSketch`,\
+                    :class:`CountMeanSketch` or :class:`CountMeanMinSketch`
+                CountMinSketchError: Raised when the count-min sketches are \
+                    not of the same dimensions
+            Note:
+                The calling count-min sketch will contain the combined data
+                once complete
+        """
+        if not isinstance(second, (CountMinSketch)):
+            raise TypeError("Some Message")
+        if (self.width != second.width) or (self.depth != second.depth):
+            raise CountMinSketchError("Unable to merge as the count-min sketches are mismatched")
+
+        size = self.width * self.depth
+        for i in range(size):
+            if self._bins[i] == INT32_T_MIN or self._bins[i] == INT32_T_MAX:
+                continue
+            self._bins[i] += second.bins[i]
+            if self._bins[i] > INT32_T_MAX:
+                self._bins[i] = INT32_T_MAX
+            elif self._bins[i] < INT32_T_MIN:
+                self._bins[i] = INT32_T_MIN
+
+        # handle adding and removing elements added including handling overflow
+        self.__elements_added += self.elements_added
+
+        if self.elements_added > INT64_T_MAX:
+            self.__elements_added = INT64_T_MAX
+        elif self.elements_added < INT64_T_MIN:
+            self.__elements_added = INT64_T_MIN
+
     def __load(self, filepath):
         """ load the count-min sketch from file """
         with open(filepath, "rb") as filepointer:
