@@ -3,11 +3,14 @@
 
 import os
 import unittest
+from tempfile import NamedTemporaryFile
 
 from probables import ExpandingBloomFilter, RotatingBloomFilter
 from probables.exceptions import RotatingBloomFilterError
 
 from .utilities import calc_file_md5
+
+DELETE_TEMP_FILES = True
 
 
 class TestExpandingBloomFilter(unittest.TestCase):
@@ -79,42 +82,40 @@ class TestExpandingBloomFilter(unittest.TestCase):
 
     def test_ebf_export(self):
         """ basic expanding Bloom Filter export test """
-        blm = ExpandingBloomFilter(est_elements=25, false_positive_rate=0.05)
-        blm.export("test.ebf")
-        self.assertEqual(calc_file_md5("test.ebf"), "eb5769ae9babdf7b37d6ce64d58812bc")
-        os.remove("test.ebf")
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".ebf", delete=DELETE_TEMP_FILES) as fobj:
+            blm = ExpandingBloomFilter(est_elements=25, false_positive_rate=0.05)
+            blm.export(fobj.name)
+            self.assertEqual(calc_file_md5(fobj.name), "eb5769ae9babdf7b37d6ce64d58812bc")
 
     def test_ebf_import_empty(self):
         """ test that expanding Bloom Filter is correct on import """
-        blm = ExpandingBloomFilter(est_elements=25, false_positive_rate=0.05)
-        blm.export("test.ebf")
-        self.assertEqual(calc_file_md5("test.ebf"), "eb5769ae9babdf7b37d6ce64d58812bc")
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".ebf", delete=DELETE_TEMP_FILES) as fobj:
+            blm = ExpandingBloomFilter(est_elements=25, false_positive_rate=0.05)
+            blm.export(fobj.name)
+            self.assertEqual(calc_file_md5(fobj.name), "eb5769ae9babdf7b37d6ce64d58812bc")
 
-        blm2 = ExpandingBloomFilter(filepath="test.ebf")
-        for bloom in blm2._blooms:
-            self.assertEqual(bloom.elements_added, 0)
-
-        os.remove("test.ebf")
+            blm2 = ExpandingBloomFilter(filepath=fobj.name)
+            for bloom in blm2._blooms:
+                self.assertEqual(bloom.elements_added, 0)
 
     def test_ebf_import_non_empty(self):
         """ test expanding Bloom Filter import when non-empty """
-        blm = ExpandingBloomFilter(est_elements=25, false_positive_rate=0.05)
-        for i in range(15):
-            blm.add("{}".format(i))
-            blm.push()
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".ebf", delete=DELETE_TEMP_FILES) as fobj:
+            blm = ExpandingBloomFilter(est_elements=25, false_positive_rate=0.05)
+            for i in range(15):
+                blm.add("{}".format(i))
+                blm.push()
 
-        blm.export("test.ebf")
+            blm.export(fobj.name)
 
-        blm2 = ExpandingBloomFilter(filepath="test.ebf")
-        self.assertEqual(blm2.expansions, 15)
-        for i in range(15):
-            self.assertEqual("{}".format(i) in blm2, True)
+            blm2 = ExpandingBloomFilter(filepath=fobj.name)
+            self.assertEqual(blm2.expansions, 15)
+            for i in range(15):
+                self.assertEqual("{}".format(i) in blm2, True)
 
-        # check for things that are not there!
-        for i in range(99, 125):
-            self.assertEqual("{}".format(i) in blm2, False)
-
-        os.remove("test.ebf")
+            # check for things that are not there!
+            for i in range(99, 125):
+                self.assertEqual("{}".format(i) in blm2, False)
 
 
 class TestRotatingBloomFilter(unittest.TestCase):
@@ -209,38 +210,37 @@ class TestRotatingBloomFilter(unittest.TestCase):
 
     def test_rfb_basic_export(self):
         """ basic rotating Bloom Filter export test """
-        blm = RotatingBloomFilter(est_elements=25, false_positive_rate=0.05)
-        blm.export("test.rbf")
-        self.assertEqual(calc_file_md5("test.rbf"), "eb5769ae9babdf7b37d6ce64d58812bc")
-        os.remove("test.rbf")
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".rbf", delete=DELETE_TEMP_FILES) as fobj:
+            blm = RotatingBloomFilter(est_elements=25, false_positive_rate=0.05)
+            blm.export(fobj.name)
+            self.assertEqual(calc_file_md5(fobj.name), "eb5769ae9babdf7b37d6ce64d58812bc")
 
     def test_rbf_import_empty(self):
         """ test that rotating Bloom Filter is correct on import """
-        blm = RotatingBloomFilter(est_elements=25, false_positive_rate=0.05)
-        blm.export("test.rbf")
-        self.assertEqual(calc_file_md5("test.rbf"), "eb5769ae9babdf7b37d6ce64d58812bc")
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".rbf", delete=DELETE_TEMP_FILES) as fobj:
+            blm = RotatingBloomFilter(est_elements=25, false_positive_rate=0.05)
+            blm.export(fobj.name)
+            self.assertEqual(calc_file_md5(fobj.name), "eb5769ae9babdf7b37d6ce64d58812bc")
 
-        blm2 = ExpandingBloomFilter(filepath="test.rbf")
-        for bloom in blm2._blooms:
-            self.assertEqual(bloom.elements_added, 0)
-
-        os.remove("test.rbf")
+            blm2 = ExpandingBloomFilter(filepath=fobj.name)
+            for bloom in blm2._blooms:
+                self.assertEqual(bloom.elements_added, 0)
 
     def test_rbf_non_basic_import(self):
         """ test that the imported rotating Bloom filter is correct """
-        blm = RotatingBloomFilter(est_elements=25, false_positive_rate=0.05)
-        for i in range(15):
-            blm.add("{}".format(i))
-            blm.push()
-        blm.export("test.rbf")
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".rbf", delete=DELETE_TEMP_FILES) as fobj:
+            blm = RotatingBloomFilter(est_elements=25, false_positive_rate=0.05)
+            for i in range(15):
+                blm.add("{}".format(i))
+                blm.push()
+            blm.export(fobj.name)
 
-        blm2 = RotatingBloomFilter(filepath="test.rbf")
-        # test those that should be popped off...
-        for i in range(5):
-            self.assertEqual("{}".format(i) in blm2, False)
-        # test things that would not be popped
-        for i in range(6, 15):
-            self.assertEqual("{}".format(i) in blm2, True)
-        self.assertEqual(blm2.current_queue_size, 10)
-        self.assertEqual(blm2.expansions, 9)
-        os.remove("test.rbf")
+            blm2 = RotatingBloomFilter(filepath=fobj.name)
+            # test those that should be popped off...
+            for i in range(5):
+                self.assertEqual("{}".format(i) in blm2, False)
+            # test things that would not be popped
+            for i in range(6, 15):
+                self.assertEqual("{}".format(i) in blm2, True)
+            self.assertEqual(blm2.current_queue_size, 10)
+            self.assertEqual(blm2.expansions, 9)

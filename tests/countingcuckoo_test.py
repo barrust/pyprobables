@@ -3,10 +3,13 @@
 
 import os
 import unittest
+from tempfile import NamedTemporaryFile
 
 from probables import CountingCuckooFilter, CuckooFilterFullError
 
 from .utilities import calc_file_md5
+
+DELETE_TEMP_FILES = True
 
 
 class TestCountingCuckooFilter(unittest.TestCase):
@@ -189,38 +192,36 @@ class TestCountingCuckooFilter(unittest.TestCase):
 
     def test_c_cuckoo_filter_export(self):
         """ test exporting a counting cuckoo filter """
-        filename = "./test.cck"
         md5sum = "6a98c2df1ec9fbb4f75f8e6392696b9b"
-        cko = CountingCuckooFilter(capacity=1000, bucket_size=2, auto_expand=False)
-        for i in range(100):
-            cko.add(str(i))
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".cck", delete=DELETE_TEMP_FILES) as fobj:
+            cko = CountingCuckooFilter(capacity=1000, bucket_size=2, auto_expand=False)
+            for i in range(100):
+                cko.add(str(i))
 
-        cko.export(filename)
-        md5_out = calc_file_md5(filename)
-        self.assertEqual(md5sum, md5_out)
-        os.remove(filename)
+            cko.export(fobj.name)
+            md5_out = calc_file_md5(fobj.name)
+            self.assertEqual(md5sum, md5_out)
 
     def test_c_cuckoo_filter_load(self):
         """ test loading a saved counting cuckoo filter """
-        filename = "./test.cck"
         md5sum = "6a98c2df1ec9fbb4f75f8e6392696b9b"
-        cko = CountingCuckooFilter(capacity=1000, bucket_size=2, auto_expand=False)
-        for i in range(100):
-            cko.add(str(i))
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".cck", delete=DELETE_TEMP_FILES) as fobj:
+            cko = CountingCuckooFilter(capacity=1000, bucket_size=2, auto_expand=False)
+            for i in range(100):
+                cko.add(str(i))
 
-        cko.export(filename)
-        md5_out = calc_file_md5(filename)
-        self.assertEqual(md5sum, md5_out)
+            cko.export(fobj.name)
+            md5_out = calc_file_md5(fobj.name)
+            self.assertEqual(md5sum, md5_out)
 
-        ckf = CountingCuckooFilter(filepath=filename)
-        for i in range(100):
-            self.assertEqual(ckf.check(str(i)), 1)
+            ckf = CountingCuckooFilter(filepath=fobj.name)
+            for i in range(100):
+                self.assertEqual(ckf.check(str(i)), 1)
 
-        self.assertEqual(1000, ckf.capacity)
-        self.assertEqual(2, ckf.bucket_size)
-        self.assertEqual(500, ckf.max_swaps)
-        self.assertEqual(0.05, ckf.load_factor())
-        os.remove(filename)
+            self.assertEqual(1000, ckf.capacity)
+            self.assertEqual(2, ckf.bucket_size)
+            self.assertEqual(500, ckf.max_swaps)
+            self.assertEqual(0.05, ckf.load_factor())
 
     def test_c_cuckoo_filter_expand_els(self):
         """ test out the expansion of the counting cuckoo filter """

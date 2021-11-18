@@ -4,10 +4,13 @@
 import hashlib
 import os
 import unittest
+from tempfile import NamedTemporaryFile
 
 from probables import CuckooFilter, CuckooFilterFullError, InitializationError
 
 from .utilities import calc_file_md5
+
+DELETE_TEMP_FILES = True
 
 
 class TestCuckooFilter(unittest.TestCase):
@@ -237,36 +240,34 @@ class TestCuckooFilter(unittest.TestCase):
 
     def test_cuckoo_filter_export(self):
         """ test exporting a cuckoo filter """
-        filename = "./test.cko"
         md5sum = "1371760d4ee9ccbe83e0144919750140"
-        cko = CuckooFilter()
-        for i in range(1000):
-            cko.add(str(i))
-        cko.export(filename)
-        md5_out = calc_file_md5(filename)
-        self.assertEqual(md5sum, md5_out)
-        os.remove(filename)
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".cko", delete=DELETE_TEMP_FILES) as fobj:
+            cko = CuckooFilter()
+            for i in range(1000):
+                cko.add(str(i))
+            cko.export(fobj.name)
+            md5_out = calc_file_md5(fobj.name)
+            self.assertEqual(md5sum, md5_out)
 
     def test_cuckoo_filter_load(self):
         """ test loading a saved cuckoo filter """
-        filename = "./test.cko"
         md5sum = "1371760d4ee9ccbe83e0144919750140"
-        cko = CuckooFilter()
-        for i in range(1000):
-            cko.add(str(i))
-        cko.export(filename)
-        md5_out = calc_file_md5(filename)
-        self.assertEqual(md5sum, md5_out)
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".cko", delete=DELETE_TEMP_FILES) as fobj:
+            cko = CuckooFilter()
+            for i in range(1000):
+                cko.add(str(i))
+            cko.export(fobj.name)
+            md5_out = calc_file_md5(fobj.name)
+            self.assertEqual(md5sum, md5_out)
 
-        ckf = CuckooFilter(filepath=filename)
-        for i in range(1000):
-            self.assertTrue(ckf.check(str(i)))
+            ckf = CuckooFilter(filepath=fobj.name)
+            for i in range(1000):
+                self.assertTrue(ckf.check(str(i)))
 
-        self.assertEqual(10000, ckf.capacity)
-        self.assertEqual(4, ckf.bucket_size)
-        self.assertEqual(500, ckf.max_swaps)
-        self.assertEqual(0.025, ckf.load_factor())
-        os.remove(filename)
+            self.assertEqual(10000, ckf.capacity)
+            self.assertEqual(4, ckf.bucket_size)
+            self.assertEqual(500, ckf.max_swaps)
+            self.assertEqual(0.025, ckf.load_factor())
 
     def test_cuckoo_filter_unload(self):
         """ test failing to load a saved cuckoo filter """
