@@ -2,10 +2,13 @@
 
 import os
 import unittest
+from tempfile import NamedTemporaryFile
 
 from probables.utilities import get_x_bits, is_hex_string, is_valid_file
 
 from .utilities import different_hash
+
+DELETE_TEMP_FILES = True
 
 
 class TestProbablesUtilities(unittest.TestCase):
@@ -20,13 +23,12 @@ class TestProbablesUtilities(unittest.TestCase):
 
     def test_is_valid_file(self):
         """ test the is valid file function """
-        self.assertFalse(is_valid_file(None))
-        self.assertFalse(is_valid_file("./file_doesnt_exist.txt"))
-        filename = "./create_this_file.txt"
-        with open(filename, "w"):
-            pass
-        self.assertTrue(is_valid_file(filename))
-        os.remove(filename)
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".rbf", delete=DELETE_TEMP_FILES) as fobj:
+            self.assertFalse(is_valid_file(None))
+            self.assertFalse(is_valid_file("./file_doesnt_exist.txt"))
+            with open(fobj.name, "w"):
+                pass
+            self.assertTrue(is_valid_file(fobj.name))
 
     def test_get_x_bits(self):
         """ test the get x bits function """

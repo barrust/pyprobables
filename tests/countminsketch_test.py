@@ -3,6 +3,7 @@
 
 import os
 import unittest
+from tempfile import NamedTemporaryFile
 
 from probables import (
     CountMeanMinSketch,
@@ -19,6 +20,8 @@ from probables.exceptions import (
 )
 
 from .utilities import calc_file_md5, different_hash
+
+DELETE_TEMP_FILES = True
 
 
 class TestCountMinSketch(unittest.TestCase):
@@ -188,47 +191,43 @@ class TestCountMinSketch(unittest.TestCase):
     def test_cms_export(self):
         """ test exporting a count-min sketch """
         md5_val = "fb1c39dd1a73f1ef0d7fc79f60fc028e"
-        filename = "test.cms"
-        cms = CountMinSketch(width=1000, depth=5)
-        cms.add("this is a test", 100)
-        cms.export(filename)
-        md5_out = calc_file_md5(filename)
-        os.remove(filename)
-
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".cms", delete=DELETE_TEMP_FILES) as fobj:
+            cms = CountMinSketch(width=1000, depth=5)
+            cms.add("this is a test", 100)
+            cms.export(fobj.name)
+            md5_out = calc_file_md5(fobj.name)
         self.assertEqual(md5_out, md5_val)
 
     def test_cms_load(self):
         """ test loading a count-min sketch from file """
         md5_val = "fb1c39dd1a73f1ef0d7fc79f60fc028e"
-        filename = "test.cms"
-        cms = CountMinSketch(width=1000, depth=5)
-        self.assertEqual(cms.add("this is a test", 100), 100)
-        cms.export(filename)
-        md5_out = calc_file_md5(filename)
-        self.assertEqual(md5_out, md5_val)
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".cms", delete=DELETE_TEMP_FILES) as fobj:
+            cms = CountMinSketch(width=1000, depth=5)
+            self.assertEqual(cms.add("this is a test", 100), 100)
+            cms.export(fobj.name)
+            md5_out = calc_file_md5(fobj.name)
+            self.assertEqual(md5_out, md5_val)
 
-        # try loading directly to file!
-        cms2 = CountMinSketch(filepath=filename)
-        self.assertEqual(cms2.elements_added, 100)
-        self.assertEqual(cms2.check("this is a test"), 100)
-        os.remove(filename)
+            # try loading directly to file!
+            cms2 = CountMinSketch(filepath=fobj.name)
+            self.assertEqual(cms2.elements_added, 100)
+            self.assertEqual(cms2.check("this is a test"), 100)
 
     def test_cms_load_diff_hash(self):
         """ test loading a count-min sketch from file """
         md5_val = "fb1c39dd1a73f1ef0d7fc79f60fc028e"
-        filename = "test.cms"
-        cms = CountMinSketch(width=1000, depth=5)
-        self.assertEqual(cms.add("this is a test", 100), 100)
-        cms.export(filename)
-        md5_out = calc_file_md5(filename)
-        self.assertEqual(md5_out, md5_val)
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".cms", delete=DELETE_TEMP_FILES) as fobj:
+            cms = CountMinSketch(width=1000, depth=5)
+            self.assertEqual(cms.add("this is a test", 100), 100)
+            cms.export(fobj.name)
+            md5_out = calc_file_md5(fobj.name)
+            self.assertEqual(md5_out, md5_val)
 
-        cms2 = CountMinSketch(filepath=filename, hash_function=different_hash)
-        self.assertEqual(cms2.elements_added, 100)
-        # should not work since it is a different hash
-        self.assertNotEqual(cms.check("this is a test"), True)
-        self.assertNotEqual(cms.hashes("this is a test"), cms2.hashes("this is a test"))
-        os.remove(filename)
+            cms2 = CountMinSketch(filepath=fobj.name, hash_function=different_hash)
+            self.assertEqual(cms2.elements_added, 100)
+            # should not work since it is a different hash
+            self.assertNotEqual(cms.check("this is a test"), True)
+            self.assertNotEqual(cms.hashes("this is a test"), cms2.hashes("this is a test"))
 
     def test_cms_load_invalid_file(self):
         """ test loading a count-min sketch from invalid file """
@@ -644,38 +643,35 @@ class TestHeavyHitters(unittest.TestCase):
     def test_hh_export(self):
         """ test exporting a heavy hitters sketch """
         md5_val = "fb1c39dd1a73f1ef0d7fc79f60fc028e"
-        filename = "test.cms"
-        hh1 = HeavyHitters(num_hitters=1000, width=1000, depth=5)
-        hh1.add("this is a test", 100)
-        hh1.export(filename)
-        md5_out = calc_file_md5(filename)
-        os.remove(filename)
-
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".cms", delete=DELETE_TEMP_FILES) as fobj:
+            hh1 = HeavyHitters(num_hitters=1000, width=1000, depth=5)
+            hh1.add("this is a test", 100)
+            hh1.export(fobj.name)
+            md5_out = calc_file_md5(fobj.name)
         self.assertEqual(md5_out, md5_val)
 
     def test_hh_load(self):
         """ test loading a heavy hitters from file """
         md5_val = "fb1c39dd1a73f1ef0d7fc79f60fc028e"
-        filename = "test.cms"
-        hh1 = HeavyHitters(num_hitters=1000, width=1000, depth=5)
-        self.assertEqual(hh1.add("this is a test", 100), 100)
-        self.assertEqual(hh1.elements_added, 100)
-        self.assertEqual(hh1.heavy_hitters, {"this is a test": 100})
-        hh1.export(filename)
-        md5_out = calc_file_md5(filename)
-        self.assertEqual(md5_out, md5_val)
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".cms", delete=DELETE_TEMP_FILES) as fobj:
+            hh1 = HeavyHitters(num_hitters=1000, width=1000, depth=5)
+            self.assertEqual(hh1.add("this is a test", 100), 100)
+            self.assertEqual(hh1.elements_added, 100)
+            self.assertEqual(hh1.heavy_hitters, {"this is a test": 100})
+            hh1.export(fobj.name)
+            md5_out = calc_file_md5(fobj.name)
+            self.assertEqual(md5_out, md5_val)
 
-        # try loading directly to file!
-        hh2 = HeavyHitters(num_hitters=1000, filepath=filename)
-        self.assertEqual(hh2.width, 1000)
-        self.assertEqual(hh2.depth, 5)
-        self.assertEqual(hh2.elements_added, 100)
-        self.assertEqual(hh2.check("this is a test"), 100)
-        # show on load that the tracking of heavy hitters is gone
-        self.assertEqual(hh2.heavy_hitters, dict())
-        self.assertEqual(hh2.add("this is a test", 1), 101)
-        self.assertEqual(hh2.heavy_hitters, {"this is a test": 101})
-        os.remove(filename)
+            # try loading directly to file!
+            hh2 = HeavyHitters(num_hitters=1000, filepath=fobj.name)
+            self.assertEqual(hh2.width, 1000)
+            self.assertEqual(hh2.depth, 5)
+            self.assertEqual(hh2.elements_added, 100)
+            self.assertEqual(hh2.check("this is a test"), 100)
+            # show on load that the tracking of heavy hitters is gone
+            self.assertEqual(hh2.heavy_hitters, dict())
+            self.assertEqual(hh2.add("this is a test", 1), 101)
+            self.assertEqual(hh2.heavy_hitters, {"this is a test": 101})
 
     def test_hh_str(self):
         """ test the string representation of the heavy hitters sketch """
@@ -829,38 +825,35 @@ class TestStreamThreshold(unittest.TestCase):
     def test_streamthreshold_export(self):
         """ test exporting a stream threshold sketch """
         md5_val = "fb1c39dd1a73f1ef0d7fc79f60fc028e"
-        filename = "test.cms"
-        st1 = StreamThreshold(threshold=10, width=1000, depth=5)
-        st1.add("this is a test", 100)
-        st1.export(filename)
-        md5_out = calc_file_md5(filename)
-        os.remove(filename)
-
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".cms", delete=DELETE_TEMP_FILES) as fobj:
+            st1 = StreamThreshold(threshold=10, width=1000, depth=5)
+            st1.add("this is a test", 100)
+            st1.export(fobj.name)
+            md5_out = calc_file_md5(fobj.name)
         self.assertEqual(md5_out, md5_val)
 
     def test_streamthreshold_load(self):
         """ test loading a stream threshold sketch from file """
         md5_val = "fb1c39dd1a73f1ef0d7fc79f60fc028e"
-        filename = "test.cms"
-        st1 = StreamThreshold(threshold=10, width=1000, depth=5)
-        self.assertEqual(st1.add("this is a test", 100), 100)
-        self.assertEqual(st1.elements_added, 100)
-        self.assertEqual(st1.meets_threshold, {"this is a test": 100})
-        st1.export(filename)
-        md5_out = calc_file_md5(filename)
-        self.assertEqual(md5_out, md5_val)
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".cms", delete=DELETE_TEMP_FILES) as fobj:
+            st1 = StreamThreshold(threshold=10, width=1000, depth=5)
+            self.assertEqual(st1.add("this is a test", 100), 100)
+            self.assertEqual(st1.elements_added, 100)
+            self.assertEqual(st1.meets_threshold, {"this is a test": 100})
+            st1.export(fobj.name)
+            md5_out = calc_file_md5(fobj.name)
+            self.assertEqual(md5_out, md5_val)
 
-        # try loading directly to file!
-        st2 = StreamThreshold(threshold=10, filepath=filename)
-        self.assertEqual(st2.width, 1000)
-        self.assertEqual(st2.depth, 5)
-        self.assertEqual(st2.elements_added, 100)
-        self.assertEqual(st2.check("this is a test"), 100)
-        # show on load that the tracking of stream threshold is gone
-        self.assertEqual(st2.meets_threshold, dict())
-        self.assertEqual(st2.add("this is a test", 1), 101)
-        self.assertEqual(st2.meets_threshold, {"this is a test": 101})
-        os.remove(filename)
+            # try loading directly to file!
+            st2 = StreamThreshold(threshold=10, filepath=fobj.name)
+            self.assertEqual(st2.width, 1000)
+            self.assertEqual(st2.depth, 5)
+            self.assertEqual(st2.elements_added, 100)
+            self.assertEqual(st2.check("this is a test"), 100)
+            # show on load that the tracking of stream threshold is gone
+            self.assertEqual(st2.meets_threshold, dict())
+            self.assertEqual(st2.add("this is a test", 1), 101)
+            self.assertEqual(st2.meets_threshold, {"this is a test": 101})
 
     def test_streamthreshold_str(self):
         """ test the string representation of the stream threshold sketch """

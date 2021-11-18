@@ -3,11 +3,14 @@
 
 import os
 import unittest
+from tempfile import NamedTemporaryFile
 
 from probables import CountingBloomFilter
 from probables.exceptions import InitializationError
 
 from .utilities import calc_file_md5, different_hash
+
+DELETE_TEMP_FILES = True
 
 
 class TestCountingBloomFilter(unittest.TestCase):
@@ -96,37 +99,35 @@ class TestCountingBloomFilter(unittest.TestCase):
 
     def test_cbf_export_file(self):
         """ test exporting bloom filter to file """
-        filename = "test.cbm"
         md5_val = "0b83c837da30e25f768f0527c039d341"
-        blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
-        blm.add("test")
-        blm.add("out")
-        blm.add("the")
-        blm.add("counting")
-        blm.add("bloom")
-        blm.add("filter")
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".cbm", delete=DELETE_TEMP_FILES) as fobj:
+            blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
+            blm.add("test")
+            blm.add("out")
+            blm.add("the")
+            blm.add("counting")
+            blm.add("bloom")
+            blm.add("filter")
 
-        blm.add("test")
-        blm.add("Test")
-        blm.add("out")
-        blm.add("test")
-        blm.export(filename)
+            blm.add("test")
+            blm.add("Test")
+            blm.add("out")
+            blm.add("test")
+            blm.export(fobj.name)
 
-        md5_out = calc_file_md5(filename)
-        self.assertEqual(md5_out, md5_val)
-        os.remove(filename)
+            md5_out = calc_file_md5(fobj.name)
+            self.assertEqual(md5_out, md5_val)
 
     def test_cbf_load_file(self):
         """ test loading bloom filter from file """
-        filename = "test.cbm"
-        blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
-        blm.add("this is a test")
-        blm.export(filename)
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".cbm", delete=DELETE_TEMP_FILES) as fobj:
+            blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+            blm.add("this is a test")
+            blm.export(fobj.name)
 
-        blm2 = CountingBloomFilter(filepath=filename)
-        self.assertEqual("this is a test" in blm2, True)
-        self.assertEqual("this is not a test" in blm2, False)
-        os.remove(filename)
+            blm2 = CountingBloomFilter(filepath=fobj.name)
+            self.assertEqual("this is a test" in blm2, True)
+            self.assertEqual("this is not a test" in blm2, False)
 
     def test_cbf_load_invalid_file(self):
         """ test importing a bloom filter from an invalid filepath """
