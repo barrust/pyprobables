@@ -1,8 +1,10 @@
 # PyProbables Changelog
 
-### Version 0.5.1 (future release)
+### Version 0.5.1
 * Bloom Filter:
     * Export as a C header (**\*.h**)
+* Count-Min Sketch
+    * Add join/merge functionality
 
 ### Version 0.5.0
 * ***BACKWARD INCOMPATIBLE CHANGES***
