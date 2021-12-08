@@ -5,15 +5,22 @@ import os
 import unittest
 from tempfile import NamedTemporaryFile
 
+from pathlib import Path
+import sys
+this_dir = Path(__file__).parent
+sys.path.insert(0, str(this_dir))
+sys.path.insert(0, str(this_dir.parent))
+
 from probables import CountingCuckooFilter, CuckooFilterFullError
 
-from .utilities import calc_file_md5
+from utilities import calc_file_md5
 
 DELETE_TEMP_FILES = True
 
 
 class TestCountingCuckooFilter(unittest.TestCase):
     """ base Cuckoo Filter test """
+
 
     def test_c_cuckoo_filter_default(self):
         """ test counting cuckoo filter default properties """
@@ -265,3 +272,6 @@ class TestCountingCuckooFilter(unittest.TestCase):
             "\tAuto Expand: True"
         )
         self.assertEqual(str(cko), msg)
+
+if __name__ == "__main__":
+    unittest.main()

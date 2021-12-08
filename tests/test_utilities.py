@@ -4,9 +4,15 @@ import os
 import unittest
 from tempfile import NamedTemporaryFile
 
+from pathlib import Path
+import sys
+this_dir = Path(__file__).parent
+sys.path.insert(0, str(this_dir))
+sys.path.insert(0, str(this_dir.parent))
+
 from probables.utilities import get_x_bits, is_hex_string, is_valid_file
 
-from .utilities import different_hash
+from utilities import different_hash
 
 DELETE_TEMP_FILES = True
 
@@ -75,3 +81,6 @@ class TestProbablesUtilities(unittest.TestCase):
         tmp2 = get_x_bits(res, 64, 1, False)
         self.assertEqual(1, tmp1)
         self.assertEqual(1, tmp2)
+
+if __name__ == "__main__":
+    unittest.main()

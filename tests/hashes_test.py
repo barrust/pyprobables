@@ -4,6 +4,12 @@
 import hashlib
 import unittest
 
+from pathlib import Path
+import sys
+this_dir = Path(__file__).parent
+sys.path.insert(0, str(this_dir))
+sys.path.insert(0, str(this_dir.parent))
+
 from probables.constants import UINT64_T_MAX
 from probables.hashes import (
     default_fnv_1a,
@@ -130,3 +136,6 @@ class TestHashes(unittest.TestCase):
         res = my_hash("this is a test", 1)
         self.assertEqual(len(res), 1)
         self.assertEqual(res[0], results[0])
+
+if __name__ == "__main__":
+    unittest.main()

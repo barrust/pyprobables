@@ -6,12 +6,18 @@ import os
 import unittest
 from tempfile import NamedTemporaryFile
 
+from pathlib import Path
+import sys
+this_dir = Path(__file__).parent
+sys.path.insert(0, str(this_dir))
+sys.path.insert(0, str(this_dir.parent))
+
 from probables import BloomFilter, BloomFilterOnDisk
 from probables.constants import UINT64_T_MAX
 from probables.exceptions import InitializationError, NotSupportedError
 from probables.hashes import hash_with_depth_int
 
-from .utilities import calc_file_md5, different_hash
+from utilities import calc_file_md5, different_hash
 
 DELETE_TEMP_FILES = True
 
@@ -847,3 +853,6 @@ class TestBloomFilterOnDisk(unittest.TestCase):
                 blm.intersection(1)
             except TypeError as ex:
                 self.assertEqual(str(ex), msg)
+
+if __name__ == "__main__":
+    unittest.main()

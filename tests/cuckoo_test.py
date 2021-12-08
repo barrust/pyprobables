@@ -6,9 +6,15 @@ import os
 import unittest
 from tempfile import NamedTemporaryFile
 
+from pathlib import Path
+import sys
+this_dir = Path(__file__).parent
+sys.path.insert(0, str(this_dir))
+sys.path.insert(0, str(this_dir.parent))
+
 from probables import CuckooFilter, CuckooFilterFullError, InitializationError
 
-from .utilities import calc_file_md5
+from utilities import calc_file_md5
 
 DELETE_TEMP_FILES = True
 
@@ -415,3 +421,6 @@ class TestCuckooFilter(unittest.TestCase):
             self.assertEqual(str(ex), msg)
         else:
             self.assertEqual(True, False)
+
+if __name__ == "__main__":
+    unittest.main()
