@@ -6,12 +6,13 @@
 
 import math
 import os
+import typing
 from numbers import Number
 from struct import calcsize, pack, unpack
 
 from ..constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN
 from ..exceptions import CountMinSketchError, InitializationError, NotSupportedError
-from ..hashes import default_fnv_1a
+from ..hashes import HashFuncT, default_fnv_1a
 from ..utilities import is_valid_file
 
 
@@ -55,13 +56,13 @@ class CountMinSketch(object):
 
     def __init__(
         self,
-        width=None,
-        depth=None,
-        confidence=None,
-        error_rate=None,
-        filepath=None,
-        hash_function=None,
-    ):
+        width: typing.Optional[typing.Union[str, int]] = None,
+        depth: typing.Optional[int] = None,
+        confidence: typing.Optional[float] = None,
+        error_rate: typing.Optional[typing.Union[str, int, float]] = None,
+        filepath: typing.Optional[str] = None,
+        hash_function: typing.Optional[HashFuncT] = None,
+    ) -> None:
         """ default initilization function """
         # default values
         self.__width = 0
@@ -111,7 +112,7 @@ class CountMinSketch(object):
         else:
             self._hash_function = hash_function
 
-    def __str__(self):
+    def __str__(self) -> str:
         """ string representation of the count min sketch """
         msg = (
             "Count-Min Sketch:\n"
@@ -129,12 +130,12 @@ class CountMinSketch(object):
             self.elements_added,
         )
 
-    def __contains__(self, key):
+    def __contains__(self, key: str) -> bool:
         """ setup the `in` keyword """
         return True if self.check(key) != 0 else False
 
     @property
-    def width(self):
+    def width(self) -> int:
         """int: The width of the count-min sketch
 
         Note:
@@ -142,7 +143,7 @@ class CountMinSketch(object):
         return self.__width
 
     @property
-    def depth(self):
+    def depth(self) -> int:
         """int: The depth of the count-min sketch
 
         Note:
@@ -150,7 +151,7 @@ class CountMinSketch(object):
         return self.__depth
 
     @property
-    def confidence(self):
+    def confidence(self) -> float:
         """float: The confidence of the count-min sketch
 
         Note:
@@ -158,7 +159,7 @@ class CountMinSketch(object):
         return self.__confidence
 
     @property
-    def error_rate(self):
+    def error_rate(self) -> float:
         """float: The error rate of the count-min sketch
 
         Note:
@@ -166,7 +167,7 @@ class CountMinSketch(object):
         return self.__error_rate
 
     @property
-    def elements_added(self):
+    def elements_added(self) -> int:
         """int: The number of elements added to the count-min sketch
 
         Note:
@@ -205,13 +206,13 @@ class CountMinSketch(object):
         else:
             self.__query_method = self.__min_query
 
-    def clear(self):
+    def clear(self) -> None:
         """ Reset the count-min sketch to an empty state """
         self.__elements_added = 0
         for i, _ in enumerate(self._bins):
             self._bins[i] = 0
 
-    def hashes(self, key, depth=None):
+    def hashes(self, key: str, depth: int = None) -> typing.List[int]:
         """ Return the hashes based on the provided key
 
             Args:
@@ -224,7 +225,7 @@ class CountMinSketch(object):
         t_depth = self.depth if depth is None else depth
         return self._hash_function(key, t_depth)
 
-    def add(self, key, num_els=1):
+    def add(self, key: str, num_els: int = 1) -> int:
         """ Insert the element `key` into the count-min sketch
 
             Args:
@@ -236,7 +237,7 @@ class CountMinSketch(object):
         hashes = self.hashes(key)
         return self.add_alt(hashes, num_els)
 
-    def add_alt(self, hashes, num_els=1):
+    def add_alt(self, hashes: typing.List[int], num_els: int = 1) -> int:
         """ Insert an element by using the hash representation
 
             Args:
@@ -258,7 +259,7 @@ class CountMinSketch(object):
             self.__elements_added = INT64_T_MAX
         return self.__query_method(sorted(res))
 
-    def remove(self, key, num_els=1):
+    def remove(self, key: str, num_els: int = 1) -> int:
         """ Remove element 'key' from the count-min sketch
 
             Args:
@@ -270,7 +271,7 @@ class CountMinSketch(object):
         hashes = self.hashes(key)
         return self.remove_alt(hashes, num_els)
 
-    def remove_alt(self, hashes, num_els=1):
+    def remove_alt(self, hashes: typing.List[int], num_els: int = 1) -> int:
         """ Remove an element by using the hash representation
 
             Args:
@@ -292,7 +293,7 @@ class CountMinSketch(object):
 
         return self.__query_method(sorted(res))
 
-    def check(self, key):
+    def check(self, key: str) -> int:
         """Check number of times element 'key' is in the count-min sketch
 
         Args:
@@ -302,7 +303,7 @@ class CountMinSketch(object):
         hashes = self.hashes(key)
         return self.check_alt(hashes)
 
-    def check_alt(self, hashes):
+    def check_alt(self, hashes: typing.List[int]) -> int:
         """ Check the count-min sketch for an element by using the hash \
             representation
 
@@ -313,7 +314,7 @@ class CountMinSketch(object):
         bins = self.__get_values_sorted(hashes)
         return self.__query_method(bins)
 
-    def export(self, filepath):
+    def export(self, filepath: str) -> None:
         """ Export the count-min sketch to disk
 
             Args:
@@ -325,7 +326,7 @@ class CountMinSketch(object):
             filepointer.write(pack(rep, *self._bins))
             filepointer.write(pack("IIq", self.width, self.depth, self.elements_added))
 
-    def join(self, second):
+    def join(self, second: typing.Union[int, "CountMinSketch"]) -> None:
         """ Join two count-min sketchs into a single count-min sketch; the
             calling count-min sketch will have the resulting combined data
 
@@ -452,13 +453,13 @@ class CountMeanSketch(CountMinSketch):
 
     def __init__(
         self,
-        width=None,
-        depth=None,
+        width: typing.Optional[int] = None,
+        depth: typing.Optional[int] = None,
         confidence=None,
         error_rate=None,
         filepath=None,
-        hash_function=None,
-    ):
+        hash_function: typing.Optional[HashFuncT] = None,
+    ) -> None:
         super(CountMeanSketch, self).__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.query_type = "mean"
 
@@ -493,13 +494,13 @@ class CountMeanMinSketch(CountMinSketch):
 
     def __init__(
         self,
-        width=None,
-        depth=None,
-        confidence=None,
-        error_rate=None,
-        filepath=None,
-        hash_function=None,
-    ):
+        width: typing.Optional[int] = None,
+        depth: typing.Optional[int] = None,
+        confidence: float = None,
+        error_rate: float = None,
+        filepath: typing.Optional[str] = None,
+        hash_function: typing.Optional[HashFuncT] = None,
+    ) -> None:
         super(CountMeanMinSketch, self).__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.query_type = "mean-min"
 
@@ -534,14 +535,14 @@ class HeavyHitters(CountMinSketch):
 
     def __init__(
         self,
-        num_hitters=100,
-        width=None,
-        depth=None,
-        confidence=None,
-        error_rate=None,
-        filepath=None,
-        hash_function=None,
-    ):
+        num_hitters: int = 100,
+        width: typing.Optional[int] = None,
+        depth: typing.Optional[int] = None,
+        confidence: typing.Optional[float] = None,
+        error_rate: typing.Optional[float] = None,
+        filepath: typing.Optional[str] = None,
+        hash_function: typing.Optional[HashFuncT] = None,
+    ) -> None:
 
         super(HeavyHitters, self).__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.__top_x = dict()  # top x heavy hitters
@@ -549,14 +550,14 @@ class HeavyHitters(CountMinSketch):
         self.__num_hitters = num_hitters
         self.__smallest = 0
 
-    def __str__(self):
+    def __str__(self) -> str:
         """ heavy hitters string rep """
         msg = super(HeavyHitters, self).__str__()
         tmp = "Heavy Hitters {0}\n" "\tNumber Hitters: {1}\n" "\tNumber Recorded: {2}"
         return tmp.format(msg, self.number_heavy_hitters, self.__top_x_size)
 
     @property
-    def heavy_hitters(self):
+    def heavy_hitters(self) -> typing.Dict[str, int]:
         """dict: Return the heavy hitters, or most common elements
 
         Note:
@@ -564,14 +565,14 @@ class HeavyHitters(CountMinSketch):
         return self.__top_x
 
     @property
-    def number_heavy_hitters(self):
+    def number_heavy_hitters(self) -> int:
         """int: Return the maximum number of heavy hitters being tracked
 
         Note:
             Not settable"""
         return self.__num_hitters
 
-    def add(self, key, num_els=1):
+    def add(self, key: str, num_els: int = 1) -> int:
         """Add element to heavy hitters
 
         Args:
@@ -584,7 +585,7 @@ class HeavyHitters(CountMinSketch):
         hashes = self.hashes(key)
         return self.add_alt(key, hashes, num_els)
 
-    def add_alt(self, key, hashes, num_els=1):
+    def add_alt(self, key: str, hashes: typing.List[int], num_els: int = 1) -> int:
         """ Add the element `key` represented as hashes to the HeavyHitters
             object (hence the different signature on the function!)
 
@@ -619,7 +620,7 @@ class HeavyHitters(CountMinSketch):
             self.__smallest = self.__top_x[new_min]
         return res
 
-    def remove_alt(self, hashes, num_els=1):
+    def remove_alt(self, hashes: typing.List[int], num_els: int = 1):
         """ Remove element based on hashes provided; not supported in
             heavy hitters
 
@@ -635,14 +636,14 @@ class HeavyHitters(CountMinSketch):
         )
         raise NotSupportedError(msg)
 
-    def clear(self):
+    def clear(self) -> None:
         """ Clear out the heavy hitters! """
         super(HeavyHitters, self).clear()
         self.__top_x = dict()
         self.__top_x_size = 0
         self.__smallest = 0
 
-    def join(self, second):
+    def join(self, second: "HeavyHitters"):
         """ Join is not supported by HeavyHitters
 
             Raises:
@@ -659,40 +660,40 @@ class StreamThreshold(CountMinSketch):
 
     def __init__(
         self,
-        threshold=100,
-        width=None,
-        depth=None,
-        confidence=None,
-        error_rate=None,
-        filepath=None,
-        hash_function=None,
-    ):
+        threshold: int = 100,
+        width: typing.Optional[int] = None,
+        depth: typing.Optional[int] = None,
+        confidence: typing.Optional[float] = None,
+        error_rate: typing.Optional[float] = None,
+        filepath: typing.Optional[str] = None,
+        hash_function: typing.Optional[HashFuncT] = None,
+    ) -> None:
         super(StreamThreshold, self).__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.__threshold = threshold
         self.__meets_threshold = dict()
 
-    def __str__(self):
+    def __str__(self) -> str:
         """ stream threshold string rep """
         msg = super(StreamThreshold, self).__str__()
         tmp = "Stream Threshold {0}\n" "\tThreshold: {1}\n" "\tNumber Meeting Threshold: {2}"
         return tmp.format(msg, self.threshold, len(self.__meets_threshold))
 
     @property
-    def meets_threshold(self):
+    def meets_threshold(self) -> typing.Dict[str, int]:
         """ dict: Those keys that meet the required threshold (with value) """
         return self.__meets_threshold
 
     @property
-    def threshold(self):
+    def threshold(self) -> int:
         """ int: The threshold at which a key is tracked """
         return self.__threshold
 
-    def clear(self):
+    def clear(self) -> None:
         """ Clear out the stream threshold! """
         super(StreamThreshold, self).clear()
         self.__meets_threshold = dict()
 
-    def add(self, key, num_els=1):
+    def add(self, key: str, num_els: int = 1) -> int:
         """Add the element for key into the data structure
 
         Args:
@@ -705,7 +706,7 @@ class StreamThreshold(CountMinSketch):
         hashes = self.hashes(key)
         return self.add_alt(key, hashes, num_els)
 
-    def add_alt(self, key, hashes, num_els=1):
+    def add_alt(self, key: str, hashes: typing.List[int], num_els: int = 1) -> int:
         """ Add the element for key into the data structure
 
             Args:
@@ -724,7 +725,7 @@ class StreamThreshold(CountMinSketch):
             self.__meets_threshold[key] = res
         return res
 
-    def remove(self, key, num_els=1):
+    def remove(self, key: str, num_els: int = 1) -> int:
         """ Remove element 'key' from the count-min sketch
 
             Args:
@@ -738,7 +739,7 @@ class StreamThreshold(CountMinSketch):
         hashes = self.hashes(key)
         return self.remove_alt(key, hashes, num_els)
 
-    def remove_alt(self, key, hashes, num_els=1):
+    def remove_alt(self, key: str, hashes: typing.List[int], num_els: int = 1) -> int:
         """ Remove an element by using the hash representation
 
             Args:
@@ -759,7 +760,7 @@ class StreamThreshold(CountMinSketch):
             self.__meets_threshold[key] = res
         return res
 
-    def join(self, second):
+    def join(self, second: "StreamThreshold"):
         """ Join is not supported by StreamThreshold
 
             Raises:

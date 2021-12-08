@@ -6,29 +6,31 @@
 
 import mmap
 import os
+import typing
 from shutil import copyfile
 from struct import calcsize, pack, unpack
+from typing import List, Optional, Union
 
 from ..exceptions import InitializationError, NotSupportedError
 from ..utilities import is_hex_string, is_valid_file
-from .basebloom import BaseBloom
+from .basebloom import BaseBloom, HashFuncT
 
 MISMATCH_MSG = "The parameter second must be of type BloomFilter or " "a BloomFilterOnDisk"
 
 
-def _verify_not_type_mismatch(second):
+def _verify_not_type_mismatch(second: Union[int, "BloomFilter"]) -> bool:
     """ verify that there is not a type mismatch """
     if not isinstance(second, (BloomFilter, BloomFilterOnDisk)):
         return False
     return True
 
 
-def _cnt_set_bits(i):
+def _cnt_set_bits(i: int) -> int:
     """ count number of bits set in this int """
     return bin(i).count("1")
 
 
-def _tmp_jaccard_index(first, second):
+def _tmp_jaccard_index(first: "BloomFilter", second: "BloomFilter") -> float:
     """ encapsulate the basics of the jaccard index """
     count_union = 0
     count_int = 0
@@ -42,7 +44,7 @@ def _tmp_jaccard_index(first, second):
     return count_int / count_union
 
 
-def _tmp_union(first, second):
+def _tmp_union(first: "BloomFilter", second: "BloomFilter") -> "BloomFilter":
     """ encapsulate the basics of the union """
     res = BloomFilter(
         first.estimated_elements,
@@ -55,7 +57,7 @@ def _tmp_union(first, second):
     return res
 
 
-def _tmp_intersection(first, second):
+def _tmp_intersection(first: "BloomFilter", second: "BloomFilter") -> "BloomFilter":
     """ encapsulate the basics of the intersection """
     res = BloomFilter(
         first.estimated_elements,
@@ -93,12 +95,12 @@ class BloomFilter(BaseBloom):
 
     def __init__(
         self,
-        est_elements=None,
-        false_positive_rate=None,
-        filepath=None,
-        hex_string=None,
-        hash_function=None,
-    ):
+        est_elements: Optional[Union[int, List[int]]] = None,
+        false_positive_rate: Optional[Union[str, float]] = None,
+        filepath: Optional[str] = None,
+        hex_string: Optional[str] = None,
+        hash_function: Optional[HashFuncT] = None,
+    ) -> None:
         """ setup the basic values needed """
         super(BloomFilter, self).__init__(
             "regular",
@@ -109,11 +111,11 @@ class BloomFilter(BaseBloom):
             hash_function,
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         """ correctly handle python 3 vs python2 encoding if necessary """
         return self.__unicode__()
 
-    def __unicode__(self):
+    def __unicode__(self) -> str:
         """ string / unicode representation of the Bloom Filter """
         on_disk = "no" if self.is_on_disk is False else "yes"
         stats = (
@@ -144,7 +146,7 @@ class BloomFilter(BaseBloom):
             on_disk,
         )
 
-    def intersection(self, second):
+    def intersection(self, second: Union[int, "BloomFilter"]) -> typing.Optional["BloomFilter"]:
         """ Return a new Bloom Filter that contains the intersection of the
             two
 
@@ -169,7 +171,7 @@ class BloomFilter(BaseBloom):
 
         return _tmp_intersection(self, second)
 
-    def union(self, second):
+    def union(self, second: Union[int, "BloomFilter"]) -> typing.Optional["BloomFilter"]:
         """ Return a new Bloom Filter that contains the union of the two
 
             Args:
@@ -193,7 +195,7 @@ class BloomFilter(BaseBloom):
 
         return _tmp_union(self, second)
 
-    def jaccard_index(self, second):
+    def jaccard_index(self, second: typing.Union[int, "BloomFilter"]) -> Optional[float]:
         """ Calculate the jaccard similarity score between two Bloom Filters
 
             Args:
@@ -217,7 +219,7 @@ class BloomFilter(BaseBloom):
 
         return _tmp_jaccard_index(self, second)
 
-    def _cnt_number_bits_set(self):
+    def _cnt_number_bits_set(self) -> int:
         """ calculate the total number of set bits in the bloom """
         setbits = 0
         for i in list(range(0, self.bloom_length)):
@@ -251,12 +253,12 @@ class BloomFilterOnDisk(BaseBloom):
 
     def __init__(
         self,
-        filepath,
-        est_elements=None,
-        false_positive_rate=None,
-        hex_string=None,
-        hash_function=None,
-    ):
+        filepath: str,
+        est_elements: Optional[int] = None,
+        false_positive_rate: Optional[float] = None,
+        hex_string: Optional[str] = None,
+        hash_function: Optional[HashFuncT] = None,
+    ) -> None:
         # since we cannot load from a file only (to memory), we can't pass
         # the file to the constructor; therefore, we will have to catch
         # any exception thrown
@@ -300,11 +302,11 @@ class BloomFilterOnDisk(BaseBloom):
             msg = "Insufecient parameters to set up the On Disk Bloom Filter"
             raise InitializationError(msg)
 
-    def __del__(self):
+    def __del__(self) -> None:
         """ handle if user doesn't close the on disk Bloom Filter """
         self.close()
 
-    def close(self):
+    def close(self) -> None:
         """ Clean up the BloomFilterOnDisk object """
         if self.__file_pointer is not None:
             self.__update()
@@ -332,7 +334,7 @@ class BloomFilterOnDisk(BaseBloom):
         self._on_disk = True
         self.__filename = filepath
 
-    def export(self, filename):
+    def export(self, filename: str) -> None:
         """ Export to disk if a different location
 
             Args:
@@ -346,11 +348,11 @@ class BloomFilterOnDisk(BaseBloom):
             copyfile(self.__filename, filename)
         # otherwise, nothing to do!
 
-    def add_alt(self, hashes):
+    def add_alt(self, hashes: List[int]) -> None:
         super(BloomFilterOnDisk, self).add_alt(hashes)
         self.__update()
 
-    def union(self, second):
+    def union(self, second: typing.Union[int, "BloomFilter"]) -> typing.Optional["BloomFilter"]:
         """ Return a new Bloom Filter that contains the union of the two
 
             Args:
@@ -374,7 +376,7 @@ class BloomFilterOnDisk(BaseBloom):
 
         return _tmp_union(self, second)
 
-    def intersection(self, second):
+    def intersection(self, second: typing.Union[int, "BloomFilter"]) -> typing.Optional[BloomFilter]:
         """ Return a new Bloom Filter that contains the intersection of the
             two
 
@@ -399,7 +401,7 @@ class BloomFilterOnDisk(BaseBloom):
 
         return _tmp_intersection(self, second)
 
-    def jaccard_index(self, second):
+    def jaccard_index(self, second: typing.Union[int, "BloomFilter"]) -> Optional[float]:
         """ Calculate the jaccard similarity score between two Bloom Filters
 
             Args:
@@ -431,12 +433,12 @@ class BloomFilterOnDisk(BaseBloom):
         msg = "`export_hex` is currently not supported by the on disk " "Bloom Filter"
         raise NotSupportedError(msg)
 
-    def _load_hex(self, hex_string, hash_function=None):
+    def _load_hex(self, hex_string: str, hash_function: Optional[HashFuncT] = None):
         """ load from hex ... """
         msg = "Loading from hex_string is currently not supported by the " "on disk Bloom Filter"
         raise NotSupportedError(msg)
 
-    def _get_element(self, idx):
+    def _get_element(self, idx: int) -> int:
         """ wrappper to use similar functions always! """
         return unpack("B", bytes([self._bloom[idx]]))[0]
 
@@ -448,7 +450,7 @@ class BloomFilterOnDisk(BaseBloom):
         self.__file_pointer.write(pack("Q", self.elements_added))
         self.__file_pointer.flush()
 
-    def _cnt_number_bits_set(self):
+    def _cnt_number_bits_set(self) -> int:
         """ calculate the total number of set bits in the bloom """
         setbits = 0
         for i in list(range(0, self.bloom_length)):

@@ -6,10 +6,11 @@
 
 import os
 from struct import calcsize, pack, unpack
+from typing import List, Optional
 
 from ..exceptions import RotatingBloomFilterError
 from ..utilities import is_valid_file
-from .bloom import BloomFilter
+from .bloom import BloomFilter, HashFuncT
 
 
 class ExpandingBloomFilter(object):
@@ -41,11 +42,11 @@ class ExpandingBloomFilter(object):
 
     def __init__(
         self,
-        est_elements=None,
-        false_positive_rate=None,
-        filepath=None,
-        hash_function=None,
-    ):
+        est_elements: Optional[int] = None,
+        false_positive_rate: Optional[float] = None,
+        filepath: Optional[str] = None,
+        hash_function: Optional[HashFuncT] = None,
+    ) -> None:
         """ initialize """
         self._blooms = list()
         self.__fpr = false_positive_rate
@@ -59,37 +60,37 @@ class ExpandingBloomFilter(object):
             # add in the initial bloom filter!
             self.__add_bloom_filter()
 
-    def __contains__(self, key):
+    def __contains__(self, key: str) -> bool:
         """ setup the `in` functionality """
         return self.check(key)
 
     @property
-    def expansions(self):
+    def expansions(self) -> int:
         """ int: The number of expansions """
         return len(self._blooms) - 1
 
     @property
-    def false_positive_rate(self):
+    def false_positive_rate(self) -> float:
         """ float: The desired false positive rate of the expanding Bloom \
                    Filter """
         return self.__fpr
 
     @property
-    def estimated_elements(self):
+    def estimated_elements(self) -> int:
         """int: The original number of elements estimated to be in the Bloom \
                 Filter """
         return self.__est_elements
 
     @property
-    def elements_added(self):
+    def elements_added(self) -> int:
         """ int: The total number of elements added """
         return self.__added_elements
 
-    def push(self):
+    def push(self) -> None:
         """ Push a new expansion onto the Bloom Filter """
         self.__add_bloom_filter()
 
-    def check(self, key):
+    def check(self, key: str) -> bool:
         """ Check to see if the key is in the Bloom Filter
 
             Args:
@@ -100,7 +101,7 @@ class ExpandingBloomFilter(object):
         hashes = self._blooms[0].hashes(key)
         return self.check_alt(hashes)
 
-    def check_alt(self, hashes):
+    def check_alt(self, hashes: List[int]) -> bool:
         """ Check to see if the hashes are in the Bloom Filter
 
             Args:
@@ -114,7 +115,7 @@ class ExpandingBloomFilter(object):
                 return True
         return False
 
-    def add(self, key, force=False):
+    def add(self, key: str, force: bool = False) -> None:
         """ Add the key to the Bloom Filter
 
             Args:
@@ -125,7 +126,7 @@ class ExpandingBloomFilter(object):
         hashes = self._blooms[0].hashes(key)
         self.add_alt(hashes, force)
 
-    def add_alt(self, hashes, force=False):
+    def add_alt(self, hashes: List[int], force: bool = False) -> None:
         """ Add the element represented by hashes into the Bloom Filter
 
             Args:
@@ -153,7 +154,7 @@ class ExpandingBloomFilter(object):
         if self._blooms[-1].elements_added >= self.__est_elements:
             self.__add_bloom_filter()
 
-    def export(self, filepath):
+    def export(self, filepath: str) -> None:
         """Export an expanding Bloom Filter, or subclass, to disk
 
         Args:
@@ -234,12 +235,12 @@ class RotatingBloomFilter(ExpandingBloomFilter):
 
     def __init__(
         self,
-        est_elements=None,
-        false_positive_rate=None,
-        max_queue_size=10,
-        filepath=None,
-        hash_function=None,
-    ):
+        est_elements: Optional[int] = None,
+        false_positive_rate: Optional[float] = None,
+        max_queue_size: int = 10,
+        filepath: Optional[str] = None,
+        hash_function: Optional[HashFuncT] = None,
+    ) -> None:
         """ initialize """
         super(RotatingBloomFilter, self).__init__(
             est_elements=est_elements,
@@ -254,16 +255,16 @@ class RotatingBloomFilter(ExpandingBloomFilter):
         self.__hash_func = hash_function
 
     @property
-    def max_queue_size(self):
+    def max_queue_size(self) -> int:
         """ int: The maximum size for the queue """
         return self._queue_size
 
     @property
-    def current_queue_size(self):
+    def current_queue_size(self) -> int:
         """ int: The current size of the queue """
         return len(self._blooms)
 
-    def add_alt(self, hashes, force=False):
+    def add_alt(self, hashes: List[int], force: bool = False) -> None:
         """ Add the element represented by hashes into the Bloom Filter
 
             Args:
@@ -277,7 +278,7 @@ class RotatingBloomFilter(ExpandingBloomFilter):
             self.__rotate_bloom_filter()
             self._blooms[-1].add_alt(hashes)
 
-    def pop(self):
+    def pop(self) -> None:
         """Pop the oldest Bloom Filter off of the queue without pushing a new
         Bloom Filter onto the queue
 
@@ -288,7 +289,7 @@ class RotatingBloomFilter(ExpandingBloomFilter):
             raise RotatingBloomFilterError(msg)
         self._blooms.pop(0)
 
-    def push(self):
+    def push(self) -> None:
         """ Push a new bloom filter onto the queue and rotate if necessary """
         self.__rotate_bloom_filter(force=True)
 

@@ -5,6 +5,7 @@
 
 import math
 import os
+import typing
 from abc import abstractmethod
 from binascii import hexlify, unhexlify
 from itertools import chain
@@ -13,8 +14,11 @@ from struct import Struct, calcsize, pack, unpack
 from textwrap import wrap
 
 from ..exceptions import InitializationError
-from ..hashes import default_fnv_1a
+from ..hashes import HashFuncT, default_fnv_1a
 from ..utilities import is_hex_string, is_valid_file
+
+EstElsT = typing.Union[int, typing.List[int]]
+HashesT = typing.List[int]
 
 
 class BaseBloom(object):
@@ -36,13 +40,13 @@ class BaseBloom(object):
 
     def __init__(
         self,
-        blm_type,
-        est_elements=None,
-        false_positive_rate=None,
-        filepath=None,
-        hex_string=None,
-        hash_function=None,
-    ):
+        blm_type: str,
+        est_elements: typing.Optional[EstElsT] = None,
+        false_positive_rate: typing.Optional[typing.Union[str, float]] = None,
+        filepath: typing.Optional[str] = None,
+        hex_string: typing.Optional[str] = None,
+        hash_function: typing.Optional[HashFuncT] = None,
+    ) -> None:
         """ setup the basic values needed """
         self._bloom = None
         self.__num_bits = 0  # number of bits
@@ -82,18 +86,18 @@ class BaseBloom(object):
         else:
             raise InitializationError(msg)
 
-    def __contains__(self, key):
+    def __contains__(self, key: str) -> typing.Union[int, bool]:
         """ setup the `in` keyword """
         return self.check(key)
 
-    def clear(self):
+    def clear(self) -> None:
         """ Clear or reset the Counting Bloom Filter """
         self._els_added = 0
         for idx in range(self.bloom_length):
             self._bloom[idx] = 0
 
     @property
-    def false_positive_rate(self):
+    def false_positive_rate(self) -> float:
         """float: The maximum desired false positive rate
 
         Note:
@@ -101,7 +105,7 @@ class BaseBloom(object):
         return self.__fpr
 
     @property
-    def estimated_elements(self):
+    def estimated_elements(self) -> int:
         """int: The maximum number of elements estimated to be added at setup
 
         Note:
@@ -109,7 +113,7 @@ class BaseBloom(object):
         return self.__est_elements
 
     @property
-    def number_hashes(self):
+    def number_hashes(self) -> int:
         """int: The number of hashes required for the Bloom Filter hashing
         strategy
 
@@ -118,7 +122,7 @@ class BaseBloom(object):
         return self.__number_hashes
 
     @property
-    def number_bits(self):
+    def number_bits(self) -> int:
         """int: Number of bits in the Bloom Filter
 
         Note:
@@ -140,7 +144,7 @@ class BaseBloom(object):
         self._els_added = val
 
     @property
-    def is_on_disk(self):
+    def is_on_disk(self) -> bool:
         """bool: Is the Bloom Filter on Disk or not
 
         Note:
@@ -148,7 +152,7 @@ class BaseBloom(object):
         return self._on_disk
 
     @property
-    def bloom_length(self):
+    def bloom_length(self) -> int:
         """int: Length of the Bloom Filter array
 
         Note:
@@ -156,19 +160,19 @@ class BaseBloom(object):
         return self.__bloom_length
 
     @property
-    def bloom(self):
+    def bloom(self) -> typing.List[int]:
         """ list(int): The bit/int array """
         return self._bloom
 
     @property
-    def hash_function(self):
+    def hash_function(self) -> typing.Callable:
         """function: The hash function used
 
         Note:
             Not settable"""
         return self.__hash_func
 
-    def hashes(self, key, depth=None):
+    def hashes(self, key: str, depth: typing.Optional[int] = None) -> HashesT:
         """ Return the hashes based on the provided key
 
             Args:
@@ -181,7 +185,7 @@ class BaseBloom(object):
         return self.__hash_func(key, tmp)
 
     @staticmethod
-    def _set_optimized_params(estimated_elements, false_positive_rate, hash_function):
+    def _set_optimized_params(estimated_elements: EstElsT, false_positive_rate: float, hash_function: typing.Optional[HashFuncT]) -> typing.Tuple[HashFuncT, float, int, int]:
         """ set the parameters to the optimal sizes """
         if hash_function is None:
             tmp_hash = default_fnv_1a
@@ -235,7 +239,7 @@ class BaseBloom(object):
             rep = self.__impt_type * self.bloom_length
             self._bloom = list(unpack(rep, filepointer.read(offset)))
 
-    def _load_hex(self, hex_string, hash_function=None):
+    def _load_hex(self, hex_string: str, hash_function: HashFuncT = None) -> None:
         """ placeholder for loading from hex string """
         offset = calcsize(">QQf") * 2
         stct = Struct(">QQf")
@@ -256,7 +260,7 @@ class BaseBloom(object):
         rep = self.__impt_type * self.bloom_length
         self._bloom = list(unpack(rep, tmp_bloom))
 
-    def export_hex(self):
+    def export_hex(self) -> str:
         """Export the Bloom Filter as a hex string
 
         Return:
@@ -276,7 +280,7 @@ class BaseBloom(object):
             bytes_string += hexlify(mybytes)
         return str(bytes_string, "utf-8")
 
-    def export(self, filename):
+    def export(self, filename: str) -> None:
         """ Export the Bloom Filter to disk
 
             Args:
@@ -294,7 +298,7 @@ class BaseBloom(object):
                 )
             )
 
-    def export_c_header(self, filename):
+    def export_c_header(self, filename: str) -> None:
         """ Export the Bloom Filter to disk as a C header file.
 
             Args:
@@ -316,7 +320,7 @@ class BaseBloom(object):
             print("const unsigned int number_hashes = ", self.number_hashes, ";", sep="", file=file)
             print("const unsigned char bloom[] = {", *data, "};", sep="\n", file=file)
 
-    def export_size(self):
+    def export_size(self) -> int:
         """Calculate the size of the bloom on disk
 
         Returns:
@@ -324,7 +328,7 @@ class BaseBloom(object):
         tmp_b = calcsize(self.__impt_type)
         return (self.bloom_length * tmp_b) + calcsize("QQf")
 
-    def current_false_positive_rate(self):
+    def current_false_positive_rate(self) -> float:
         """Calculate the current false positive rate based on elements added
 
         Return:
@@ -334,7 +338,7 @@ class BaseBloom(object):
         exp = math.exp(dbl)
         return math.pow((1 - exp), self.number_hashes)
 
-    def estimate_elements(self):
+    def estimate_elements(self) -> int:
         """Estimate the number of unique elements added
 
         Returns:
@@ -349,18 +353,18 @@ class BaseBloom(object):
         """ count number of bits set in this int """
         return bin(i).count("1")
 
-    def _cnt_number_bits_set(self):
+    def _cnt_number_bits_set(self) -> int:
         """ calculate the total number of set bits in the bloom """
         setbits = 0
         for i in list(range(0, self.bloom_length)):
             setbits += self.__cnt_set_bits(self._get_element(i))
         return setbits
 
-    def _get_element(self, idx):
+    def _get_element(self, idx: int) -> int:
         """ wrappper for getting an element from the Bloom Filter! """
         return self._bloom[idx]
 
-    def add(self, key):
+    def add(self, key: str) -> None:
         """Add the key to the Bloom Filter
 
         Args:
@@ -368,7 +372,7 @@ class BaseBloom(object):
         hashes = self.hashes(key)
         self.add_alt(hashes)
 
-    def add_alt(self, hashes):
+    def add_alt(self, hashes: HashesT) -> None:
         """ Add the element represented by hashes into the Bloom Filter
 
             Args:
@@ -382,7 +386,7 @@ class BaseBloom(object):
             self._bloom[idx] = tmp_bit
         self._els_added += 1
 
-    def check(self, key):
+    def check(self, key: str) -> bool:
         """Check if the key is likely in the Bloom Filter
 
         Args:
@@ -392,7 +396,7 @@ class BaseBloom(object):
         hashes = self.hashes(key)
         return self.check_alt(hashes)
 
-    def check_alt(self, hashes):
+    def check_alt(self, hashes: HashesT) -> bool:
         """ Check if the element represented by hashes is in the Bloom Filter
 
             Args:
@@ -422,7 +426,7 @@ class BaseBloom(object):
         """ Return a the Jaccard Similarity score between two bloom filters """
         pass
 
-    def _verify_bloom_similarity(self, second):
+    def _verify_bloom_similarity(self, second: "BaseBloom") -> bool:
         """ can the blooms be used in intersection, union, or jaccard index """
         hash_match = self.number_hashes != second.number_hashes
         same_bits = self.number_bits != second.number_bits

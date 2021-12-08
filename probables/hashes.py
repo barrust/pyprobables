@@ -1,13 +1,17 @@
 """ Probables Hashing library """
 
+import typing
 from functools import wraps
 from hashlib import md5, sha256
 from struct import unpack
 
 from .constants import UINT64_T_MAX
 
+HashFuncT = typing.Callable[[str, int], int]
+HashFuncBytesT = typing.Callable[[str, int], bytes]
 
-def hash_with_depth_bytes(func):
+
+def hash_with_depth_bytes(func: HashFuncBytesT) -> HashFuncT:
     """Decorator to turns a function taking a single key and hashes it to
     bytes. Wraps functions to be used in Bloom filters and Count-Min sketch
     data structures.
@@ -33,7 +37,7 @@ def hash_with_depth_bytes(func):
     return hashing_func
 
 
-def hash_with_depth_int(func):
+def hash_with_depth_int(func: typing.Callable) -> typing.Callable:
     """Decorator to turn a function that takes a single key and hashes it to
     an int. Wraps functions to be used in Bloom filters and Count-Min
     sketch data structures.
@@ -60,7 +64,7 @@ def hash_with_depth_int(func):
     return hashing_func
 
 
-def default_fnv_1a(key, depth=1):
+def default_fnv_1a(key: str, depth: int = 1) -> typing.List[int]:
     """The default fnv-1a hashing routine
 
     Args:
@@ -75,7 +79,7 @@ def default_fnv_1a(key, depth=1):
     return res
 
 
-def fnv_1a(key, seed=0):
+def fnv_1a(key: str, seed: int = 0) -> int:
     """Pure python implementation of the 64 bit fnv-1a hash
 
     Args:
@@ -97,7 +101,7 @@ def fnv_1a(key, seed=0):
 
 
 @hash_with_depth_bytes
-def default_md5(key, depth=1):
+def default_md5(key: bytes, depth: int = 1) -> bytes:
     """The default md5 hashing routine
 
     Args:
@@ -111,7 +115,7 @@ def default_md5(key, depth=1):
 
 
 @hash_with_depth_bytes
-def default_sha256(key, depth=1):
+def default_sha256(key: bytes, depth: int = 1) -> bytes:
     """The default sha256 hashing routine
 
     Args:

@@ -127,7 +127,7 @@ class CuckooFilter(object):
         return self._inserted_elements
 
     @property
-    def capacity(self):
+    def capacity(self) -> int:
         """int: The number of bins
 
         Note:
