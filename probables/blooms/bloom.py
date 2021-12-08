@@ -102,7 +102,7 @@ class BloomFilter(BaseBloom):
         filepath: typing.Optional[str] = None,
         hex_string: typing.Optional[str] = None,
         hash_function: typing.Optional[HashFuncT] = None,
-    ):
+    ) -> None:
         """setup the basic values needed"""
         super(BloomFilter, self).__init__(
             "regular",
@@ -113,7 +113,7 @@ class BloomFilter(BaseBloom):
             hash_function,
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         """output statistics of the bloom filter"""
         on_disk = "no" if self.is_on_disk is False else "yes"
         stats = (
@@ -256,7 +256,7 @@ class BloomFilterOnDisk(BaseBloom):
         false_positive_rate: typing.Optional[float] = None,
         hex_string: typing.Optional[str] = None,
         hash_function: typing.Optional[HashFuncT] = None,
-    ):
+    ) -> None:
         # since we cannot load from a file only (to memory), we can't pass
         # the file to the constructor; therefore, we will have to catch
         # any exception thrown
@@ -300,11 +300,11 @@ class BloomFilterOnDisk(BaseBloom):
             msg = "Insufecient parameters to set up the On Disk Bloom Filter"
             raise InitializationError(msg)
 
-    def __del__(self):
+    def __del__(self) -> None:
         """handle if user doesn't close the on disk Bloom Filter"""
         self.close()
 
-    def close(self):
+    def close(self) -> None:
         """Clean up the BloomFilterOnDisk object"""
         if self.__file_pointer is not None:
             self.__update()
@@ -332,7 +332,7 @@ class BloomFilterOnDisk(BaseBloom):
         self._on_disk = True
         self.__filename = filepath  # type: ignore
 
-    def export(self, filename: str):
+    def export(self, filename: str) -> None:
         """ Export to disk if a different location
 
             Args:
@@ -346,7 +346,7 @@ class BloomFilterOnDisk(BaseBloom):
             copyfile(self.__filename, filename)
         # otherwise, nothing to do!
 
-    def add_alt(self, hashes: HashResultsT):
+    def add_alt(self, hashes: HashResultsT) -> None:
         super(BloomFilterOnDisk, self).add_alt(hashes)
         self.__update()
 

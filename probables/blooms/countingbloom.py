@@ -13,7 +13,7 @@ from .basebloom import BaseBloom
 MISMATCH_MSG = "The parameter second must be of type CountingBloomFilter"
 
 
-def _verify_not_type_mismatch(second):
+def _verify_not_type_mismatch(second: "CountingBloomFilter") -> bool:
     """verify that there is not a type mismatch"""
     if not isinstance(second, (CountingBloomFilter)):
         return False
@@ -50,7 +50,7 @@ class CountingBloomFilter(BaseBloom):
         filepath: typing.Optional[str] = None,
         hex_string: typing.Optional[str] = None,
         hash_function: typing.Optional[HashFuncT] = None,
-    ):
+    ) -> None:
         """setup the basic values needed"""
         super(CountingBloomFilter, self).__init__(
             "counting",
@@ -61,7 +61,7 @@ class CountingBloomFilter(BaseBloom):
             hash_function=hash_function,
         )
 
-    def __str__(self):
+    def __str__(self) -> str:
         """string representation of the counting bloom filter"""
         on_disk = "no" if self.is_on_disk is False else "yes"
 
@@ -171,7 +171,7 @@ class CountingBloomFilter(BaseBloom):
                 res = tmp
         return res
 
-    def remove(self, key: KeyT, num_els: int = 1):
+    def remove(self, key: KeyT, num_els: int = 1) -> int:
         """Remove the element from the counting bloom
 
         Args:
@@ -182,7 +182,7 @@ class CountingBloomFilter(BaseBloom):
         hashes = self.hashes(key)
         return self.remove_alt(hashes, num_els)
 
-    def remove_alt(self, hashes: HashResultsT, num_els: int = 1):
+    def remove_alt(self, hashes: HashResultsT, num_els: int = 1) -> int:
         """ Remvoe the element represented by hashes from the Counting Bloom \
             Filter
 
@@ -246,7 +246,7 @@ class CountingBloomFilter(BaseBloom):
         res.elements_added = res.estimate_elements()
         return res
 
-    def jaccard_index(self, second: "CountingBloomFilter") -> float:
+    def jaccard_index(self, second: "CountingBloomFilter") -> typing.Optional[float]:
         """ Take the Jaccard Index of two Counting Bloom Filters
 
             Args:
@@ -280,7 +280,7 @@ class CountingBloomFilter(BaseBloom):
             return 1.0
         return count_inter / count_union
 
-    def union(self, second: "CountingBloomFilter") -> "CountingBloomFilter":
+    def union(self, second: "CountingBloomFilter") -> typing.Optional["CountingBloomFilter"]:
         """ Return a new Countiong Bloom Filter that contains the union of
             the two
 
