@@ -130,3 +130,66 @@ class TestHashes(unittest.TestCase):
         res = my_hash("this is a test", 1)
         self.assertEqual(len(res), 1)
         self.assertEqual(res[0], results[0])
+
+    def test_default_fnv_1a_bytes(self):
+        """ test default fnv-1a algorithm """
+        this_is_a_test = [
+            4040040117721899264,
+            3916497180155386777,
+            468410530588793106,
+            13781401791305604595,
+            321382271269641900,
+        ]
+        this_is_also = [
+            7925790280716546811,
+            13347851945403505568,
+            17775584719969392601,
+            10279404995231728046,
+            13802534855964835503,
+        ]
+        hashes = default_fnv_1a(b"this is a test", 5)
+        self.assertEqual(hashes, this_is_a_test)
+        hashes = default_fnv_1a(b"this is also a test", 5)
+        self.assertEqual(hashes, this_is_also)
+
+    def test_default_md5_bytes(self):
+        """ test default md5 algorithm using bytes """
+        this_is_a_test = [
+            12174049463882854484,
+            10455450501617390806,
+            3838261292881602234,
+            12102952520950148619,
+            12126605867972429202,
+        ]
+        this_is_also = [
+            8938037604889355346,
+            9361632593818981393,
+            15781121455678786382,
+            5600686735535066561,
+            1353473153840687523,
+        ]
+        hashes = default_md5(b"this is a test", 5)
+        self.assertEqual(hashes, this_is_a_test)
+        hashes = default_md5(b"this is also a test", 5)
+        self.assertEqual(hashes, this_is_also)
+
+    def test_default_sha256_bytes(self):
+        """ test default sha256 algorithm using bytes """
+        this_is_a_test = [
+            10244166640140130606,
+            5650905005272240665,
+            14215057275609328422,
+            5952353080197385534,
+            4990779931033217093,
+        ]
+        this_is_also = [
+            4140421647067018332,
+            9306548247555387104,
+            5672713771950536751,
+            8501641957786831066,
+            15146689942378126332,
+        ]
+        hashes = default_sha256(b"this is a test", 5)
+        self.assertEqual(hashes, this_is_a_test)
+        hashes = default_sha256(b"this is also a test", 5)
+        self.assertEqual(hashes, this_is_also)

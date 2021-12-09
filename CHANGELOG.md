@@ -1,10 +1,15 @@
 # PyProbables Changelog
 
+### Future Release
+* Add ability to hash bytes along with strings
+
+
 ### Version 0.5.1
 * Bloom Filter:
     * Export as a C header (**\*.h**)
 * Count-Min Sketch
     * Add join/merge functionality
+* Moved testing to use `NamedTemporaryFile` for file based tests
 
 ### Version 0.5.0
 * ***BACKWARD INCOMPATIBLE CHANGES***
