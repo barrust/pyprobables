@@ -24,7 +24,9 @@ def hash_with_depth_bytes(func):
     def hashing_func(key, depth=1):
         """ wrapper function """
         res = list()
-        tmp = key.encode("utf-8")
+        tmp = key
+        if isinstance(key, str):
+            tmp = key.encode("utf-8")
         for idx in range(depth):
             tmp = func(tmp, idx)
             res.append(unpack("Q", tmp[:8])[0])  # turn into 64 bit number
@@ -88,7 +90,9 @@ def fnv_1a(key, seed=0):
     max64mod = UINT64_T_MAX + 1
     hval = (14695981039346656037 + (31 * seed)) % max64mod
     fnv_64_prime = 1099511628211
-    tmp = map(ord, key)
+    tmp = key
+    if isinstance(key, str):
+        tmp = map(ord, key)
     for t_str in tmp:
         hval ^= t_str
         hval *= fnv_64_prime
