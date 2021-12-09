@@ -2,8 +2,16 @@
 """ Unittest class """
 
 import os
+import sys
 import unittest
+from pathlib import Path
 from tempfile import NamedTemporaryFile
+
+this_dir = Path(__file__).parent
+sys.path.insert(0, str(this_dir))
+sys.path.insert(0, str(this_dir.parent))
+
+from utilities import calc_file_md5, different_hash
 
 from probables import (
     CountMeanMinSketch,
@@ -18,8 +26,6 @@ from probables.exceptions import (
     InitializationError,
     NotSupportedError,
 )
-
-from .utilities import calc_file_md5, different_hash
 
 DELETE_TEMP_FILES = True
 
@@ -876,3 +882,7 @@ class TestStreamThreshold(unittest.TestCase):
         st1 = StreamThreshold(threshold=1000, width=1000, depth=5)
         st2 = StreamThreshold(threshold=1000, width=1000, depth=5)
         self.assertRaises(NotSupportedError, lambda: st1.join(st2))
+
+
+if __name__ == "__main__":
+    unittest.main()

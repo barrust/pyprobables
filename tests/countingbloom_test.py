@@ -2,13 +2,19 @@
 """ Unittest class """
 
 import os
+import sys
 import unittest
+from pathlib import Path
 from tempfile import NamedTemporaryFile
+
+this_dir = Path(__file__).parent
+sys.path.insert(0, str(this_dir))
+sys.path.insert(0, str(this_dir.parent))
+
+from utilities import calc_file_md5, different_hash
 
 from probables import CountingBloomFilter
 from probables.exceptions import InitializationError
-
-from .utilities import calc_file_md5, different_hash
 
 DELETE_TEMP_FILES = True
 
@@ -430,3 +436,7 @@ class TestCountingBloomFilter(unittest.TestCase):
         blm1 = CountingBloomFilter(est_elements=101, false_positive_rate=0.01)
         blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
         self.assertEqual(blm1.intersection(blm2), None)
+
+
+if __name__ == "__main__":
+    unittest.main()

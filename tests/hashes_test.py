@@ -2,7 +2,13 @@
 """ Unittest class """
 
 import hashlib
+import sys
 import unittest
+from pathlib import Path
+
+this_dir = Path(__file__).parent
+sys.path.insert(0, str(this_dir))
+sys.path.insert(0, str(this_dir.parent))
 
 from probables.constants import UINT64_T_MAX
 from probables.hashes import (
@@ -193,3 +199,7 @@ class TestHashes(unittest.TestCase):
         self.assertEqual(hashes, this_is_a_test)
         hashes = default_sha256(b"this is also a test", 5)
         self.assertEqual(hashes, this_is_also)
+
+
+if __name__ == "__main__":
+    unittest.main()

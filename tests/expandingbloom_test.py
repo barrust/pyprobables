@@ -2,13 +2,19 @@
 """ Unittest class """
 
 import os
+import sys
 import unittest
+from pathlib import Path
 from tempfile import NamedTemporaryFile
+
+this_dir = Path(__file__).parent
+sys.path.insert(0, str(this_dir))
+sys.path.insert(0, str(this_dir.parent))
+
+from utilities import calc_file_md5
 
 from probables import ExpandingBloomFilter, RotatingBloomFilter
 from probables.exceptions import RotatingBloomFilterError
-
-from .utilities import calc_file_md5
 
 DELETE_TEMP_FILES = True
 
@@ -244,3 +250,7 @@ class TestRotatingBloomFilter(unittest.TestCase):
                 self.assertEqual("{}".format(i) in blm2, True)
             self.assertEqual(blm2.current_queue_size, 10)
             self.assertEqual(blm2.expansions, 9)
+
+
+if __name__ == "__main__":
+    unittest.main()
