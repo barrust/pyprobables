@@ -61,7 +61,7 @@ class BaseBloom(object):
         if blm_type in ["regular", "reg-ondisk", "expanding"]:
             msg = "Insufecient parameters to set up the Bloom Filter"
         else:
-            msg = "Insufecient parameters to set up the Counting Bloom " "Filter"
+            msg = "Insufecient parameters to set up the Counting Bloom Filter"
 
         if is_valid_file(filepath):
             self.__load(blm_type, filepath, hash_function)

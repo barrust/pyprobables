@@ -64,7 +64,7 @@ class CuckooFilter(object):
             and max_swaps >= 1
         )
         if not valid_prms:
-            msg = "CuckooFilter: capacity, bucket_size, and max_swaps " "must be an integer greater than 0"
+            msg = "CuckooFilter: capacity, bucket_size, and max_swaps must be an integer greater than 0"
             raise InitializationError(msg)
         self._bucket_size = int(bucket_size)
         self._cuckoo_capacity = int(capacity)
@@ -193,7 +193,7 @@ class CuckooFilter(object):
         """ set the fingerprint size """
         tmp = int(val)
         if not 1 <= tmp <= 4:
-            msg = ("{}: fingerprint size must be between 1 " "and 4").format(self.__class__.__name__)
+            msg = ("{}: fingerprint size must be between 1 and 4").format(self.__class__.__name__)
             raise ValueError(msg)
         self.__fingerprint_size = tmp * 8  # bytes to bits
 

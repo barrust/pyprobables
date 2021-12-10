@@ -181,7 +181,7 @@ class TestBloomFilter(unittest.TestCase):
 
     def test_bf_jaccard_invalid_msg(self):
         """ check invalid type in a jaccard index message """
-        msg = "The parameter second must be of type BloomFilter or " "a BloomFilterOnDisk"
+        msg = "The parameter second must be of type BloomFilter or a BloomFilterOnDisk"
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         blm.add("this is a test")
         try:
@@ -199,7 +199,7 @@ class TestBloomFilter(unittest.TestCase):
 
     def test_bf_union_invalid_msg(self):
         """ check invalid type in a union message """
-        msg = "The parameter second must be of type BloomFilter or " "a BloomFilterOnDisk"
+        msg = "The parameter second must be of type BloomFilter or a BloomFilterOnDisk"
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         blm.add("this is a test")
         try:
@@ -217,7 +217,7 @@ class TestBloomFilter(unittest.TestCase):
 
     def test_bf_intersec_invalid_msg(self):
         """ check invalid type in a intersection message """
-        msg = "The parameter second must be of type BloomFilter or " "a BloomFilterOnDisk"
+        msg = "The parameter second must be of type BloomFilter or a BloomFilterOnDisk"
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         blm.add("this is a test")
         try:
@@ -721,7 +721,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
             try:
                 blm.export_hex()
             except NotSupportedError as ex:
-                msg = "`export_hex` is currently not supported by the on disk " "Bloom Filter"
+                msg = "`export_hex` is currently not supported by the on disk Bloom Filter"
                 self.assertEqual(str(ex), msg)
             else:
                 self.assertEqual(True, False)
@@ -742,7 +742,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
             try:
                 BloomFilterOnDisk(filepath=fobj.name, hex_string=hex_val)
             except NotSupportedError as ex:
-                msg = "Loading from hex_string is currently not supported by " "the on disk Bloom Filter"
+                msg = "Loading from hex_string is currently not supported by the on disk Bloom Filter"
                 self.assertEqual(str(ex), msg)
             else:
                 self.assertEqual(True, False)
@@ -805,7 +805,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
 
     def test_cbf_jaccard_invalid_msg(self):
         """ check invalid type in a jaccard index message cbf """
-        msg = "The parameter second must be of type BloomFilter or " "a BloomFilterOnDisk"
+        msg = "The parameter second must be of type BloomFilter or a BloomFilterOnDisk"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
             blm = BloomFilterOnDisk(fobj.name, est_elements=10, false_positive_rate=0.05)
             blm.add("this is a test")
@@ -825,7 +825,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
 
     def test_cbf_union_invalid_msg(self):
         """ check invalid type in a union message cbf """
-        msg = "The parameter second must be of type BloomFilter or " "a BloomFilterOnDisk"
+        msg = "The parameter second must be of type BloomFilter or a BloomFilterOnDisk"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
             blm = BloomFilterOnDisk(fobj.name, est_elements=10, false_positive_rate=0.05)
             blm.add("this is a test")
@@ -845,7 +845,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
 
     def test_cbf_intersec_invalid_msg(self):
         """ check invalid type in a intersection message cbf """
-        msg = "The parameter second must be of type BloomFilter or " "a BloomFilterOnDisk"
+        msg = "The parameter second must be of type BloomFilter or a BloomFilterOnDisk"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
             blm = BloomFilterOnDisk(fobj.name, est_elements=10, false_positive_rate=0.05)
             blm.add("this is a test")

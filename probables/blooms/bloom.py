@@ -13,7 +13,7 @@ from ..exceptions import InitializationError, NotSupportedError
 from ..utilities import is_hex_string, is_valid_file
 from .basebloom import BaseBloom
 
-MISMATCH_MSG = "The parameter second must be of type BloomFilter or " "a BloomFilterOnDisk"
+MISMATCH_MSG = "The parameter second must be of type BloomFilter or a BloomFilterOnDisk"
 
 
 def _verify_not_type_mismatch(second):
@@ -428,12 +428,12 @@ class BloomFilterOnDisk(BaseBloom):
             Raises:
                 NotSupportedError: This functionality is currently not \
                 supported """
-        msg = "`export_hex` is currently not supported by the on disk " "Bloom Filter"
+        msg = "`export_hex` is currently not supported by the on disk Bloom Filter"
         raise NotSupportedError(msg)
 
     def _load_hex(self, hex_string, hash_function=None):
         """ load from hex ... """
-        msg = "Loading from hex_string is currently not supported by the " "on disk Bloom Filter"
+        msg = "Loading from hex_string is currently not supported by the on disk Bloom Filter"
         raise NotSupportedError(msg)
 
     def _get_element(self, idx):
