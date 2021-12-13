@@ -49,7 +49,7 @@ class ExpandingBloomFilter(object):
         hash_function: typing.Optional[HashFuncT] = None,
     ):
         """initialize"""
-        self._blooms: typing.List["BloomFilter"] = list()
+        self._blooms = list()  # type: ignore
         self.__fpr = false_positive_rate
         self.__est_elements = est_elements
         self.__hash_func = hash_function
