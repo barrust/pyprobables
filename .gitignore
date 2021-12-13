@@ -1,6 +1,7 @@
 # local files
 *.blm
 *.cms
+*.dat
 
 
 # Byte-compiled / optimized / DLL files

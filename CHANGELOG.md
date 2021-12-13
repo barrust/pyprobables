@@ -1,8 +1,9 @@
 # PyProbables Changelog
 
-### Future Release
+### Version 0.5.2
 * Add ability to hash bytes along with strings
 * Make all tests files individually executable from the CLI. Thanks [@KOLANICH](https://github.com/KOLANICH)
+* Added type hints
 
 
 ### Version 0.5.1
