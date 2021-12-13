@@ -225,7 +225,7 @@ class CountMinSketch(object):
         t_depth = self.depth if depth is None else depth
         return self._hash_function(key, t_depth)
 
-    def add(self, key: KeyT, num_els: int = 1) -> int:
+    def add(self, key: KeyT, num_els: int = 1, *args, **kwargs) -> int:
         """ Insert the element `key` into the count-min sketch
 
             Args:
@@ -237,7 +237,7 @@ class CountMinSketch(object):
         hashes = self.hashes(key)
         return self.add_alt(hashes, num_els)
 
-    def add_alt(self, hashes: HashResultsT, num_els: int = 1) -> int:
+    def add_alt(self, hashes: HashResultsT, num_els: int = 1, *args, **kwargs) -> int:
         """ Insert an element by using the hash representation
 
             Args:

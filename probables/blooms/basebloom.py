@@ -367,7 +367,7 @@ class BaseBloom(object):
         """wrappper for getting an element from the Bloom Filter!"""
         return self._bloom[idx]  # type: ignore
 
-    def add(self, key: KeyT):
+    def add(self, key: KeyT, *args, **kwargs):
         """Add the key to the Bloom Filter
 
         Args:
@@ -375,7 +375,7 @@ class BaseBloom(object):
         hashes = self.hashes(key)
         self.add_alt(hashes)
 
-    def add_alt(self, hashes: HashResultsT):
+    def add_alt(self, hashes: HashResultsT, *args, **kwargs):
         """ Add the element represented by hashes into the Bloom Filter
 
             Args:
