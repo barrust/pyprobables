@@ -11,7 +11,7 @@ from shutil import copyfile
 from struct import calcsize, pack, unpack
 
 from ..exceptions import InitializationError, NotSupportedError
-from ..hashes import HashFuncT, KeyT
+from ..hashes import HashFuncT
 from ..utilities import is_hex_string, is_valid_file
 from .basebloom import BaseBloom
 

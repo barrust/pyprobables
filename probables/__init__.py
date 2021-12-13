@@ -1,5 +1,4 @@
 """ pyprobables module """
-import typing
 
 from .blooms import (
     BloomFilter,
