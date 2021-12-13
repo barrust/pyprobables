@@ -5,11 +5,12 @@
 
 import os
 import random
+import typing
 from numbers import Number
 from struct import calcsize, pack, unpack
 
 from ..exceptions import CuckooFilterFullError, InitializationError
-from ..hashes import fnv_1a
+from ..hashes import KeyT, SimpleHashT, fnv_1a
 from ..utilities import get_x_bits, is_valid_file
 
 
@@ -45,16 +46,16 @@ class CuckooFilter(object):
 
     def __init__(
         self,
-        capacity=10000,
-        bucket_size=4,
-        max_swaps=500,
-        expansion_rate=2,
-        auto_expand=True,
-        finger_size=4,
-        filepath=None,
-        hash_function=None,
+        capacity: int = 10000,
+        bucket_size: int = 4,
+        max_swaps: int = 500,
+        expansion_rate: int = 2,
+        auto_expand: bool = True,
+        finger_size: int = 4,
+        filepath: typing.Optional[str] = None,
+        hash_function: typing.Optional[SimpleHashT] = None,  # this is incorrect
     ):
-        """ setup the data structure """
+        """setup the data structure"""
         valid_prms = (
             isinstance(capacity, Number)
             and capacity >= 1
@@ -71,7 +72,7 @@ class CuckooFilter(object):
         self.__max_cuckoo_swaps = int(max_swaps)
         self.__expansion_rate = None
         self.expansion_rate = expansion_rate
-        self.__auto_expand = None
+        self.__auto_expand = True
         self.auto_expand = auto_expand
         self.__fingerprint_size = None
         self.fingerprint_size = finger_size
@@ -79,10 +80,10 @@ class CuckooFilter(object):
         if hash_function is None:
             self.__hash_func = fnv_1a
         else:
-            self.__hash_func = hash_function
+            self.__hash_func = hash_function  # type: ignore
         self._inserted_elements = 0
         if filepath is None:
-            self._buckets = list()
+            self._buckets = list()  # type: ignore
             for _ in range(self.capacity):
                 self.buckets.append(list())
         elif is_valid_file(filepath):
@@ -91,12 +92,12 @@ class CuckooFilter(object):
             msg = "CuckooFilter: failed to load provided file"
             raise InitializationError(msg)
 
-    def __contains__(self, key):
-        """ setup the `in` keyword """
+    def __contains__(self, key: KeyT) -> bool:
+        """setup the `in` keyword"""
         return self.check(key)
 
     def __str__(self):
-        """ setup what it will print """
+        """setup what it will print"""
         msg = (
             "{0}:\n"
             "\tCapacity: {1}\n"
@@ -119,7 +120,7 @@ class CuckooFilter(object):
         )
 
     @property
-    def elements_added(self):
+    def elements_added(self) -> int:
         """int: The number of elements added
 
         Note:
@@ -127,7 +128,7 @@ class CuckooFilter(object):
         return self._inserted_elements
 
     @property
-    def capacity(self):
+    def capacity(self) -> int:
         """int: The number of bins
 
         Note:
@@ -135,7 +136,7 @@ class CuckooFilter(object):
         return self._cuckoo_capacity
 
     @property
-    def max_swaps(self):
+    def max_swaps(self) -> int:
         """int: The maximum number of swaps to perform
 
         Note:
@@ -143,7 +144,7 @@ class CuckooFilter(object):
         return self.__max_cuckoo_swaps
 
     @property
-    def bucket_size(self):
+    def bucket_size(self) -> int:
         """int: The number of buckets per bin
 
         Note:
@@ -151,7 +152,7 @@ class CuckooFilter(object):
         return self._bucket_size
 
     @property
-    def buckets(self):
+    def buckets(self) -> typing.List[typing.List[int]]:  # TODO: not sure this is correct
         """list(list): The buckets holding the fingerprints
 
         Note:
@@ -159,27 +160,27 @@ class CuckooFilter(object):
         return self._buckets
 
     @property
-    def expansion_rate(self):
-        """ int: The rate at expansion when the filter grows """
+    def expansion_rate(self) -> int:
+        """int: The rate at expansion when the filter grows"""
         return self.__expansion_rate
 
     @expansion_rate.setter
-    def expansion_rate(self, val):
-        """ set the self expand value """
+    def expansion_rate(self, val: int):
+        """set the self expand value"""
         self.__expansion_rate = int(val)
 
     @property
-    def auto_expand(self):
-        """ bool: True if the cuckoo filter will expand automatically """
+    def auto_expand(self) -> bool:
+        """bool: True if the cuckoo filter will expand automatically"""
         return self.__auto_expand
 
     @auto_expand.setter
-    def auto_expand(self, val):
-        """ set the self expand value """
+    def auto_expand(self, val: bool):
+        """set the self expand value"""
         self.__auto_expand = bool(val)
 
     @property
-    def fingerprint_size(self):
+    def fingerprint_size(self) -> int:
         """int: The size in bytes of the fingerprint
 
         Raises:
@@ -189,19 +190,20 @@ class CuckooFilter(object):
         return self.__fingerprint_size // 8
 
     @fingerprint_size.setter
-    def fingerprint_size(self, val):
-        """ set the fingerprint size """
+    def fingerprint_size(self, val: int):
+        """set the fingerprint size"""
         tmp = int(val)
         if not 1 <= tmp <= 4:
             msg = ("{}: fingerprint size must be between 1 and 4").format(self.__class__.__name__)
             raise ValueError(msg)
-        self.__fingerprint_size = tmp * 8  # bytes to bits
+        # bytes to bits
+        self.__fingerprint_size = tmp * 8  # type: ignore
 
-    def load_factor(self):
-        """ float: How full the Cuckoo Filter is currently """
+    def load_factor(self) -> float:
+        """float: How full the Cuckoo Filter is currently"""
         return self.elements_added / (self.capacity * self.bucket_size)
 
-    def add(self, key):
+    def add(self, key: KeyT):
         """ Add element key to the filter
 
             Args:
@@ -217,7 +219,7 @@ class CuckooFilter(object):
         finger = self._insert_fingerprint(fingerprint, idx_1, idx_2)
         self._deal_with_insertion(finger)
 
-    def check(self, key):
+    def check(self, key: KeyT) -> bool:
         """Check if an element is in the filter
 
         Args:
@@ -230,7 +232,7 @@ class CuckooFilter(object):
             return True
         return False
 
-    def remove(self, key):
+    def remove(self, key: KeyT) -> bool:
         """Remove an element from the filter
 
         Args:
@@ -245,7 +247,7 @@ class CuckooFilter(object):
         self._inserted_elements -= 1
         return True
 
-    def export(self, filename):
+    def export(self, filename: str):
         """Export cuckoo filter to file
 
         Args:
@@ -262,11 +264,11 @@ class CuckooFilter(object):
             filepointer.write(pack("II", self.bucket_size, self.max_swaps))
 
     def expand(self):
-        """ Expand the cuckoo filter """
+        """Expand the cuckoo filter"""
         self._expand_logic(None)
 
     def _insert_fingerprint(self, fingerprint, idx_1, idx_2):
-        """ insert a fingerprint """
+        """insert a fingerprint"""
         if self.__insert_element(fingerprint, idx_1):
             self._inserted_elements += 1
             return None
@@ -298,8 +300,8 @@ class CuckooFilter(object):
         # if we got here we have an error... we might need to know what is left
         return fingerprint
 
-    def _load(self, filename):
-        """ load a cuckoo filter from file """
+    def _load(self, filename: str):
+        """load a cuckoo filter from file"""
         with open(filename, "rb") as filepointer:
             offset = calcsize("II")
             int_size = calcsize("I")
@@ -322,22 +324,22 @@ class CuckooFilter(object):
                         self._inserted_elements += 1
 
     def _check_if_present(self, idx_1, idx_2, fingerprint):
-        """ wrapper for checking if fingerprint is already inserted """
+        """wrapper for checking if fingerprint is already inserted"""
         if fingerprint in self.buckets[idx_1]:
             return idx_1
         elif fingerprint in self.buckets[idx_2]:
             return idx_2
         return None
 
-    def __insert_element(self, fingerprint, idx):
-        """ insert element wrapper """
+    def __insert_element(self, fingerprint, idx) -> bool:
+        """insert element wrapper"""
         if len(self.buckets[idx]) < self.bucket_size:
             self.buckets[idx].append(fingerprint)
             return True
         return False
 
     def _expand_logic(self, extra_fingerprint):
-        """ the logic to acutally expand the cuckoo filter """
+        """the logic to acutally expand the cuckoo filter"""
         # get all the fingerprints
         fingerprints = self._setup_expand(extra_fingerprint)
 
@@ -349,7 +351,7 @@ class CuckooFilter(object):
                 raise CuckooFilterFullError(msg)
 
     def _setup_expand(self, extra_fingerprint):
-        """ setup this thing """
+        """setup this thing"""
         fingerprints = list()
         if extra_fingerprint is not None:
             fingerprints.append(extra_fingerprint)
@@ -374,7 +376,7 @@ class CuckooFilter(object):
         idx_2 = self.__hash_func(str(fingerprint)) % self.capacity
         return idx_1, idx_2
 
-    def _generate_fingerprint_info(self, key):
+    def _generate_fingerprint_info(self, key: KeyT) -> typing.Tuple[int, int, int]:
         """Generate the fingerprint and indicies using the provided key
 
         Args:
@@ -392,7 +394,7 @@ class CuckooFilter(object):
         return idx_1, idx_2, fingerprint
 
     def _deal_with_insertion(self, finger):
-        """ some code to handle the insertion the same """
+        """some code to handle the insertion the same"""
         if finger is None:
             return
         elif self.auto_expand:

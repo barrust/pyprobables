@@ -12,7 +12,7 @@ from struct import calcsize, pack, unpack
 
 from ..constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN
 from ..exceptions import CountMinSketchError, InitializationError, NotSupportedError
-from ..hashes import HashFuncT, KeyT, default_fnv_1a
+from ..hashes import HashFuncT, HashResultsT, KeyT, default_fnv_1a
 from ..utilities import is_valid_file
 
 
@@ -212,7 +212,7 @@ class CountMinSketch(object):
         for i, _ in enumerate(self._bins):
             self._bins[i] = 0
 
-    def hashes(self, key: KeyT, depth: typing.Optional[int] = None) -> typing.List[int]:
+    def hashes(self, key: KeyT, depth: typing.Optional[int] = None) -> HashResultsT:
         """ Return the hashes based on the provided key
 
             Args:
@@ -237,7 +237,7 @@ class CountMinSketch(object):
         hashes = self.hashes(key)
         return self.add_alt(hashes, num_els)
 
-    def add_alt(self, hashes: typing.List[int], num_els: int = 1) -> int:
+    def add_alt(self, hashes: HashResultsT, num_els: int = 1) -> int:
         """ Insert an element by using the hash representation
 
             Args:
@@ -271,7 +271,7 @@ class CountMinSketch(object):
         hashes = self.hashes(key)
         return self.remove_alt(hashes, num_els)
 
-    def remove_alt(self, hashes: typing.List[int], num_els: int = 1) -> int:
+    def remove_alt(self, hashes: HashResultsT, num_els: int = 1) -> int:
         """ Remove an element by using the hash representation
 
             Args:
@@ -303,7 +303,7 @@ class CountMinSketch(object):
         hashes = self.hashes(key)
         return self.check_alt(hashes)
 
-    def check_alt(self, hashes: typing.List[int]) -> int:
+    def check_alt(self, hashes: HashResultsT) -> int:
         """ Check the count-min sketch for an element by using the hash \
             representation
 
@@ -387,7 +387,7 @@ class CountMinSketch(object):
             offset = calcsize(rep)
             self._bins = list(unpack(rep, filepointer.read(offset)))
 
-    def __get_values_sorted(self, hashes: typing.List[int]) -> typing.List[int]:
+    def __get_values_sorted(self, hashes: HashResultsT) -> HashResultsT:
         """get the values sorted"""
         bins = list()
         for i, val in enumerate(hashes):
@@ -397,15 +397,15 @@ class CountMinSketch(object):
         return bins
 
     @staticmethod
-    def __min_query(results: typing.List[int]) -> int:
+    def __min_query(results: HashResultsT) -> int:
         """generate the min query; assumes sorted list"""
         return results[0]
 
-    def __mean_query(self, results: typing.List[int]) -> int:
+    def __mean_query(self, results: HashResultsT) -> int:
         """generate the mean query; assumes sorted list"""
         return sum(results) // self.depth
 
-    def __mean_min_query(self, results: typing.List[int]) -> int:
+    def __mean_min_query(self, results: HashResultsT) -> int:
         """generate the mean-min query; assumes sorted list"""
         if results[0] == 0 and results[-1] == 0:
             return 0
