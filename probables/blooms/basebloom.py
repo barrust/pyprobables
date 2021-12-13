@@ -14,7 +14,7 @@ from struct import Struct, calcsize, pack, unpack
 from textwrap import wrap
 
 from ..exceptions import InitializationError
-from ..hashes import HashFuncT, KeyT, default_fnv_1a
+from ..hashes import HashFuncT, HashResultsT, KeyT, default_fnv_1a
 from ..utilities import is_hex_string, is_valid_file
 
 
@@ -171,7 +171,7 @@ class BaseBloom(object):
             Not settable"""
         return self.__hash_func  # type: ignore
 
-    def hashes(self, key: KeyT, depth: typing.Optional[int] = None) -> typing.List[int]:
+    def hashes(self, key: KeyT, depth: typing.Optional[int] = None) -> HashResultsT:
         """ Return the hashes based on the provided key
 
             Args:
@@ -375,7 +375,7 @@ class BaseBloom(object):
         hashes = self.hashes(key)
         self.add_alt(hashes)
 
-    def add_alt(self, hashes: typing.List[int]):
+    def add_alt(self, hashes: HashResultsT):
         """ Add the element represented by hashes into the Bloom Filter
 
             Args:
@@ -389,7 +389,7 @@ class BaseBloom(object):
             self._bloom[idx] = tmp_bit  # type: ignore
         self._els_added += 1
 
-    def check(self, key: KeyT) -> bool:
+    def check(self, key: KeyT) -> typing.Union[bool, int]:
         """Check if the key is likely in the Bloom Filter
 
         Args:
@@ -399,7 +399,7 @@ class BaseBloom(object):
         hashes = self.hashes(key)
         return self.check_alt(hashes)
 
-    def check_alt(self, hashes: typing.List[int]) -> bool:
+    def check_alt(self, hashes: HashResultsT) -> typing.Union[bool, int]:
         """ Check if the element represented by hashes is in the Bloom Filter
 
             Args:

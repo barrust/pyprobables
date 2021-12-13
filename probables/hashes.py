@@ -8,7 +8,8 @@ from struct import unpack
 from .constants import UINT64_T_MAX
 
 KeyT = typing.Union[str, bytes]
-HashFuncT = typing.Callable[[KeyT, int], typing.List[int]]
+HashResultsT = typing.List[int]
+HashFuncT = typing.Callable[[KeyT, int], HashResultsT]
 HashFuncBytesT = typing.Callable[[KeyT, int], bytes]
 
 

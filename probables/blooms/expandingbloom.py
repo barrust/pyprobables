@@ -9,7 +9,7 @@ import typing
 from struct import calcsize, pack, unpack
 
 from ..exceptions import RotatingBloomFilterError
-from ..hashes import HashFuncT, KeyT
+from ..hashes import HashFuncT, HashResultsT, KeyT
 from ..utilities import is_valid_file
 from .bloom import BloomFilter
 
@@ -102,7 +102,7 @@ class ExpandingBloomFilter(object):
         hashes = self._blooms[0].hashes(key)
         return self.check_alt(hashes)
 
-    def check_alt(self, hashes: typing.List[int]) -> bool:
+    def check_alt(self, hashes: HashResultsT) -> bool:
         """ Check to see if the hashes are in the Bloom Filter
 
             Args:
@@ -127,7 +127,7 @@ class ExpandingBloomFilter(object):
         hashes = self._blooms[0].hashes(key)
         self.add_alt(hashes, force)
 
-    def add_alt(self, hashes: typing.List[int], force: bool = False):
+    def add_alt(self, hashes: HashResultsT, force: bool = False):
         """ Add the element represented by hashes into the Bloom Filter
 
             Args:
@@ -265,7 +265,7 @@ class RotatingBloomFilter(ExpandingBloomFilter):
         """int: The current size of the queue"""
         return len(self._blooms)
 
-    def add_alt(self, hashes: typing.List[int], force: bool = False):
+    def add_alt(self, hashes: HashResultsT, force: bool = False):
         """ Add the element represented by hashes into the Bloom Filter
 
             Args:

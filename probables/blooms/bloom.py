@@ -11,7 +11,7 @@ from shutil import copyfile
 from struct import calcsize, pack, unpack
 
 from ..exceptions import InitializationError, NotSupportedError
-from ..hashes import HashFuncT
+from ..hashes import HashFuncT, HashResultsT
 from ..utilities import is_hex_string, is_valid_file
 from .basebloom import BaseBloom
 
@@ -346,7 +346,7 @@ class BloomFilterOnDisk(BaseBloom):
             copyfile(self.__filename, filename)
         # otherwise, nothing to do!
 
-    def add_alt(self, hashes: typing.List[int]):
+    def add_alt(self, hashes: HashResultsT):
         super(BloomFilterOnDisk, self).add_alt(hashes)
         self.__update()
 

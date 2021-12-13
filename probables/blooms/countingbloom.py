@@ -7,7 +7,7 @@
 import typing
 
 from ..constants import UINT32_T_MAX, UINT64_T_MAX
-from ..hashes import HashFuncT, KeyT
+from ..hashes import HashFuncT, HashResultsT, KeyT
 from .basebloom import BaseBloom
 
 MISMATCH_MSG = "The parameter second must be of type CountingBloomFilter"
@@ -107,7 +107,7 @@ class CountingBloomFilter(BaseBloom):
             els_added,
         )
 
-    def add(self, key: KeyT, num_els: int = 1):
+    def add(self, key: KeyT, num_els: int = 1) -> int:
         """Add the key to the Counting Bloom Filter
 
         Args:
@@ -118,7 +118,7 @@ class CountingBloomFilter(BaseBloom):
         hashes = self.hashes(key)
         return self.add_alt(hashes, num_els)
 
-    def add_alt(self, hashes: typing.List[int], num_els: int = 1):
+    def add_alt(self, hashes: HashResultsT, num_els: int = 1) -> int:
         """ Add the element represented by hashes into the Counting Bloom
             Filter
 
@@ -144,7 +144,7 @@ class CountingBloomFilter(BaseBloom):
             self.elements_added = UINT64_T_MAX
         return res
 
-    def check(self, key: KeyT):
+    def check(self, key: KeyT) -> int:
         """Check if the key is likely in the Counting Bloom Filter
 
         Args:
@@ -154,7 +154,7 @@ class CountingBloomFilter(BaseBloom):
         hashes = self.hashes(key)
         return self.check_alt(hashes)
 
-    def check_alt(self, hashes: typing.List[int]):
+    def check_alt(self, hashes: HashResultsT) -> int:
         """ Check if the element represented by hashes is in the Counting
             Bloom Filter
 
@@ -182,7 +182,7 @@ class CountingBloomFilter(BaseBloom):
         hashes = self.hashes(key)
         return self.remove_alt(hashes, num_els)
 
-    def remove_alt(self, hashes: typing.List[int], num_els: int = 1):
+    def remove_alt(self, hashes: HashResultsT, num_els: int = 1):
         """ Remvoe the element represented by hashes from the Counting Bloom \
             Filter
 
