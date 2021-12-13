@@ -4,14 +4,17 @@
     URL: https://github.com/barrust/counting_bloom
 """
 
+import typing
+
 from ..constants import UINT32_T_MAX, UINT64_T_MAX
+from ..hashes import HashFuncT, HashResultsT, KeyT
 from .basebloom import BaseBloom
 
 MISMATCH_MSG = "The parameter second must be of type CountingBloomFilter"
 
 
 def _verify_not_type_mismatch(second):
-    """ verify that there is not a type mismatch """
+    """verify that there is not a type mismatch"""
     if not isinstance(second, (CountingBloomFilter)):
         return False
     return True
@@ -42,13 +45,13 @@ class CountingBloomFilter(BaseBloom):
 
     def __init__(
         self,
-        est_elements=None,
-        false_positive_rate=None,
-        filepath=None,
-        hex_string=None,
-        hash_function=None,
+        est_elements: typing.Optional[int] = None,
+        false_positive_rate: typing.Optional[float] = None,
+        filepath: typing.Optional[str] = None,
+        hex_string: typing.Optional[str] = None,
+        hash_function: typing.Optional[HashFuncT] = None,
     ):
-        """ setup the basic values needed """
+        """setup the basic values needed"""
         super(CountingBloomFilter, self).__init__(
             "counting",
             est_elements=est_elements,
@@ -59,11 +62,7 @@ class CountingBloomFilter(BaseBloom):
         )
 
     def __str__(self):
-        """ correctly handle python 3 vs python2 encoding if necessary """
-        return self.__unicode__()
-
-    def __unicode__(self):
-        """ string / unicode representation of the counting bloom filter """
+        """string representation of the counting bloom filter"""
         on_disk = "no" if self.is_on_disk is False else "yes"
 
         cnt = 0
@@ -108,7 +107,7 @@ class CountingBloomFilter(BaseBloom):
             els_added,
         )
 
-    def add(self, key, num_els=1):
+    def add(self, key: KeyT, num_els: int = 1) -> int:
         """Add the key to the Counting Bloom Filter
 
         Args:
@@ -119,7 +118,7 @@ class CountingBloomFilter(BaseBloom):
         hashes = self.hashes(key)
         return self.add_alt(hashes, num_els)
 
-    def add_alt(self, hashes, num_els=1):
+    def add_alt(self, hashes: HashResultsT, num_els: int = 1) -> int:
         """ Add the element represented by hashes into the Counting Bloom
             Filter
 
@@ -145,7 +144,7 @@ class CountingBloomFilter(BaseBloom):
             self.elements_added = UINT64_T_MAX
         return res
 
-    def check(self, key):
+    def check(self, key: KeyT) -> int:
         """Check if the key is likely in the Counting Bloom Filter
 
         Args:
@@ -155,7 +154,7 @@ class CountingBloomFilter(BaseBloom):
         hashes = self.hashes(key)
         return self.check_alt(hashes)
 
-    def check_alt(self, hashes):
+    def check_alt(self, hashes: HashResultsT) -> int:
         """ Check if the element represented by hashes is in the Counting
             Bloom Filter
 
@@ -172,7 +171,7 @@ class CountingBloomFilter(BaseBloom):
                 res = tmp
         return res
 
-    def remove(self, key, num_els=1):
+    def remove(self, key: KeyT, num_els: int = 1):
         """Remove the element from the counting bloom
 
         Args:
@@ -183,7 +182,7 @@ class CountingBloomFilter(BaseBloom):
         hashes = self.hashes(key)
         return self.remove_alt(hashes, num_els)
 
-    def remove_alt(self, hashes, num_els=1):
+    def remove_alt(self, hashes: HashResultsT, num_els: int = 1):
         """ Remvoe the element represented by hashes from the Counting Bloom \
             Filter
 
@@ -211,7 +210,7 @@ class CountingBloomFilter(BaseBloom):
         self.elements_added -= t_num_els
         return tmp - t_num_els
 
-    def intersection(self, second):
+    def intersection(self, second: "CountingBloomFilter") -> "CountingBloomFilter":
         """ Take the intersection of two Counting Bloom Filters
 
             Args:
@@ -247,7 +246,7 @@ class CountingBloomFilter(BaseBloom):
         res.elements_added = res.estimate_elements()
         return res
 
-    def jaccard_index(self, second):
+    def jaccard_index(self, second: "CountingBloomFilter") -> float:
         """ Take the Jaccard Index of two Counting Bloom Filters
 
             Args:
@@ -281,7 +280,7 @@ class CountingBloomFilter(BaseBloom):
             return 1.0
         return count_inter / count_union
 
-    def union(self, second):
+    def union(self, second: "CountingBloomFilter") -> "CountingBloomFilter":
         """ Return a new Countiong Bloom Filter that contains the union of
             the two
 
@@ -316,8 +315,8 @@ class CountingBloomFilter(BaseBloom):
         res.elements_added = res.estimate_elements()
         return res
 
-    def _cnt_number_bits_set(self):
-        """ calculate the total number of set bits in the bloom """
+    def _cnt_number_bits_set(self) -> int:
+        """calculate the total number of set bits in the bloom"""
         cnt = 0
         for i in list(range(self.bloom_length)):
             if self._get_element(i) > 0:

@@ -14,7 +14,7 @@ from probables import (
 
 
 def read_file(filepath):
-    """ read the file """
+    """read the file"""
     with io.open(filepath, "r") as filepointer:
         res = filepointer.read()
     return res
@@ -63,6 +63,7 @@ setuptools.setup(
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
     ],
     test_suite="tests",
 )

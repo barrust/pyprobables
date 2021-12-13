@@ -6,30 +6,34 @@
 
 import mmap
 import os
+import typing
 from shutil import copyfile
 from struct import calcsize, pack, unpack
 
 from ..exceptions import InitializationError, NotSupportedError
+from ..hashes import HashFuncT, HashResultsT
 from ..utilities import is_hex_string, is_valid_file
 from .basebloom import BaseBloom
 
 MISMATCH_MSG = "The parameter second must be of type BloomFilter or a BloomFilterOnDisk"
 
+SimpleBloomT = typing.Union["BloomFilter", "BloomFilterOnDisk"]
 
-def _verify_not_type_mismatch(second):
-    """ verify that there is not a type mismatch """
+
+def _verify_not_type_mismatch(second: SimpleBloomT) -> bool:
+    """verify that there is not a type mismatch"""
     if not isinstance(second, (BloomFilter, BloomFilterOnDisk)):
         return False
     return True
 
 
-def _cnt_set_bits(i):
-    """ count number of bits set in this int """
+def _cnt_set_bits(i: int) -> int:
+    """count number of bits set in this int"""
     return bin(i).count("1")
 
 
-def _tmp_jaccard_index(first, second):
-    """ encapsulate the basics of the jaccard index """
+def _tmp_jaccard_index(first: SimpleBloomT, second: SimpleBloomT) -> float:
+    """encapsulate the basics of the jaccard index"""
     count_union = 0
     count_int = 0
     for i in list(range(0, first.bloom_length)):
@@ -42,8 +46,8 @@ def _tmp_jaccard_index(first, second):
     return count_int / count_union
 
 
-def _tmp_union(first, second):
-    """ encapsulate the basics of the union """
+def _tmp_union(first: SimpleBloomT, second: SimpleBloomT) -> "BloomFilter":
+    """encapsulate the basics of the union"""
     res = BloomFilter(
         first.estimated_elements,
         first.false_positive_rate,
@@ -55,8 +59,8 @@ def _tmp_union(first, second):
     return res
 
 
-def _tmp_intersection(first, second):
-    """ encapsulate the basics of the intersection """
+def _tmp_intersection(first: SimpleBloomT, second: SimpleBloomT) -> "BloomFilter":
+    """encapsulate the basics of the intersection"""
     res = BloomFilter(
         first.estimated_elements,
         first.false_positive_rate,
@@ -89,17 +93,17 @@ class BloomFilter(BaseBloom):
                 2) From Hex String
                 3) From params """
 
-    __slots__ = []
+    __slots__ = BaseBloom.__slots__
 
     def __init__(
         self,
-        est_elements=None,
-        false_positive_rate=None,
-        filepath=None,
-        hex_string=None,
-        hash_function=None,
+        est_elements: typing.Optional[int] = None,
+        false_positive_rate: typing.Optional[float] = None,
+        filepath: typing.Optional[str] = None,
+        hex_string: typing.Optional[str] = None,
+        hash_function: typing.Optional[HashFuncT] = None,
     ):
-        """ setup the basic values needed """
+        """setup the basic values needed"""
         super(BloomFilter, self).__init__(
             "regular",
             est_elements,
@@ -110,11 +114,7 @@ class BloomFilter(BaseBloom):
         )
 
     def __str__(self):
-        """ correctly handle python 3 vs python2 encoding if necessary """
-        return self.__unicode__()
-
-    def __unicode__(self):
-        """ string / unicode representation of the Bloom Filter """
+        """output statistics of the bloom filter"""
         on_disk = "no" if self.is_on_disk is False else "yes"
         stats = (
             "BloomFilter:\n"
@@ -144,7 +144,7 @@ class BloomFilter(BaseBloom):
             on_disk,
         )
 
-    def intersection(self, second):
+    def intersection(self, second: SimpleBloomT) -> typing.Optional["BaseBloom"]:
         """ Return a new Bloom Filter that contains the intersection of the
             two
 
@@ -169,7 +169,7 @@ class BloomFilter(BaseBloom):
 
         return _tmp_intersection(self, second)
 
-    def union(self, second):
+    def union(self, second: SimpleBloomT) -> typing.Optional["BaseBloom"]:
         """ Return a new Bloom Filter that contains the union of the two
 
             Args:
@@ -193,7 +193,7 @@ class BloomFilter(BaseBloom):
 
         return _tmp_union(self, second)
 
-    def jaccard_index(self, second):
+    def jaccard_index(self, second: SimpleBloomT) -> typing.Optional[float]:
         """ Calculate the jaccard similarity score between two Bloom Filters
 
             Args:
@@ -217,8 +217,8 @@ class BloomFilter(BaseBloom):
 
         return _tmp_jaccard_index(self, second)
 
-    def _cnt_number_bits_set(self):
-        """ calculate the total number of set bits in the bloom """
+    def _cnt_number_bits_set(self) -> int:
+        """calculate the total number of set bits in the bloom"""
         setbits = 0
         for i in list(range(0, self.bloom_length)):
             setbits += _cnt_set_bits(self._get_element(i))
@@ -251,11 +251,11 @@ class BloomFilterOnDisk(BaseBloom):
 
     def __init__(
         self,
-        filepath,
-        est_elements=None,
-        false_positive_rate=None,
-        hex_string=None,
-        hash_function=None,
+        filepath: str,
+        est_elements: typing.Optional[int] = None,
+        false_positive_rate: typing.Optional[float] = None,
+        hex_string: typing.Optional[str] = None,
+        hash_function: typing.Optional[HashFuncT] = None,
     ):
         # since we cannot load from a file only (to memory), we can't pass
         # the file to the constructor; therefore, we will have to catch
@@ -292,7 +292,7 @@ class BloomFilterOnDisk(BaseBloom):
                 filepointer.write(pack("QQf", est_elements, 0, false_positive_rate))
                 filepointer.flush()
             self.__load(filepath, hash_function)
-        elif hex_string is not None and is_hex_string(hex_string):
+        elif is_hex_string(hex_string):
             self._load_hex(hex_string, hash_function)
         elif is_valid_file(filepath):
             self.__load(filepath, hash_function)
@@ -301,19 +301,19 @@ class BloomFilterOnDisk(BaseBloom):
             raise InitializationError(msg)
 
     def __del__(self):
-        """ handle if user doesn't close the on disk Bloom Filter """
+        """handle if user doesn't close the on disk Bloom Filter"""
         self.close()
 
     def close(self):
-        """ Clean up the BloomFilterOnDisk object """
+        """Clean up the BloomFilterOnDisk object"""
         if self.__file_pointer is not None:
             self.__update()
             self._bloom.close()  # close the mmap
             self.__file_pointer.close()
             self.__file_pointer = None
 
-    def __load(self, filepath, hash_function=None):
-        """ load the Bloom Filter on disk """
+    def __load(self, filepath: str, hash_function: typing.Optional[HashFuncT] = None):
+        """load the Bloom Filter on disk"""
         # read the file, set the optimal params
         # mmap everything
         with open(filepath, "r+b") as filepointer:
@@ -327,12 +327,12 @@ class BloomFilterOnDisk(BaseBloom):
             false_positive_rate=vals[1],
             hash_function=vals[0],
         )
-        self.__file_pointer = open(filepath, "r+b")
-        self._bloom = mmap.mmap(self.__file_pointer.fileno(), 0)
+        self.__file_pointer = open(filepath, "r+b")  # type: ignore
+        self._bloom = mmap.mmap(self.__file_pointer.fileno(), 0)  # type: ignore
         self._on_disk = True
-        self.__filename = filepath
+        self.__filename = filepath  # type: ignore
 
-    def export(self, filename):
+    def export(self, filename: str):
         """ Export to disk if a different location
 
             Args:
@@ -346,11 +346,11 @@ class BloomFilterOnDisk(BaseBloom):
             copyfile(self.__filename, filename)
         # otherwise, nothing to do!
 
-    def add_alt(self, hashes):
+    def add_alt(self, hashes: HashResultsT):
         super(BloomFilterOnDisk, self).add_alt(hashes)
         self.__update()
 
-    def union(self, second):
+    def union(self, second: SimpleBloomT) -> typing.Optional["BaseBloom"]:
         """ Return a new Bloom Filter that contains the union of the two
 
             Args:
@@ -374,7 +374,7 @@ class BloomFilterOnDisk(BaseBloom):
 
         return _tmp_union(self, second)
 
-    def intersection(self, second):
+    def intersection(self, second: SimpleBloomT) -> typing.Optional["BaseBloom"]:
         """ Return a new Bloom Filter that contains the intersection of the
             two
 
@@ -399,7 +399,7 @@ class BloomFilterOnDisk(BaseBloom):
 
         return _tmp_intersection(self, second)
 
-    def jaccard_index(self, second):
+    def jaccard_index(self, second: SimpleBloomT) -> typing.Optional[float]:
         """ Calculate the jaccard similarity score between two Bloom Filters
 
             Args:
@@ -422,7 +422,7 @@ class BloomFilterOnDisk(BaseBloom):
             return None
         return _tmp_jaccard_index(self, second)
 
-    def export_hex(self):
+    def export_hex(self) -> str:
         """ Export to a hex string
 
             Raises:
@@ -431,14 +431,14 @@ class BloomFilterOnDisk(BaseBloom):
         msg = "`export_hex` is currently not supported by the on disk Bloom Filter"
         raise NotSupportedError(msg)
 
-    def _load_hex(self, hex_string, hash_function=None):
-        """ load from hex ... """
+    def _load_hex(self, hex_string: str, hash_function: typing.Optional[HashFuncT] = None):
+        """load from hex ..."""
         msg = "Loading from hex_string is currently not supported by the on disk Bloom Filter"
         raise NotSupportedError(msg)
 
-    def _get_element(self, idx):
-        """ wrappper to use similar functions always! """
-        return unpack("B", bytes([self._bloom[idx]]))[0]
+    def _get_element(self, idx: int) -> int:
+        """wrappper to use similar functions always!"""
+        return unpack("B", bytes([self._bloom[idx]]))[0]  # type: ignore
 
     def __update(self):
         """update the on disk Bloom Filter and ensure everything is out
@@ -448,8 +448,8 @@ class BloomFilterOnDisk(BaseBloom):
         self.__file_pointer.write(pack("Q", self.elements_added))
         self.__file_pointer.flush()
 
-    def _cnt_number_bits_set(self):
-        """ calculate the total number of set bits in the bloom """
+    def _cnt_number_bits_set(self) -> int:
+        """calculate the total number of set bits in the bloom"""
         setbits = 0
         for i in list(range(0, self.bloom_length)):
             setbits += _cnt_set_bits(self._get_element(i))

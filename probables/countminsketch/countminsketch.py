@@ -6,12 +6,13 @@
 
 import math
 import os
+import typing
 from numbers import Number
 from struct import calcsize, pack, unpack
 
 from ..constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN
 from ..exceptions import CountMinSketchError, InitializationError, NotSupportedError
-from ..hashes import default_fnv_1a
+from ..hashes import HashFuncT, HashResultsT, KeyT, default_fnv_1a
 from ..utilities import is_valid_file
 
 
@@ -55,14 +56,14 @@ class CountMinSketch(object):
 
     def __init__(
         self,
-        width=None,
-        depth=None,
-        confidence=None,
-        error_rate=None,
-        filepath=None,
-        hash_function=None,
+        width: typing.Optional[int] = None,
+        depth: typing.Optional[int] = None,
+        confidence: typing.Optional[float] = None,
+        error_rate: typing.Optional[float] = None,
+        filepath: typing.Optional[str] = None,
+        hash_function: typing.Optional[HashFuncT] = None,
     ):
-        """ default initilization function """
+        """default initilization function"""
         # default values
         self.__width = 0
         self.__depth = 0
@@ -109,10 +110,10 @@ class CountMinSketch(object):
         if hash_function is None:
             self._hash_function = default_fnv_1a
         else:
-            self._hash_function = hash_function
+            self._hash_function = hash_function  # type: ignore
 
     def __str__(self):
-        """ string representation of the count min sketch """
+        """string representation of the count min sketch"""
         msg = (
             "Count-Min Sketch:\n"
             "\tWidth: {0}\n"
@@ -129,12 +130,12 @@ class CountMinSketch(object):
             self.elements_added,
         )
 
-    def __contains__(self, key):
-        """ setup the `in` keyword """
+    def __contains__(self, key: KeyT) -> bool:
+        """setup the `in` keyword"""
         return True if self.check(key) != 0 else False
 
     @property
-    def width(self):
+    def width(self) -> int:
         """int: The width of the count-min sketch
 
         Note:
@@ -142,7 +143,7 @@ class CountMinSketch(object):
         return self.__width
 
     @property
-    def depth(self):
+    def depth(self) -> int:
         """int: The depth of the count-min sketch
 
         Note:
@@ -150,7 +151,7 @@ class CountMinSketch(object):
         return self.__depth
 
     @property
-    def confidence(self):
+    def confidence(self) -> float:
         """float: The confidence of the count-min sketch
 
         Note:
@@ -158,7 +159,7 @@ class CountMinSketch(object):
         return self.__confidence
 
     @property
-    def error_rate(self):
+    def error_rate(self) -> float:
         """float: The error rate of the count-min sketch
 
         Note:
@@ -166,7 +167,7 @@ class CountMinSketch(object):
         return self.__error_rate
 
     @property
-    def elements_added(self):
+    def elements_added(self) -> int:
         """int: The number of elements added to the count-min sketch
 
         Note:
@@ -174,7 +175,7 @@ class CountMinSketch(object):
         return self.__elements_added
 
     @property
-    def query_type(self):
+    def query_type(self) -> str:
         """str: The name of the query type being used
 
         Note:
@@ -189,7 +190,7 @@ class CountMinSketch(object):
         return "min"
 
     @query_type.setter
-    def query_type(self, val):
+    def query_type(self, val: str):
         """set to min query Options='min', 'mean', 'mean-min'
         other values are set to min
         setting to mean is converting to a Count-Mean Sketch
@@ -206,12 +207,12 @@ class CountMinSketch(object):
             self.__query_method = self.__min_query
 
     def clear(self):
-        """ Reset the count-min sketch to an empty state """
+        """Reset the count-min sketch to an empty state"""
         self.__elements_added = 0
         for i, _ in enumerate(self._bins):
             self._bins[i] = 0
 
-    def hashes(self, key, depth=None):
+    def hashes(self, key: KeyT, depth: typing.Optional[int] = None) -> HashResultsT:
         """ Return the hashes based on the provided key
 
             Args:
@@ -224,7 +225,7 @@ class CountMinSketch(object):
         t_depth = self.depth if depth is None else depth
         return self._hash_function(key, t_depth)
 
-    def add(self, key, num_els=1):
+    def add(self, key: KeyT, num_els: int = 1) -> int:
         """ Insert the element `key` into the count-min sketch
 
             Args:
@@ -236,7 +237,7 @@ class CountMinSketch(object):
         hashes = self.hashes(key)
         return self.add_alt(hashes, num_els)
 
-    def add_alt(self, hashes, num_els=1):
+    def add_alt(self, hashes: HashResultsT, num_els: int = 1) -> int:
         """ Insert an element by using the hash representation
 
             Args:
@@ -258,7 +259,7 @@ class CountMinSketch(object):
             self.__elements_added = INT64_T_MAX
         return self.__query_method(sorted(res))
 
-    def remove(self, key, num_els=1):
+    def remove(self, key: KeyT, num_els: int = 1) -> int:
         """ Remove element 'key' from the count-min sketch
 
             Args:
@@ -270,7 +271,7 @@ class CountMinSketch(object):
         hashes = self.hashes(key)
         return self.remove_alt(hashes, num_els)
 
-    def remove_alt(self, hashes, num_els=1):
+    def remove_alt(self, hashes: HashResultsT, num_els: int = 1) -> int:
         """ Remove an element by using the hash representation
 
             Args:
@@ -292,7 +293,7 @@ class CountMinSketch(object):
 
         return self.__query_method(sorted(res))
 
-    def check(self, key):
+    def check(self, key: KeyT) -> int:
         """Check number of times element 'key' is in the count-min sketch
 
         Args:
@@ -302,7 +303,7 @@ class CountMinSketch(object):
         hashes = self.hashes(key)
         return self.check_alt(hashes)
 
-    def check_alt(self, hashes):
+    def check_alt(self, hashes: HashResultsT) -> int:
         """ Check the count-min sketch for an element by using the hash \
             representation
 
@@ -313,7 +314,7 @@ class CountMinSketch(object):
         bins = self.__get_values_sorted(hashes)
         return self.__query_method(bins)
 
-    def export(self, filepath):
+    def export(self, filepath: str):
         """ Export the count-min sketch to disk
 
             Args:
@@ -325,7 +326,7 @@ class CountMinSketch(object):
             filepointer.write(pack(rep, *self._bins))
             filepointer.write(pack("IIq", self.width, self.depth, self.elements_added))
 
-    def join(self, second):
+    def join(self, second: "CountMinSketch"):
         """ Join two count-min sketchs into a single count-min sketch; the
             calling count-min sketch will have the resulting combined data
 
@@ -368,8 +369,8 @@ class CountMinSketch(object):
         elif self.elements_added < INT64_T_MIN:
             self.__elements_added = INT64_T_MIN
 
-    def __load(self, filepath):
-        """ load the count-min sketch from file """
+    def __load(self, filepath: str):
+        """load the count-min sketch from file"""
         with open(filepath, "rb") as filepointer:
             offset = calcsize("IIq")
             filepointer.seek(offset * -1, os.SEEK_END)
@@ -386,8 +387,8 @@ class CountMinSketch(object):
             offset = calcsize(rep)
             self._bins = list(unpack(rep, filepointer.read(offset)))
 
-    def __get_values_sorted(self, hashes):
-        """ get the values sorted """
+    def __get_values_sorted(self, hashes: HashResultsT) -> HashResultsT:
+        """get the values sorted"""
         bins = list()
         for i, val in enumerate(hashes):
             t_bin = (val % self.width) + (i * self.width)
@@ -396,16 +397,16 @@ class CountMinSketch(object):
         return bins
 
     @staticmethod
-    def __min_query(results):
-        """ generate the min query; assumes sorted list """
+    def __min_query(results: HashResultsT) -> int:
+        """generate the min query; assumes sorted list"""
         return results[0]
 
-    def __mean_query(self, results):
-        """ generate the mean query; assumes sorted list """
+    def __mean_query(self, results: HashResultsT) -> int:
+        """generate the mean query; assumes sorted list"""
         return sum(results) // self.depth
 
-    def __mean_min_query(self, results):
-        """ generate the mean-min query; assumes sorted list """
+    def __mean_min_query(self, results: HashResultsT) -> int:
+        """generate the mean-min query; assumes sorted list"""
         if results[0] == 0 and results[-1] == 0:
             return 0
         meanmin = list()
@@ -550,7 +551,7 @@ class HeavyHitters(CountMinSketch):
         self.__smallest = 0
 
     def __str__(self):
-        """ heavy hitters string rep """
+        """heavy hitters string rep"""
         msg = super(HeavyHitters, self).__str__()
         tmp = "Heavy Hitters {0}\n\tNumber Hitters: {1}\n\tNumber Recorded: {2}"
         return tmp.format(msg, self.number_heavy_hitters, self.__top_x_size)
@@ -636,7 +637,7 @@ class HeavyHitters(CountMinSketch):
         raise NotSupportedError(msg)
 
     def clear(self):
-        """ Clear out the heavy hitters! """
+        """Clear out the heavy hitters!"""
         super(HeavyHitters, self).clear()
         self.__top_x = dict()
         self.__top_x_size = 0
@@ -653,7 +654,7 @@ class HeavyHitters(CountMinSketch):
 
 
 class StreamThreshold(CountMinSketch):
-    """ keep track of those elements over a certain threshold """
+    """keep track of those elements over a certain threshold"""
 
     __slots__ = ["__threshold", "__meets_threshold"]
 
@@ -672,23 +673,23 @@ class StreamThreshold(CountMinSketch):
         self.__meets_threshold = dict()
 
     def __str__(self):
-        """ stream threshold string rep """
+        """stream threshold string rep"""
         msg = super(StreamThreshold, self).__str__()
         tmp = "Stream Threshold {0}\n\tThreshold: {1}\n\tNumber Meeting Threshold: {2}"
         return tmp.format(msg, self.threshold, len(self.__meets_threshold))
 
     @property
     def meets_threshold(self):
-        """ dict: Those keys that meet the required threshold (with value) """
+        """dict: Those keys that meet the required threshold (with value)"""
         return self.__meets_threshold
 
     @property
     def threshold(self):
-        """ int: The threshold at which a key is tracked """
+        """int: The threshold at which a key is tracked"""
         return self.__threshold
 
     def clear(self):
-        """ Clear out the stream threshold! """
+        """Clear out the stream threshold!"""
         super(StreamThreshold, self).clear()
         self.__meets_threshold = dict()
 
