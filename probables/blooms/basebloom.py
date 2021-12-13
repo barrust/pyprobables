@@ -414,18 +414,18 @@ class BaseBloom(object):
         return True
 
     @abstractmethod
-    def union(self, second: "BaseBloom") -> "BaseBloom":
+    def union(self, second) -> typing.Optional["BaseBloom"]:
         """Return a new Bloom Filter that contains the typing.Union of the two"""
         pass
 
     @abstractmethod
-    def intersection(self, second: "BaseBloom") -> "BaseBloom":
+    def intersection(self, second) -> typing.Optional["BaseBloom"]:
         """Return a new Bloom Filter that contains the intersection of the
         two"""
         pass
 
     @abstractmethod
-    def jaccard_index(self, second: "BaseBloom") -> float:
+    def jaccard_index(self, second) -> typing.Optional[float]:
         """Return a the Jaccard Similarity score between two bloom filters"""
         pass
 
