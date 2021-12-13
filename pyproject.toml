@@ -21,7 +21,7 @@ packages = [
 readme = "README.rst"
 
 [tool.poetry.dependencies]
-python = "^3.5"
+python = "^3.6"
 
 [tool.poetry.dev-dependencies]
 pre-commit = {python = "^3.6.1"}

@@ -1,4 +1,5 @@
 """ pyprobables module """
+import typing
 
 from .blooms import (
     BloomFilter,
@@ -28,7 +29,7 @@ __maintainer__ = "Tyler Barrus"
 __email__ = "barrust@gmail.com"
 __license__ = "MIT"
 __version__ = "0.5.1"
-__credits__ = []
+__credits__: typing.List[str] = []
 __url__ = "https://github.com/barrust/pyprobables"
 __bugtrack_url__ = "https://github.com/barrust/pyprobables/issues"
 
