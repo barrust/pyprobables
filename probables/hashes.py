@@ -7,8 +7,9 @@ from struct import unpack
 
 from .constants import UINT64_T_MAX
 
-HashFuncT = typing.Callable[[typing.Union[str, bytes], int], int]
-HashFuncBytesT = typing.Callable[[typing.Union[str, bytes], int], bytes]
+KeyT = typing.Union[str, bytes]
+HashFuncT = typing.Callable[[KeyT, int], typing.List[int]]
+HashFuncBytesT = typing.Callable[[KeyT, int], bytes]
 
 
 def hash_with_depth_bytes(func: HashFuncBytesT) -> HashFuncT:
@@ -66,7 +67,7 @@ def hash_with_depth_int(func: HashFuncT) -> HashFuncT:
     return hashing_func
 
 
-def default_fnv_1a(key: typing.Union[str, bytes], depth: int = 1) -> typing.List[int]:
+def default_fnv_1a(key: KeyT, depth: int = 1) -> typing.List[int]:
     """The default fnv-1a hashing routine
 
     Args:
@@ -81,7 +82,7 @@ def default_fnv_1a(key: typing.Union[str, bytes], depth: int = 1) -> typing.List
     return res
 
 
-def fnv_1a(key: typing.Union[str, bytes], seed: int = 0) -> int:
+def fnv_1a(key: KeyT, seed: int = 0) -> int:
     """Pure python implementation of the 64 bit fnv-1a hash
 
     Args:
@@ -106,7 +107,7 @@ def fnv_1a(key: typing.Union[str, bytes], seed: int = 0) -> int:
 
 
 @hash_with_depth_bytes
-def default_md5(key: typing.Union[str, bytes], seed: int = 0) -> bytes:
+def default_md5(key: KeyT, seed: int = 0) -> bytes:
     """The default md5 hashing routine
 
     Args:
@@ -122,7 +123,7 @@ def default_md5(key: typing.Union[str, bytes], seed: int = 0) -> bytes:
 
 
 @hash_with_depth_bytes
-def default_sha256(key: typing.Union[str, bytes], seed: int = 0) -> bytes:
+def default_sha256(key: KeyT, seed: int = 0) -> bytes:
     """The default sha256 hashing routine
 
     Args:
