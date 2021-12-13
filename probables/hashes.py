@@ -1,13 +1,17 @@
 """ Probables Hashing library """
 
+import typing
 from functools import wraps
 from hashlib import md5, sha256
 from struct import unpack
 
 from .constants import UINT64_T_MAX
 
+HashFuncT = typing.Callable[[typing.Union[str, bytes], int], int]
+HashFuncBytesT = typing.Callable[[typing.Union[str, bytes], int], bytes]
 
-def hash_with_depth_bytes(func):
+
+def hash_with_depth_bytes(func: HashFuncBytesT) -> HashFuncT:
     """Decorator to turns a function taking a single key and hashes it to
     bytes. Wraps functions to be used in Bloom filters and Count-Min sketch
     data structures.
@@ -22,7 +26,7 @@ def hash_with_depth_bytes(func):
 
     @wraps(func)
     def hashing_func(key, depth=1):
-        """ wrapper function """
+        """wrapper function"""
         res = list()
         tmp = key
         if isinstance(key, str):
@@ -35,7 +39,7 @@ def hash_with_depth_bytes(func):
     return hashing_func
 
 
-def hash_with_depth_int(func):
+def hash_with_depth_int(func: HashFuncT) -> HashFuncT:
     """Decorator to turn a function that takes a single key and hashes it to
     an int. Wraps functions to be used in Bloom filters and Count-Min
     sketch data structures.
@@ -50,7 +54,7 @@ def hash_with_depth_int(func):
 
     @wraps(func)
     def hashing_func(key, depth=1):
-        """ wrapper function """
+        """wrapper function"""
         res = list()
         tmp = func(key, 0)
         res.append(tmp)
@@ -62,7 +66,7 @@ def hash_with_depth_int(func):
     return hashing_func
 
 
-def default_fnv_1a(key, depth=1):
+def default_fnv_1a(key: typing.Union[str, bytes], depth: int = 1) -> typing.List[int]:
     """The default fnv-1a hashing routine
 
     Args:
@@ -77,7 +81,7 @@ def default_fnv_1a(key, depth=1):
     return res
 
 
-def fnv_1a(key, seed=0):
+def fnv_1a(key: typing.Union[str, bytes], seed: int = 0) -> int:
     """Pure python implementation of the 64 bit fnv-1a hash
 
     Args:
@@ -90,9 +94,10 @@ def fnv_1a(key, seed=0):
     max64mod = UINT64_T_MAX + 1
     hval = (14695981039346656037 + (31 * seed)) % max64mod
     fnv_64_prime = 1099511628211
-    tmp = key
     if isinstance(key, str):
-        tmp = map(ord, key)
+        tmp = list(map(ord, key))
+    else:
+        tmp = list(key)
     for t_str in tmp:
         hval ^= t_str
         hval *= fnv_64_prime
@@ -101,7 +106,7 @@ def fnv_1a(key, seed=0):
 
 
 @hash_with_depth_bytes
-def default_md5(key, depth=1):
+def default_md5(key: typing.Union[str, bytes], seed: int = 0) -> bytes:
     """The default md5 hashing routine
 
     Args:
@@ -111,11 +116,13 @@ def default_md5(key, depth=1):
         list(int): List of 64-bit hashed representation of key hashes
     Note:
         Returns the upper-most 64 bits"""
+    if isinstance(key, str):
+        return md5(key.encode()).digest()
     return md5(key).digest()
 
 
 @hash_with_depth_bytes
-def default_sha256(key, depth=1):
+def default_sha256(key: typing.Union[str, bytes], seed: int = 0) -> bytes:
     """The default sha256 hashing routine
 
     Args:
@@ -125,4 +132,6 @@ def default_sha256(key, depth=1):
         list(int): List of 64-bit hashed representation of key hashes
     Note:
         Returns the upper-most 64 bits"""
+    if isinstance(key, str):
+        return sha256(key.encode()).digest()
     return sha256(key).digest()

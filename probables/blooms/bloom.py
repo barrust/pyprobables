@@ -89,7 +89,7 @@ class BloomFilter(BaseBloom):
                 2) From Hex String
                 3) From params """
 
-    __slots__ = []
+    __slots__ = BaseBloom.__slots__
 
     def __init__(
         self,
@@ -292,7 +292,7 @@ class BloomFilterOnDisk(BaseBloom):
                 filepointer.write(pack("QQf", est_elements, 0, false_positive_rate))
                 filepointer.flush()
             self.__load(filepath, hash_function)
-        elif hex_string is not None and is_hex_string(hex_string):
+        elif is_hex_string(hex_string):
             self._load_hex(hex_string, hash_function)
         elif is_valid_file(filepath):
             self.__load(filepath, hash_function)
