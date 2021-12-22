@@ -3,15 +3,20 @@
     Author: Tyler Barrus (barrust@gmail.com)
 """
 
+import array
 import os
 import random
 import typing
+from collections.abc import ByteString
+from io import BytesIO, IOBase
+from mmap import mmap
 from numbers import Number
-from struct import calcsize, pack, unpack
+from pathlib import Path
+from struct import Struct, calcsize, pack
 
 from ..exceptions import CuckooFilterFullError, InitializationError
 from ..hashes import KeyT, SimpleHashT, fnv_1a
-from ..utilities import get_x_bits, is_valid_file
+from ..utilities import MMap, convert_to_typed, get_x_bits, is_valid_file
 
 
 class CuckooFilter(object):
@@ -247,21 +252,36 @@ class CuckooFilter(object):
         self._inserted_elements -= 1
         return True
 
-    def export(self, filename: str):
+    def export(self, file: typing.Union[Path, str, IOBase, mmap]) -> None:
         """Export cuckoo filter to file
 
         Args:
-            filename (str): Path to file to export"""
-        with open(filename, "wb") as filepointer:
-            for bucket in self.buckets:
+            file: Path to file to export"""
+
+        if not isinstance(file, (IOBase, mmap)):
+            with open(file, "wb") as filepointer:
+                self.export(filepointer)
+        else:
+            filepointer = file
+
+            for i in range(len(self.buckets)):
+                bucket = self.buckets[i]
                 # do something for each...
-                rep = len(bucket) * "I"
-                filepointer.write(pack(rep, *bucket))
+                if isinstance(bucket, list):
+                    self.buckets[i] = bucket = convert_to_typed(self.__class__.SINGLE_INT_C, bucket)
+                filepointer.write(bucket.tobytes())
                 leftover = self.bucket_size - len(bucket)
                 rep = leftover * "I"
                 filepointer.write(pack(rep, *([0] * leftover)))
             # now put out the required information at the end
-            filepointer.write(pack("II", self.bucket_size, self.max_swaps))
+            filepointer.write(self.__class__.HEADER_STRUCT.pack(self.bucket_size, self.max_swaps))
+
+    def __bytes__(self) -> bytes:
+        """Export cuckoo filter to `bytes`"""
+
+        with BytesIO() as f:
+            self.export(f)
+            return f.getvalue()
 
     def expand(self):
         """Expand the cuckoo filter"""
@@ -300,28 +320,42 @@ class CuckooFilter(object):
         # if we got here we have an error... we might need to know what is left
         return fingerprint
 
-    def _load(self, filename: str):
+    def _load(self, filename: typing.Union[Path, str]) -> None:
         """load a cuckoo filter from file"""
-        with open(filename, "rb") as filepointer:
-            offset = calcsize("II")
-            int_size = calcsize("I")
-            filepointer.seek(offset * -1, os.SEEK_END)
-            list_size = filepointer.tell()
-            mybytes = unpack("II", filepointer.read(offset))
-            self._bucket_size = mybytes[0]
-            self.__max_cuckoo_swaps = mybytes[1]
-            self._cuckoo_capacity = list_size // int_size // self.bucket_size
-            self._inserted_elements = 0
-            # now pull everything in!
-            filepointer.seek(0, os.SEEK_SET)
-            self._buckets = list()
-            for i in range(self.capacity):
-                self.buckets.append(list())
-                for _ in range(self.bucket_size):
-                    fingerprint = unpack("I", filepointer.read(int_size))[0]
-                    if fingerprint != 0:
-                        self.buckets[i].append(fingerprint)
-                        self._inserted_elements += 1
+        filename = Path(filename)
+        with MMap(filename) as d:
+            self.loads(d)
+
+    def loads(self, d: ByteString) -> None:
+        self._parse_footer(d)
+        self._inserted_elements = 0
+        # now pull everything in!
+        self._parse_buckets(d)
+
+    SINGLE_INT_C = "I"
+    SINGLE_INT_SIZE = calcsize(SINGLE_INT_C)
+    HEADER_STRUCT = Struct("II")
+
+    def _parse_footer(self, d: ByteString) -> None:
+        list_size = len(d) - self.__class__.HEADER_STRUCT.size
+        self._bucket_size, self.__max_cuckoo_swaps = self.__class__.HEADER_STRUCT.unpack(d[list_size:])
+        self._cuckoo_capacity = list_size // self.__class__.SINGLE_INT_SIZE // self.bucket_size
+
+    def _parse_buckets(self, d: ByteString) -> None:
+        self._buckets = list()
+        bucket_byte_size = self.bucket_size * self.__class__.SINGLE_INT_SIZE
+        offs = 0
+        for _ in range(self.capacity):
+            next_offs = offs + bucket_byte_size
+            self.buckets.append(self._parse_bucket(d[offs:next_offs]))
+            offs = next_offs
+
+    def _parse_bucket(self, d: ByteString) -> array.array:
+        bucket = array.ArrayType(self.__class__.SINGLE_INT_C)
+        bucket.frombytes(d)
+        bucket = convert_to_typed(self.__class__.SINGLE_INT_C, [el for el in bucket if el])
+        self._inserted_elements += len(bucket)
+        return bucket
 
     def _check_if_present(self, idx_1, idx_2, fingerprint):
         """wrapper for checking if fingerprint is already inserted"""

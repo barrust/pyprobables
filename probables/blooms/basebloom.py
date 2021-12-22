@@ -8,14 +8,18 @@ import os
 import typing
 from abc import abstractmethod
 from binascii import hexlify, unhexlify
+from collections.abc import ByteString
+from io import BytesIO, IOBase
 from itertools import chain
+from mmap import mmap
 from numbers import Number
+from pathlib import Path
 from struct import Struct, calcsize, pack, unpack
 from textwrap import wrap
 
 from ..exceptions import InitializationError
 from ..hashes import HashFuncT, HashResultsT, KeyT, default_fnv_1a
-from ..utilities import is_hex_string, is_valid_file
+from ..utilities import MMap, is_hex_string, is_valid_file
 
 
 class BaseBloom(object):
@@ -217,43 +221,59 @@ class BaseBloom(object):
 
         return tmp_hash, t_fpr, number_hashes, int(m_bt)
 
-    def __load(self, blm_type: str, filename: str, hash_function: typing.Optional[HashFuncT] = None):
+    HEADER_STRUCT_FORMAT = "QQf"
+    HEADER_STRUCT = Struct(HEADER_STRUCT_FORMAT)
+    HEADER_STRUCT_BE = Struct(">" + HEADER_STRUCT_FORMAT)
+
+    def __load(
+        self, blm_type: str, file: typing.Union[Path, str, IOBase], hash_function: typing.Optional[HashFuncT] = None
+    ) -> None:
         """load the Bloom Filter from file"""
         # read in the needed information, and then call _set_optimized_params
         # to set everything correctly
-        with open(filename, "rb") as filepointer:
-            offset = calcsize("QQf")
-            filepointer.seek(offset * -1, os.SEEK_END)
-            mybytes = unpack("QQf", filepointer.read(offset))
-            vals = self._set_optimized_params(mybytes[0], mybytes[2], hash_function)
+        if not isinstance(file, (IOBase, mmap)):
+            file = Path(file)
+            with MMap(file) as filepointer:
+                self.__load(blm_type, filepointer, hash_function)
+        else:
+            offset = self.__class__.HEADER_STRUCT.size
+            file.seek(offset * -1, os.SEEK_END)
+            fpr = self._parse_footer(self.__class__.HEADER_STRUCT, file.read(offset))
+            vals = self._set_optimized_params(self.__est_elements, fpr, hash_function)
             self.__hash_func = vals[0]  # type: ignore
             self.__fpr = vals[1]
             self.__number_hashes = vals[2]
             self.__num_bits = vals[3]
-            self.__est_elements = mybytes[0]
-            self._els_added = mybytes[1]
             if blm_type in ["regular", "reg-ondisk"]:
                 self.__bloom_length = int(math.ceil(self.__num_bits / 8.0))
             else:
                 self.__bloom_length = self.number_bits
             # now read in the bit array!
-            filepointer.seek(0, os.SEEK_SET)
+            file.seek(0, os.SEEK_SET)
             offset = calcsize(self.__impt_type) * self.bloom_length
             rep = self.__impt_type * self.bloom_length
-            self._bloom = list(unpack(rep, filepointer.read(offset)))
+            self._bloom = list(unpack(rep, file.read(offset)))
+
+    def loads(self, d: ByteString) -> None:
+        with BytesIO(d) as f:
+            self.__load(f)
+
+    def _parse_footer(self, stct: Struct, d: ByteString) -> float:
+        tmp_data = stct.unpack_from(d)
+        self.__est_elements = tmp_data[0]
+        self._els_added = tmp_data[1]
+        fpr = tmp_data[2]
+        return fpr
 
     def _load_hex(self, hex_string: str, hash_function: typing.Optional[HashFuncT] = None) -> None:
         """placeholder for loading from hex string"""
-        offset = calcsize(">QQf") * 2
-        stct = Struct(">QQf")
-        tmp_data = stct.unpack_from(unhexlify(hex_string[-offset:]))
-        vals = self._set_optimized_params(tmp_data[0], tmp_data[2], hash_function)
+        offset = self.__class__.HEADER_STRUCT_BE.size * 2
+        fpr = self._parse_footer(self.__class__.HEADER_STRUCT_BE, unhexlify(hex_string[-offset:]))
+        vals = self._set_optimized_params(self.__est_elements, fpr, hash_function)
         self.__hash_func = vals[0]  # type: ignore
         self.__fpr = vals[1]
         self.__number_hashes = vals[2]
         self.__num_bits = vals[3]
-        self.__est_elements = tmp_data[0]
-        self._els_added = tmp_data[1]
         if self.__blm_type in ["regular", "reg-ondisk"]:
             self.__bloom_length = int(math.ceil(self.__num_bits / 8.0))
         else:
@@ -268,8 +288,7 @@ class BaseBloom(object):
 
         Return:
             str: Hex representation of the Bloom Filter"""
-        mybytes = pack(
-            ">QQf",
+        mybytes = self.__class__.HEADER_STRUCT_BE.pack(
             self.estimated_elements,
             self.elements_added,
             self.false_positive_rate,
@@ -283,23 +302,33 @@ class BaseBloom(object):
             bytes_string += hexlify(mybytes)
         return str(bytes_string, "utf-8")
 
-    def export(self, filename: str) -> None:
+    def export(self, file: typing.Union[Path, str, IOBase, mmap]) -> None:
         """ Export the Bloom Filter to disk
 
             Args:
                 filename (str): The filename to which the Bloom Filter will \
                 be written. """
-        with open(filename, "wb") as filepointer:
+
+        if not isinstance(file, (IOBase, mmap)):
+            with open(file, "wb") as filepointer:
+                self.export(filepointer)
+        else:
             rep = self.__impt_type * self.bloom_length
-            filepointer.write(pack(rep, *self.bloom))
-            filepointer.write(
-                pack(
-                    "QQf",
+            file.write(pack(rep, *self.bloom))
+            file.write(
+                self.__class__.HEADER_STRUCT.pack(
                     self.estimated_elements,
                     self.elements_added,
                     self.false_positive_rate,
                 )
             )
+
+    def __bytes__(self) -> bytes:
+        """Export cuckoo filter to `bytes`"""
+
+        with BytesIO() as f:
+            self.export(f)
+            return f.getvalue()
 
     def export_c_header(self, filename: str) -> None:
         """ Export the Bloom Filter to disk as a C header file.
@@ -307,8 +336,7 @@ class BaseBloom(object):
             Args:
                 filename (str): The filename to which the Bloom Filter will \
                 be written. """
-        trailer = pack(
-            ">QQf",
+        trailer = self.__class__.HEADER_STRUCT_BE.pack(
             self.estimated_elements,
             self.elements_added,
             self.false_positive_rate,
@@ -329,7 +357,7 @@ class BaseBloom(object):
         Returns:
             int: Size of the Bloom Filter when exported to disk"""
         tmp_b = calcsize(self.__impt_type)
-        return (self.bloom_length * tmp_b) + calcsize("QQf")
+        return (self.bloom_length * tmp_b) + self.__class__.HEADER_STRUCT.size
 
     def current_false_positive_rate(self) -> float:
         """Calculate the current false positive rate based on elements added
