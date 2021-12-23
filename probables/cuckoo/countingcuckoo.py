@@ -48,7 +48,7 @@ class CountingCuckooFilter(CuckooFilter):
         finger_size: int = 4,
         filepath: typing.Optional[str] = None,
         hash_function: typing.Optional[SimpleHashT] = None,  # this is INCORRECT!
-    ):
+    ) -> None:
         """setup the data structure"""
         self.__unique_elements = 0
         super(CountingCuckooFilter, self).__init__(
@@ -85,7 +85,7 @@ class CountingCuckooFilter(CuckooFilter):
         """float: How full the Cuckoo Filter is currently"""
         return self.unique_elements / (self.capacity * self.bucket_size)
 
-    def add(self, key: KeyT):
+    def add(self, key: KeyT) -> None:
         """ Add element key to the filter
 
             Args:
@@ -146,7 +146,7 @@ class CountingCuckooFilter(CuckooFilter):
         """Expand the cuckoo filter"""
         self._expand_logic(None)
 
-    def export(self, filename: str):
+    def export(self, filename: str) -> None:
         """Export cuckoo filter to file
 
         Args:
@@ -200,7 +200,7 @@ class CountingCuckooFilter(CuckooFilter):
         # if we got here we have an error... we might need to know what is left
         return prv_bin
 
-    def _check_if_present(self, idx_1: int, idx_2: int, fingerprint: int):
+    def _check_if_present(self, idx_1: int, idx_2: int, fingerprint: int) -> typing.Optional[int]:
         """wrapper for checking if fingerprint is already inserted"""
         if fingerprint in [x.finger for x in self.buckets[idx_1]]:
             return idx_1
@@ -208,7 +208,7 @@ class CountingCuckooFilter(CuckooFilter):
             return idx_2
         return None
 
-    def _load(self, filename: str):
+    def _load(self, filename: str) -> None:
         """load a cuckoo filter from file"""
         with open(filename, "rb") as filepointer:
             offset = calcsize("II")
@@ -233,7 +233,7 @@ class CountingCuckooFilter(CuckooFilter):
                         self._inserted_elements += count
                         self.__unique_elements += 1
 
-    def _expand_logic(self, extra_fingerprint):
+    def _expand_logic(self, extra_fingerprint: "CountingCuckooBin") -> None:
         """the logic to acutally expand the cuckoo filter"""
         # get all the fingerprints
         fingerprints = self._setup_expand(extra_fingerprint)
@@ -266,7 +266,7 @@ class CountingCuckooBin(object):
     # keep it lightweight
     __slots__ = ["__fingerprint", "__count"]
 
-    def __init__(self, fingerprint: int, count: int):
+    def __init__(self, fingerprint: int, count: int) -> None:
         """init"""
         self.__fingerprint = fingerprint
         self.__count = count
@@ -285,11 +285,11 @@ class CountingCuckooBin(object):
         """count property"""
         return self.__count
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """how do we represent this?"""
         return self.__str__()
 
-    def __str__(self):
+    def __str__(self) -> str:
         """convert it into a string"""
         return "(fingerprint:{} count:{})".format(self.__fingerprint, self.__count)
 

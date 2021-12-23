@@ -87,7 +87,7 @@ class ExpandingBloomFilter(object):
         """int: The total number of elements added"""
         return self.__added_elements
 
-    def push(self):
+    def push(self) -> None:
         """Push a new expansion onto the Bloom Filter"""
         self.__add_bloom_filter()
 
@@ -116,7 +116,7 @@ class ExpandingBloomFilter(object):
                 return True
         return False
 
-    def add(self, key: KeyT, force: bool = False):
+    def add(self, key: KeyT, force: bool = False) -> None:
         """ Add the key to the Bloom Filter
 
             Args:
@@ -127,7 +127,7 @@ class ExpandingBloomFilter(object):
         hashes = self._blooms[0].hashes(key)
         self.add_alt(hashes, force)
 
-    def add_alt(self, hashes: HashResultsT, force: bool = False):
+    def add_alt(self, hashes: HashResultsT, force: bool = False) -> None:
         """ Add the element represented by hashes into the Bloom Filter
 
             Args:
@@ -155,7 +155,7 @@ class ExpandingBloomFilter(object):
         if self._blooms[-1].elements_added >= self.__est_elements:
             self.__add_bloom_filter()
 
-    def export(self, filepath: str):
+    def export(self, filepath: str) -> None:
         """Export an expanding Bloom Filter, or subclass, to disk
 
         Args:
@@ -241,7 +241,7 @@ class RotatingBloomFilter(ExpandingBloomFilter):
         max_queue_size: int = 10,
         filepath: typing.Optional[str] = None,
         hash_function: typing.Optional[HashFuncT] = None,
-    ):
+    ) -> None:
         """initialize"""
         super(RotatingBloomFilter, self).__init__(
             est_elements=est_elements,
@@ -265,7 +265,7 @@ class RotatingBloomFilter(ExpandingBloomFilter):
         """int: The current size of the queue"""
         return len(self._blooms)
 
-    def add_alt(self, hashes: HashResultsT, force: bool = False):
+    def add_alt(self, hashes: HashResultsT, force: bool = False) -> None:
         """ Add the element represented by hashes into the Bloom Filter
 
             Args:
@@ -279,7 +279,7 @@ class RotatingBloomFilter(ExpandingBloomFilter):
             self.__rotate_bloom_filter()
             self._blooms[-1].add_alt(hashes)
 
-    def pop(self):
+    def pop(self) -> None:
         """Pop the oldest Bloom Filter off of the queue without pushing a new
         Bloom Filter onto the queue
 
@@ -290,7 +290,7 @@ class RotatingBloomFilter(ExpandingBloomFilter):
             raise RotatingBloomFilterError(msg)
         self._blooms.pop(0)
 
-    def push(self):
+    def push(self) -> None:
         """Push a new bloom filter onto the queue and rotate if necessary"""
         self.__rotate_bloom_filter(force=True)
 

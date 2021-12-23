@@ -43,7 +43,7 @@ class BaseBloom(object):
         filepath: typing.Optional[str] = None,
         hex_string: typing.Optional[str] = None,
         hash_function: typing.Optional[HashFuncT] = None,
-    ):
+    ) -> None:
         """setup the basic values needed"""
         self._bloom = None
         self.__num_bits = 0  # number of bits
@@ -89,7 +89,7 @@ class BaseBloom(object):
         """setup the `in` keyword"""
         return self.check(key)
 
-    def clear(self):
+    def clear(self) -> None:
         """Clear or reset the Counting Bloom Filter"""
         self._els_added = 0
         for idx in range(self.bloom_length):
@@ -242,7 +242,7 @@ class BaseBloom(object):
             rep = self.__impt_type * self.bloom_length
             self._bloom = list(unpack(rep, filepointer.read(offset)))
 
-    def _load_hex(self, hex_string: str, hash_function: typing.Optional[HashFuncT] = None):
+    def _load_hex(self, hex_string: str, hash_function: typing.Optional[HashFuncT] = None) -> None:
         """placeholder for loading from hex string"""
         offset = calcsize(">QQf") * 2
         stct = Struct(">QQf")
@@ -283,7 +283,7 @@ class BaseBloom(object):
             bytes_string += hexlify(mybytes)
         return str(bytes_string, "utf-8")
 
-    def export(self, filename: str):
+    def export(self, filename: str) -> None:
         """ Export the Bloom Filter to disk
 
             Args:
@@ -301,7 +301,7 @@ class BaseBloom(object):
                 )
             )
 
-    def export_c_header(self, filename: str):
+    def export_c_header(self, filename: str) -> None:
         """ Export the Bloom Filter to disk as a C header file.
 
             Args:
@@ -367,7 +367,7 @@ class BaseBloom(object):
         """wrappper for getting an element from the Bloom Filter!"""
         return self._bloom[idx]  # type: ignore
 
-    def add(self, key: KeyT):
+    def add(self, key: KeyT) -> None:
         """Add the key to the Bloom Filter
 
         Args:
@@ -375,7 +375,7 @@ class BaseBloom(object):
         hashes = self.hashes(key)
         self.add_alt(hashes)
 
-    def add_alt(self, hashes: HashResultsT):
+    def add_alt(self, hashes: HashResultsT) -> None:
         """ Add the element represented by hashes into the Bloom Filter
 
             Args:
