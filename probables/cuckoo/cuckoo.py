@@ -324,10 +324,7 @@ class CuckooFilter(object):
         """load a cuckoo filter from file"""
         filename = Path(filename)
         with MMap(filename) as d:
-            self.loads(d)
-
-    def loads(self, d: ByteString) -> None:
-        self._parse_footer(d)
+            self._parse_footer(d)
         self._inserted_elements = 0
         # now pull everything in!
         self._parse_buckets(d)

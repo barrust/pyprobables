@@ -304,6 +304,9 @@ class BloomFilterOnDisk(BaseBloom):
         """handle if user doesn't close the on disk Bloom Filter"""
         self.close()
 
+    def __bytes__(self) -> bytes:
+        return bytes(self._bloom)
+
     def close(self) -> None:
         """Clean up the BloomFilterOnDisk object"""
         if self.__file_pointer is not None:
