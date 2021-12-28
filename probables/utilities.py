@@ -50,11 +50,11 @@ class MMap(object):
         self._closed = False
 
     def __enter__(self) -> mmap.mmap:
-        return self.m
+        return self.map
 
     def __exit__(self, *args, **kwargs) -> None:
-        if not self.m.closed:
-            self.m.close()
+        if not self.map.closed:
+            self.map.close()
         if self.__f:
             self.__f.close()
         self.__f = None
