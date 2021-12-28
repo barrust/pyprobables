@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """ Unittest class """
 
+import hashlib
 import os
 import sys
 import unittest
@@ -19,10 +20,10 @@ DELETE_TEMP_FILES = True
 
 
 class TestCountingCuckooFilter(unittest.TestCase):
-    """ base Cuckoo Filter test """
+    """base Cuckoo Filter test"""
 
     def test_c_cuckoo_filter_default(self):
-        """ test counting cuckoo filter default properties """
+        """test counting cuckoo filter default properties"""
         cko = CountingCuckooFilter()
         self.assertEqual(10000, cko.capacity)
         self.assertEqual(4, cko.bucket_size)
@@ -31,7 +32,7 @@ class TestCountingCuckooFilter(unittest.TestCase):
         self.assertEqual(True, cko.auto_expand)
 
     def test_c_cuckoo_filter_diff(self):
-        """ test counting cuckoo filter non-standard properties """
+        """test counting cuckoo filter non-standard properties"""
         cko = CountingCuckooFilter(
             capacity=100,
             bucket_size=2,
@@ -46,7 +47,7 @@ class TestCountingCuckooFilter(unittest.TestCase):
         self.assertEqual(False, cko.auto_expand)
 
     def test_c_cuckoo_filter_add(self):
-        """ test adding to the counting cuckoo filter """
+        """test adding to the counting cuckoo filter"""
         cko = CountingCuckooFilter()
         cko.add("this is a test")
         self.assertEqual(cko.elements_added, 1)
@@ -56,7 +57,7 @@ class TestCountingCuckooFilter(unittest.TestCase):
         self.assertEqual(cko.elements_added, 3)
 
     def test_c_cuckoo_filter_remove(self):
-        """ test removing from the counting cuckoo filter """
+        """test removing from the counting cuckoo filter"""
         cko = CountingCuckooFilter()
         cko.add("this is a test")
         self.assertEqual(cko.elements_added, 1)
@@ -81,7 +82,7 @@ class TestCountingCuckooFilter(unittest.TestCase):
         self.assertTrue(cko.check("this is yet another test"))
 
     def test_c_cuckoo_filter_rmv_miss(self):
-        """ test removing from the counting cuckoo filter when not present """
+        """test removing from the counting cuckoo filter when not present"""
         cko = CountingCuckooFilter()
         cko.add("this is a test")
         self.assertEqual(cko.elements_added, 1)
@@ -98,17 +99,17 @@ class TestCountingCuckooFilter(unittest.TestCase):
         self.assertTrue(cko.check("this is yet another test"))
 
     def test_c_cuckoo_filter_lots(self):
-        """ test inserting lots into the counting cuckoo filter """
+        """test inserting lots into the counting cuckoo filter"""
         cko = CountingCuckooFilter(capacity=100, bucket_size=2, max_swaps=100)
         for i in range(125):
             cko.add(str(i))
         self.assertEqual(cko.elements_added, 125)
 
     def test_c_cuckoo_filter_full(self):
-        """ test inserting until counting cuckoo filter is full """
+        """test inserting until counting cuckoo filter is full"""
 
         def runner():
-            """ runner """
+            """runner"""
             cko = CountingCuckooFilter(capacity=100, bucket_size=2, max_swaps=100, auto_expand=False)
             for i in range(175):
                 cko.add(str(i))
@@ -116,7 +117,7 @@ class TestCountingCuckooFilter(unittest.TestCase):
         self.assertRaises(CuckooFilterFullError, runner)
 
     def test_c_cuckoo_full_msg(self):
-        """ test exception message for full counting cuckoo filter """
+        """test exception message for full counting cuckoo filter"""
         try:
             cko = CountingCuckooFilter(capacity=100, bucket_size=2, max_swaps=100, auto_expand=False)
             for i in range(175):
@@ -138,7 +139,7 @@ class TestCountingCuckooFilter(unittest.TestCase):
         self.assertEqual(idx_2, index_2)
 
     def test_c_cuckoo_filter_check(self):
-        """ test checking if element in counting cuckoo filter """
+        """test checking if element in counting cuckoo filter"""
         cko = CountingCuckooFilter()
         cko.add("this is a test")
         cko.add("this is another test")
@@ -150,7 +151,7 @@ class TestCountingCuckooFilter(unittest.TestCase):
         self.assertEqual(cko.check("this is not a test"), False)
 
     def test_c_cuckoo_filter_in(self):
-        """ test checking using 'in' counting cuckoo filter """
+        """test checking using 'in' counting cuckoo filter"""
         cko = CountingCuckooFilter()
         cko.add("this is a test")
         cko.add("this is another test")
@@ -162,7 +163,7 @@ class TestCountingCuckooFilter(unittest.TestCase):
         self.assertEqual("this is not a test" in cko, False)
 
     def test_c_cuckoo_filter_dup_add(self):
-        """ test adding same item multiple times counting cuckoo filter """
+        """test adding same item multiple times counting cuckoo filter"""
         cko = CountingCuckooFilter()
         cko.add("this is a test")
         cko.add("this is another test")
@@ -175,7 +176,7 @@ class TestCountingCuckooFilter(unittest.TestCase):
         self.assertEqual(cko.unique_elements, 3)
 
     def test_c_cuckoo_filter_l_fact(self):
-        """ test the load factor of the counting cuckoo filter """
+        """test the load factor of the counting cuckoo filter"""
         cko = CountingCuckooFilter(capacity=100, bucket_size=2, max_swaps=10)
         self.assertEqual(cko.load_factor(), 0.0)
         for i in range(50):
@@ -197,7 +198,7 @@ class TestCountingCuckooFilter(unittest.TestCase):
             self.assertEqual(cko.load_factor(), 0.50)
 
     def test_c_cuckoo_filter_export(self):
-        """ test exporting a counting cuckoo filter """
+        """test exporting a counting cuckoo filter"""
         md5sum = "6a98c2df1ec9fbb4f75f8e6392696b9b"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".cck", delete=DELETE_TEMP_FILES) as fobj:
             cko = CountingCuckooFilter(capacity=1000, bucket_size=2, auto_expand=False)
@@ -208,8 +209,17 @@ class TestCountingCuckooFilter(unittest.TestCase):
             md5_out = calc_file_md5(fobj.name)
             self.assertEqual(md5sum, md5_out)
 
+    def test_c_cuckoo_filter_bytes(self):
+        """test exporting a counting cuckoo filter"""
+        md5sum = "6a98c2df1ec9fbb4f75f8e6392696b9b"
+        cko = CountingCuckooFilter(capacity=1000, bucket_size=2, auto_expand=False)
+        for i in range(100):
+            cko.add(str(i))
+        md5_out = hashlib.md5(bytes(cko)).hexdigest()
+        self.assertEqual(md5sum, md5_out)
+
     def test_c_cuckoo_filter_load(self):
-        """ test loading a saved counting cuckoo filter """
+        """test loading a saved counting cuckoo filter"""
         md5sum = "6a98c2df1ec9fbb4f75f8e6392696b9b"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".cck", delete=DELETE_TEMP_FILES) as fobj:
             cko = CountingCuckooFilter(capacity=1000, bucket_size=2, auto_expand=False)
@@ -230,7 +240,7 @@ class TestCountingCuckooFilter(unittest.TestCase):
             self.assertEqual(0.05, ckf.load_factor())
 
     def test_c_cuckoo_filter_expand_els(self):
-        """ test out the expansion of the counting cuckoo filter """
+        """test out the expansion of the counting cuckoo filter"""
         cko = CountingCuckooFilter()
         for i in range(200):
             cko.add(str(i))
@@ -240,7 +250,7 @@ class TestCountingCuckooFilter(unittest.TestCase):
         self.assertEqual(20000, cko.capacity)
 
     def test_c_cuckoo_filter_auto_exp(self):
-        """ test inserting until counting cuckoo filter is full """
+        """test inserting until counting cuckoo filter is full"""
         cko = CountingCuckooFilter(capacity=100, bucket_size=2, max_swaps=100)
         for i in range(375):  # this would fail if it doesn't expand
             cko.add(str(i))
@@ -250,13 +260,13 @@ class TestCountingCuckooFilter(unittest.TestCase):
             self.assertGreater(cko.check(str(i)), 0)
 
     def test_c_cuckoo_filter_bin(self):
-        """ test the cuckoo bin repr """
+        """test the cuckoo bin repr"""
         cko = CountingCuckooFilter(capacity=1, bucket_size=2, max_swaps=100)
         cko.add("this is a test")
         self.assertEqual("[(fingerprint:4280557824 count:1)]", str(cko.buckets[0]))
 
     def test_c_cuckoo_filter_str(self):
-        """ test the str representation of the counting cuckoo filter """
+        """test the str representation of the counting cuckoo filter"""
         cko = CountingCuckooFilter(capacity=100, bucket_size=2, max_swaps=100)
         for i in range(75):
             cko.add(str(i))

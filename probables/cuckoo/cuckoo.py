@@ -260,16 +260,16 @@ class CuckooFilter(object):
 
         if not isinstance(file, (IOBase, mmap)):
             with open(file, "wb") as filepointer:
-                self.export(filepointer)
+                self.export(filepointer)  # type:ignore
         else:
-            filepointer = file
+            filepointer = file  # type:ignore
 
             for i in range(len(self.buckets)):
                 bucket = self.buckets[i]
                 # do something for each...
                 if isinstance(bucket, list):
-                    self.buckets[i] = bucket = convert_to_typed(self.__class__.SINGLE_INT_C, bucket)
-                filepointer.write(bucket.tobytes())
+                    self.buckets[i] = bucket = convert_to_typed(self.__class__.SINGLE_INT_C, bucket)  # type: ignore
+                filepointer.write(bucket.tobytes())  # type: ignore
                 leftover = self.bucket_size - len(bucket)
                 rep = leftover * "I"
                 filepointer.write(pack(rep, *([0] * leftover)))
@@ -335,7 +335,7 @@ class CuckooFilter(object):
 
     def _parse_footer(self, d: ByteString) -> None:
         list_size = len(d) - self.__class__.HEADER_STRUCT.size
-        self._bucket_size, self.__max_cuckoo_swaps = self.__class__.HEADER_STRUCT.unpack(d[list_size:])
+        self._bucket_size, self.__max_cuckoo_swaps = self.__class__.HEADER_STRUCT.unpack(d[list_size:])  # type:ignore
         self._cuckoo_capacity = list_size // self.__class__.SINGLE_INT_SIZE // self.bucket_size
 
     def _parse_buckets(self, d: ByteString) -> None:
@@ -344,12 +344,12 @@ class CuckooFilter(object):
         offs = 0
         for _ in range(self.capacity):
             next_offs = offs + bucket_byte_size
-            self.buckets.append(self._parse_bucket(d[offs:next_offs]))
+            self.buckets.append(self._parse_bucket(d[offs:next_offs]))  # type: ignore
             offs = next_offs
 
     def _parse_bucket(self, d: ByteString) -> array.array:
         bucket = array.ArrayType(self.__class__.SINGLE_INT_C)
-        bucket.frombytes(d)
+        bucket.frombytes(bytes(d))
         bucket = convert_to_typed(self.__class__.SINGLE_INT_C, [el for el in bucket if el])
         self._inserted_elements += len(bucket)
         return bucket

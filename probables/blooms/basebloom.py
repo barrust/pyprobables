@@ -307,7 +307,7 @@ class BaseBloom(object):
 
         if not isinstance(file, (IOBase, mmap)):
             with open(file, "wb") as filepointer:
-                self.export(filepointer)
+                self.export(filepointer)  # type:ignore
         else:
             rep = self.__impt_type * self.bloom_length
             file.write(pack(rep, *self.bloom))

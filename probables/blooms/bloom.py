@@ -335,7 +335,7 @@ class BloomFilterOnDisk(BaseBloom):
         self._on_disk = True
         self.__filename = filepath  # type: ignore
 
-    def export(self, filename: str) -> None:
+    def export(self, filename: str) -> None:  # type: ignore
         """ Export to disk if a different location
 
             Args:

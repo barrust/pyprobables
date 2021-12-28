@@ -6,6 +6,9 @@
 import os
 import random
 import typing
+from io import IOBase
+from mmap import mmap
+from pathlib import Path
 from struct import calcsize, pack, unpack
 
 from ..exceptions import CuckooFilterFullError
@@ -146,12 +149,16 @@ class CountingCuckooFilter(CuckooFilter):
         """Expand the cuckoo filter"""
         self._expand_logic(None)
 
-    def export(self, filename: str) -> None:
+    def export(self, file: typing.Union[Path, str, IOBase, mmap]) -> None:
         """Export cuckoo filter to file
 
         Args:
-            filename (str): Path to file to export"""
-        with open(filename, "wb") as filepointer:
+            file (str): Path to file to export"""
+        if not isinstance(file, (IOBase, mmap)):
+            with open(file, "wb") as filepointer:
+                self.export(filepointer)  # type:ignore
+        else:
+            filepointer = file  # type:ignore
             for bucket in self.buckets:
                 # do something for each...
                 rep = len(bucket) * "II"
