@@ -41,26 +41,37 @@ def convert_to_typed(tp: str, arr: Iterable[int]) -> array.array:
 class MMap(object):
     """Simplified mmap.mmap class"""
 
-    __slots__ = ("path", "f", "__m")
+    __slots__ = ("p", "__f", "m", "_closed")
 
     def __init__(self, path: Union[Path, str]):
-        self.path = Path(path)
-        self.f = self.path.open("rb")
-        self.__m = mmap.mmap(self.f.fileno(), 0, prot=mmap.PROT_READ)
+        self.p = Path(path)
+        self.__f = self.path.open("rb")
+        self.m = mmap.mmap(self.__f.fileno(), 0, prot=mmap.PROT_READ)
+        self._closed = False
 
     def __enter__(self) -> mmap.mmap:
-        return self.__m
+        return self.m
 
     def __exit__(self, *args, **kwargs) -> None:
-        self.__m.close()
-        if self.f:
-            self.f.close()
-        self.f = None
-        self.__m = None
+        if not self.m.closed:
+            self.m.close()
+        if self.__f:
+            self.__f.close()
+        self.__f = None
+        self.m = None
+        self._closed = True
+
+    @property
+    def closed(self) -> bool:
+        return self._closed
 
     @property
     def map(self) -> mmap.mmap:
-        return self.__m
+        return self.m
+
+    @property
+    def path(self) -> Path:
+        return self.p
 
     def close(self) -> None:
         self.__exit__()
