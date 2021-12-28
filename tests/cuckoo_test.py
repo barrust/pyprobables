@@ -20,10 +20,10 @@ DELETE_TEMP_FILES = True
 
 
 class TestCuckooFilter(unittest.TestCase):
-    """ base Cuckoo Filter test """
+    """base Cuckoo Filter test"""
 
     def test_cuckoo_filter_default(self):
-        """ test cuckoo filter default properties """
+        """test cuckoo filter default properties"""
         cko = CuckooFilter()
         self.assertEqual(10000, cko.capacity)
         self.assertEqual(4, cko.bucket_size)
@@ -33,7 +33,7 @@ class TestCuckooFilter(unittest.TestCase):
         self.assertEqual(4, cko.fingerprint_size)
 
     def test_cuckoo_filter_diff(self):
-        """ test cuckoo filter non-standard properties """
+        """test cuckoo filter non-standard properties"""
         cko = CuckooFilter(
             capacity=100,
             bucket_size=2,
@@ -51,7 +51,7 @@ class TestCuckooFilter(unittest.TestCase):
         self.assertTrue(isinstance(cko.fingerprint_size, int))
 
     def test_cuckoo_filter_add(self):
-        """ test adding to the cuckoo filter """
+        """test adding to the cuckoo filter"""
         cko = CuckooFilter()
         cko.add("this is a test")
         self.assertEqual(cko.elements_added, 1)
@@ -61,7 +61,7 @@ class TestCuckooFilter(unittest.TestCase):
         self.assertEqual(cko.elements_added, 3)
 
     def test_cuckoo_filter_diff_hash(self):
-        """ test using a different hash function """
+        """test using a different hash function"""
 
         def my_hash(key):
             return int(hashlib.sha512(key.encode("utf-8")).hexdigest(), 16)
@@ -82,7 +82,7 @@ class TestCuckooFilter(unittest.TestCase):
             self.assertTrue("this is a test - {}".format(i) in cko)
 
     def test_cuckoo_filter_remove(self):
-        """ test removing from the cuckoo filter """
+        """test removing from the cuckoo filter"""
         cko = CuckooFilter()
         cko.add("this is a test")
         self.assertEqual(cko.elements_added, 1)
@@ -99,7 +99,7 @@ class TestCuckooFilter(unittest.TestCase):
         self.assertTrue(cko.check("this is yet another test"))
 
     def test_cuckoo_filter_remove_miss(self):
-        """ test removing from the cuckoo filter when not present """
+        """test removing from the cuckoo filter when not present"""
         cko = CuckooFilter()
         cko.add("this is a test")
         self.assertEqual(cko.elements_added, 1)
@@ -116,17 +116,17 @@ class TestCuckooFilter(unittest.TestCase):
         self.assertTrue(cko.check("this is yet another test"))
 
     def test_cuckoo_filter_lots(self):
-        """ test inserting lots into the cuckoo filter """
+        """test inserting lots into the cuckoo filter"""
         cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=100)
         for i in range(125):
             cko.add(str(i))
         self.assertEqual(cko.elements_added, 125)
 
     def test_cuckoo_filter_full(self):
-        """ test inserting until cuckoo filter is full """
+        """test inserting until cuckoo filter is full"""
 
         def runner():
-            """ runner """
+            """runner"""
             cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=100, auto_expand=False)
             for i in range(175):
                 cko.add(str(i))
@@ -134,25 +134,25 @@ class TestCuckooFilter(unittest.TestCase):
         self.assertRaises(CuckooFilterFullError, runner)
 
     def test_cuckoo_filter_fing_size(self):
-        """ test bad fingerprint size < 1 """
+        """test bad fingerprint size < 1"""
 
         def runner():
-            """ runner """
+            """runner"""
             CuckooFilter(capacity=100, bucket_size=2, finger_size=0)
 
         self.assertRaises(ValueError, runner)
 
     def test_cuckoo_filter_fing_size_2(self):
-        """ test bad fingerprint size > 4 """
+        """test bad fingerprint size > 4"""
 
         def runner():
-            """ runner """
+            """runner"""
             CuckooFilter(capacity=100, bucket_size=2, finger_size=5)
 
         self.assertRaises(ValueError, runner)
 
     def test_cuckoo_filter_fing_size_3(self):
-        """ test valid fingerprint size """
+        """test valid fingerprint size"""
         try:
             CuckooFilter(capacity=100, bucket_size=2, finger_size=1)
         except ValueError:
@@ -160,10 +160,10 @@ class TestCuckooFilter(unittest.TestCase):
         self.assertEqual(True, True)
 
     def test_cuckoo_filter_fing_msg(self):
-        """ test valid fingerprint size message """
+        """test valid fingerprint size message"""
 
         def runner():
-            """ runner """
+            """runner"""
             CuckooFilter(capacity=100, bucket_size=2, finger_size=5)
 
         self.assertRaises(ValueError, runner)
@@ -174,7 +174,7 @@ class TestCuckooFilter(unittest.TestCase):
             self.assertEqual(str(ex), msg)
 
     def test_cuckoo_full_msg(self):
-        """ test exception message for full cuckoo filter """
+        """test exception message for full cuckoo filter"""
         try:
             cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=100, auto_expand=False)
             for i in range(175):
@@ -185,7 +185,7 @@ class TestCuckooFilter(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_cuckoo_idx(self):
-        """ test that the indexing works correctly for cuckoo filter swap """
+        """test that the indexing works correctly for cuckoo filter swap"""
         cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=5)
         txt = "this is a test"
         idx_1, idx_2, fingerprint = cko._generate_fingerprint_info(txt)
@@ -194,7 +194,7 @@ class TestCuckooFilter(unittest.TestCase):
         self.assertEqual(idx_2, index_2)
 
     def test_cuckoo_filter_check(self):
-        """ test checking if element in cuckoo filter """
+        """test checking if element in cuckoo filter"""
         cko = CuckooFilter()
         cko.add("this is a test")
         cko.add("this is another test")
@@ -206,7 +206,7 @@ class TestCuckooFilter(unittest.TestCase):
         self.assertEqual(cko.check("this is not a test"), False)
 
     def test_cuckoo_filter_in(self):
-        """ test checking using 'in' cuckoo filter """
+        """test checking using 'in' cuckoo filter"""
         cko = CuckooFilter()
         cko.add("this is a test")
         cko.add("this is another test")
@@ -218,7 +218,7 @@ class TestCuckooFilter(unittest.TestCase):
         self.assertEqual("this is not a test" in cko, False)
 
     def test_cuckoo_filter_dup_add(self):
-        """ test adding same item multiple times cuckoo filter """
+        """test adding same item multiple times cuckoo filter"""
         cko = CuckooFilter()
         cko.add("this is a test")
         cko.add("this is another test")
@@ -230,7 +230,7 @@ class TestCuckooFilter(unittest.TestCase):
         self.assertEqual(cko.elements_added, 3)
 
     def test_cuckoo_filter_l_fact(self):
-        """ test the load factor of the cuckoo filter """
+        """test the load factor of the cuckoo filter"""
         cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=10)
         self.assertEqual(cko.load_factor(), 0.0)
         for i in range(50):
@@ -245,7 +245,7 @@ class TestCuckooFilter(unittest.TestCase):
             self.assertEqual(cko.load_factor(), 0.50)
 
     def test_cuckoo_filter_export(self):
-        """ test exporting a cuckoo filter """
+        """test exporting a cuckoo filter"""
         md5sum = "1371760d4ee9ccbe83e0144919750140"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".cko", delete=DELETE_TEMP_FILES) as fobj:
             cko = CuckooFilter()
@@ -255,8 +255,17 @@ class TestCuckooFilter(unittest.TestCase):
             md5_out = calc_file_md5(fobj.name)
             self.assertEqual(md5sum, md5_out)
 
+    def test_cuckoo_filter_bytes(self):
+        """test exporting a cuckoo filter to bytes"""
+        md5sum = "1371760d4ee9ccbe83e0144919750140"
+        cko = CuckooFilter()
+        for i in range(1000):
+            cko.add(str(i))
+        md5_out = hashlib.md5(bytes(cko)).hexdigest()
+        self.assertEqual(md5sum, md5_out)
+
     def test_cuckoo_filter_load(self):
-        """ test loading a saved cuckoo filter """
+        """test loading a saved cuckoo filter"""
         md5sum = "1371760d4ee9ccbe83e0144919750140"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".cko", delete=DELETE_TEMP_FILES) as fobj:
             cko = CuckooFilter()
@@ -276,10 +285,10 @@ class TestCuckooFilter(unittest.TestCase):
             self.assertEqual(0.025, ckf.load_factor())
 
     def test_cuckoo_filter_unload(self):
-        """ test failing to load a saved cuckoo filter """
+        """test failing to load a saved cuckoo filter"""
 
         def runner():
-            """ runner """
+            """runner"""
             CuckooFilter(filepath="./test.cko")
 
         self.assertRaises(InitializationError, runner)
@@ -290,7 +299,7 @@ class TestCuckooFilter(unittest.TestCase):
             self.assertEqual(str(ex), msg)
 
     def test_cuckoo_filter_expand_els(self):
-        """ test out the expansion of the cuckoo filter """
+        """test out the expansion of the cuckoo filter"""
         cko = CuckooFilter()
         for i in range(200):
             cko.add(str(i))
@@ -300,7 +309,7 @@ class TestCuckooFilter(unittest.TestCase):
         self.assertEqual(20000, cko.capacity)
 
     def test_cuckoo_filter_auto_expand(self):
-        """ test inserting until cuckoo filter is full """
+        """test inserting until cuckoo filter is full"""
         cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=100)
         for i in range(375):  # this would fail if it doesn't expand
             cko.add(str(i))
@@ -310,7 +319,7 @@ class TestCuckooFilter(unittest.TestCase):
             self.assertTrue(cko.check(str(i)))
 
     def test_cuckoo_filter_str(self):
-        """ test the str representation of the cuckoo filter """
+        """test the str representation of the cuckoo filter"""
         cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=100)
         for i in range(75):
             cko.add(str(i))
@@ -327,10 +336,10 @@ class TestCuckooFilter(unittest.TestCase):
         self.assertEqual(str(cko), msg)
 
     def test_invalid_capacity(self):
-        """ test invalid capacity """
+        """test invalid capacity"""
 
         def runner():
-            """ runner """
+            """runner"""
             CuckooFilter(capacity=-100)
 
         self.assertRaises(InitializationError, runner)
@@ -343,10 +352,10 @@ class TestCuckooFilter(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_invalid_buckets(self):
-        """ test invalid capacity """
+        """test invalid capacity"""
 
         def runner():
-            """ runner """
+            """runner"""
             CuckooFilter(bucket_size=0)
 
         self.assertRaises(InitializationError, runner)
@@ -359,10 +368,10 @@ class TestCuckooFilter(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_invalid_swaps(self):
-        """ test invalid capacity """
+        """test invalid capacity"""
 
         def runner():
-            """ runner """
+            """runner"""
             CuckooFilter(max_swaps=0)
 
         self.assertRaises(InitializationError, runner)
@@ -375,10 +384,10 @@ class TestCuckooFilter(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_invalid_capacity_2(self):
-        """ test invalid capacity """
+        """test invalid capacity"""
 
         def runner():
-            """ runner """
+            """runner"""
             CuckooFilter(capacity="abc")
 
         self.assertRaises(InitializationError, runner)
@@ -391,10 +400,10 @@ class TestCuckooFilter(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_invalid_buckets_2(self):
-        """ test invalid capacity """
+        """test invalid capacity"""
 
         def runner():
-            """ runner """
+            """runner"""
             CuckooFilter(bucket_size=[0])
 
         self.assertRaises(InitializationError, runner)
@@ -407,10 +416,10 @@ class TestCuckooFilter(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_invalid_swaps_2(self):
-        """ test invalid capacity """
+        """test invalid capacity"""
 
         def runner():
-            """ runner """
+            """runner"""
             CuckooFilter(max_swaps=None)
 
         self.assertRaises(InitializationError, runner)

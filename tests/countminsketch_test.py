@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """ Unittest class """
 
+import hashlib
 import os
 import sys
 import unittest
@@ -31,10 +32,10 @@ DELETE_TEMP_FILES = True
 
 
 class TestCountMinSketch(unittest.TestCase):
-    """ Test the default count-min sketch implementation """
+    """Test the default count-min sketch implementation"""
 
     def test_cms_init_wd(self):
-        """ Test count-min sketch initialization using depth and width """
+        """Test count-min sketch initialization using depth and width"""
         cms = CountMinSketch(width=1000, depth=5)
         self.assertEqual(cms.width, 1000)
         self.assertEqual(cms.depth, 5)
@@ -53,11 +54,11 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertEqual(cms.elements_added, 0)
 
     def test_cms_init_error(self):
-        """ Test count-min sketch initialization without enough params """
+        """Test count-min sketch initialization without enough params"""
         self.assertRaises(InitializationError, lambda: CountMinSketch(width=1000))
 
     def test_cms_init_error_msg(self):
-        """ Test count-min sketch initialization without enough params """
+        """Test count-min sketch initialization without enough params"""
         try:
             CountMinSketch(width=1000)
         except InitializationError as ex:
@@ -73,7 +74,7 @@ class TestCountMinSketch(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_cms_set_query_type(self):
-        """ test setting different query types """
+        """test setting different query types"""
         cms = CountMinSketch(width=1000, depth=5)
         self.assertEqual(cms.query_type, "min")
         cms.query_type = "mean-min"
@@ -84,7 +85,7 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertEqual(cms.query_type, "min")
 
     def test_cms_add_single(self):
-        """ test the insertion of a single element at a time """
+        """test the insertion of a single element at a time"""
         cms = CountMinSketch(width=1000, depth=5)
         self.assertEqual(cms.add("this is a test"), 1)
         self.assertEqual(cms.add("this is a test"), 2)
@@ -93,7 +94,7 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertEqual(cms.elements_added, 4)
 
     def test_cms_add_mult(self):
-        """ test the insertion of multiple elements at a time """
+        """test the insertion of multiple elements at a time"""
         cms = CountMinSketch(width=1000, depth=5)
         self.assertEqual(cms.add("this is a test", 4), 4)
         self.assertEqual(cms.add("this is a test", 4), 8)
@@ -102,7 +103,7 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertEqual(cms.elements_added, 16)
 
     def test_cms_remove_single(self):
-        """ test the removal of a single element at a time """
+        """test the removal of a single element at a time"""
         cms = CountMinSketch(width=1000, depth=5)
         self.assertEqual(cms.add("this is a test", 4), 4)
         self.assertEqual(cms.elements_added, 4)
@@ -111,7 +112,7 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertEqual(cms.elements_added, 2)
 
     def test_cms_remove_mult(self):
-        """ test the removal of multiple elements at a time """
+        """test the removal of multiple elements at a time"""
         cms = CountMinSketch(width=1000, depth=5)
         self.assertEqual(cms.add("this is a test", 16), 16)
         self.assertEqual(cms.elements_added, 16)
@@ -119,7 +120,7 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertEqual(cms.elements_added, 12)
 
     def test_cms_check_min(self):
-        """ test checking number elements using min algorithm """
+        """test checking number elements using min algorithm"""
         cms = CountMinSketch(width=1000, depth=5)
         self.assertEqual(cms.add("this is a test", 255), 255)
         self.assertEqual(cms.add("this is another test", 189), 189)
@@ -133,7 +134,7 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertEqual(cms.elements_added, 5 + 16 + 189 + 255)
 
     def test_cms_check_min_called(self):
-        """ test checking number elements using min algorithm called out """
+        """test checking number elements using min algorithm called out"""
         cms = CountMinSketch(width=1000, depth=5)
         cms.query_type = None
         self.assertEqual(cms.add("this is a test", 255), 255)
@@ -148,7 +149,7 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertEqual(cms.elements_added, 5 + 16 + 189 + 255)
 
     def test_cms_check_mean_called(self):
-        """ test checking number elements using mean algorithm called out """
+        """test checking number elements using mean algorithm called out"""
         cms = CountMinSketch(width=1000, depth=5)
         cms.query_type = "mean"
         self.assertEqual(cms.add("this is a test", 255), 255)
@@ -195,7 +196,7 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertEqual(cms.elements_added, 5 + 16 + 189 + 255)
 
     def test_cms_export(self):
-        """ test exporting a count-min sketch """
+        """test exporting a count-min sketch"""
         md5_val = "fb1c39dd1a73f1ef0d7fc79f60fc028e"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".cms", delete=DELETE_TEMP_FILES) as fobj:
             cms = CountMinSketch(width=1000, depth=5)
@@ -204,8 +205,16 @@ class TestCountMinSketch(unittest.TestCase):
             md5_out = calc_file_md5(fobj.name)
         self.assertEqual(md5_out, md5_val)
 
+    def test_cms_bytes(self):
+        """test exporting a count-min sketch as bytes"""
+        md5_val = "fb1c39dd1a73f1ef0d7fc79f60fc028e"
+        cms = CountMinSketch(width=1000, depth=5)
+        cms.add("this is a test", 100)
+        md5_out = hashlib.md5(bytes(cms)).hexdigest()
+        self.assertEqual(md5_out, md5_val)
+
     def test_cms_load(self):
-        """ test loading a count-min sketch from file """
+        """test loading a count-min sketch from file"""
         md5_val = "fb1c39dd1a73f1ef0d7fc79f60fc028e"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".cms", delete=DELETE_TEMP_FILES) as fobj:
             cms = CountMinSketch(width=1000, depth=5)
@@ -220,7 +229,7 @@ class TestCountMinSketch(unittest.TestCase):
             self.assertEqual(cms2.check("this is a test"), 100)
 
     def test_cms_load_diff_hash(self):
-        """ test loading a count-min sketch from file """
+        """test loading a count-min sketch from file"""
         md5_val = "fb1c39dd1a73f1ef0d7fc79f60fc028e"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".cms", delete=DELETE_TEMP_FILES) as fobj:
             cms = CountMinSketch(width=1000, depth=5)
@@ -236,12 +245,12 @@ class TestCountMinSketch(unittest.TestCase):
             self.assertNotEqual(cms.hashes("this is a test"), cms2.hashes("this is a test"))
 
     def test_cms_load_invalid_file(self):
-        """ test loading a count-min sketch from invalid file """
+        """test loading a count-min sketch from invalid file"""
         filename = "invalid.cms"
         self.assertRaises(InitializationError, lambda: CountMinSketch(filepath=filename))
 
     def test_cms_different_hash(self):
-        """ test using a different hash function """
+        """test using a different hash function"""
         cms = CountMinSketch(width=1000, depth=5)
         hashes1 = cms.hashes("this is a test")
 
@@ -268,7 +277,7 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertEqual(cms.elements_added, INT64_T_MAX)
 
     def test_cms_clear(self):
-        """ test the clear functionality """
+        """test the clear functionality"""
         cms = CountMinSketch(width=1000, depth=5)
         self.assertEqual(cms.add("this is a test", 100), 100)
         self.assertEqual(cms.elements_added, 100)
@@ -278,7 +287,7 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertEqual(cms.check("this is a test"), 0)
 
     def test_cms_str(self):
-        """ test the string representation of the count-min sketch """
+        """test the string representation of the count-min sketch"""
         cms = CountMinSketch(width=1000, depth=5)
         self.assertEqual(cms.add("this is a test", 100), 100)
         msg = (
@@ -292,7 +301,7 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertEqual(str(cms), msg)
 
     def test_cms_join(self):
-        """ test standard count-min sketch join """
+        """test standard count-min sketch join"""
         cms1 = CountMinSketch(width=1000, depth=5)
         cms2 = CountMinSketch(width=1000, depth=5)
 
@@ -313,7 +322,7 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertEqual(5 * 2, cms1.check("this is something to test"))
 
     def test_cms_join_overflow(self):
-        """ test count-min sketch overflow """
+        """test count-min sketch overflow"""
         too_large = INT32_T_MAX + 5
         cms = CountMinSketch(width=1000, depth=5)
         cms.add("this is a test", too_large // 2)
@@ -326,7 +335,7 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertEqual(cms.elements_added, INT64_T_MAX)
 
     def test_cms_join_underflow(self):
-        """ test count-min sketch underflow """
+        """test count-min sketch underflow"""
         too_large = INT32_T_MAX + 5
         cms = CountMinSketch(width=1000, depth=5)
         cms.remove("this is a test", too_large // 2)
@@ -339,7 +348,7 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertEqual(cms.elements_added, INT64_T_MIN)
 
     def test_cms_join_mixed_types(self):
-        """ test count-min, count-mean, and count-meanmin joining """
+        """test count-min, count-mean, and count-meanmin joining"""
         cms = CountMinSketch(width=1000, depth=5)
         cmeans = CountMeanSketch(width=1000, depth=5)
         cmms = CountMeanMinSketch(width=1000, depth=5)
@@ -366,7 +375,7 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertFalse("this is yet another test!" in cmms)
 
     def test_cms_join_mismatch_width(self):
-        """ test joining cms with mismatch width  """
+        """test joining cms with mismatch width"""
         cms1 = CountMinSketch(width=1000, depth=5)
         cms2 = CountMinSketch(width=1001, depth=5)
 
@@ -379,7 +388,7 @@ class TestCountMinSketch(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_cms_join_mismatch_depth(self):
-        """ test joining cms with mismatch depth  """
+        """test joining cms with mismatch depth"""
         cms1 = CountMinSketch(width=1000, depth=5)
         cms2 = CountMinSketch(width=1000, depth=4)
 
@@ -392,12 +401,12 @@ class TestCountMinSketch(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_cms_mismatch_hash_function(self):
-        """ test joining when hash functions do not match """
+        """test joining when hash functions do not match"""
         cms1 = CountMinSketch(width=1000, depth=5)
         cms2 = CountMinSketch(width=1000, depth=5, hash_function=different_hash)
 
         def runner():
-            """ runner """
+            """runner"""
             cms1.join(cms2)
 
         self.assertRaises(CountMinSketchError, runner)
@@ -410,7 +419,7 @@ class TestCountMinSketch(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_cms_join_invalid(self):
-        """ test joing a cms with an invalid type """
+        """test joing a cms with an invalid type"""
         cms = CountMinSketch(width=1000, depth=5)
 
         try:
@@ -422,10 +431,10 @@ class TestCountMinSketch(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_cms_invalid_width(self):
-        """ test invalid width """
+        """test invalid width"""
 
         def runner():
-            """ runner """
+            """runner"""
             CountMinSketch(width=0, depth=5)
 
         self.assertRaises(InitializationError, runner)
@@ -438,10 +447,10 @@ class TestCountMinSketch(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_cms_invalid_depth(self):
-        """ test invalid width """
+        """test invalid width"""
 
         def runner():
-            """ runner """
+            """runner"""
             CountMinSketch(width=1000, depth=-5)
 
         self.assertRaises(InitializationError, runner)
@@ -454,10 +463,10 @@ class TestCountMinSketch(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_cms_invalid_width_2(self):
-        """ test invalid width invalid type """
+        """test invalid width invalid type"""
 
         def runner():
-            """ runner """
+            """runner"""
             CountMinSketch(width="0.0", depth=5)
 
         self.assertRaises(InitializationError, runner)
@@ -470,10 +479,10 @@ class TestCountMinSketch(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_cms_invalid_depth_2(self):
-        """ test invalid depth type """
+        """test invalid depth type"""
 
         def runner():
-            """ runner """
+            """runner"""
             CountMinSketch(width=1000, depth=[])
 
         self.assertRaises(InitializationError, runner)
@@ -486,10 +495,10 @@ class TestCountMinSketch(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_cms_invalid_conf(self):
-        """ test invalid width """
+        """test invalid width"""
 
         def runner():
-            """ runner """
+            """runner"""
             CountMinSketch(confidence=-3.0, error_rate=0.99)
 
         self.assertRaises(InitializationError, runner)
@@ -502,10 +511,10 @@ class TestCountMinSketch(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_cms_invalid_err_rate(self):
-        """ test invalid width """
+        """test invalid width"""
 
         def runner():
-            """ runner """
+            """runner"""
             CountMinSketch(confidence=3.0, error_rate=0)
 
         self.assertRaises(InitializationError, runner)
@@ -518,10 +527,10 @@ class TestCountMinSketch(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_cms_invalid_conf_2(self):
-        """ test invalid width invalid type """
+        """test invalid width invalid type"""
 
         def runner():
-            """ runner """
+            """runner"""
             CountMinSketch(confidence=3.0, error_rate="0.99")
 
         self.assertRaises(InitializationError, runner)
@@ -534,10 +543,10 @@ class TestCountMinSketch(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_cms_invalid_err_rate_2(self):
-        """ test invalid error rate invalid type """
+        """test invalid error rate invalid type"""
 
         def runner():
-            """ runner """
+            """runner"""
             CountMinSketch(width=1000, depth=[])
 
         self.assertRaises(InitializationError, runner)
@@ -551,10 +560,10 @@ class TestCountMinSketch(unittest.TestCase):
 
 
 class TestHeavyHitters(unittest.TestCase):
-    """ Test the default heavy hitters implementation """
+    """Test the default heavy hitters implementation"""
 
     def test_heavyhitters_init_wd(self):
-        """ test initializing heavy hitters """
+        """test initializing heavy hitters"""
         hh1 = HeavyHitters(num_hitters=1000, width=1000, depth=5)
         self.assertEqual(hh1.width, 1000)
         self.assertEqual(hh1.depth, 5)
@@ -565,7 +574,7 @@ class TestHeavyHitters(unittest.TestCase):
         self.assertEqual(hh1.number_heavy_hitters, 1000)
 
     def test_heavyhitters_init_ce(self):
-        """ test initializing heavy hitters """
+        """test initializing heavy hitters"""
         hh1 = HeavyHitters(num_hitters=1000, confidence=0.96875, error_rate=0.002)
         self.assertEqual(hh1.width, 1000)
         self.assertEqual(hh1.depth, 5)
@@ -576,7 +585,7 @@ class TestHeavyHitters(unittest.TestCase):
         self.assertEqual(hh1.number_heavy_hitters, 1000)
 
     def test_heavyhitters_add(self):
-        """ test adding things (singular) to the heavy hitters """
+        """test adding things (singular) to the heavy hitters"""
         hh1 = HeavyHitters(num_hitters=2, width=1000, depth=5)
         self.assertEqual(hh1.add("this is a test"), 1)
         self.assertEqual(hh1.add("this is a test"), 2)
@@ -591,7 +600,7 @@ class TestHeavyHitters(unittest.TestCase):
         self.assertEqual(hh1.heavy_hitters, {"this is a test": 3, "this is also a test": 4})
 
     def test_heavyhitters_add_mult(self):
-        """ test adding things (multiple) to the heavy hitters """
+        """test adding things (multiple) to the heavy hitters"""
         hh1 = HeavyHitters(num_hitters=2, width=1000, depth=5)
         self.assertEqual(hh1.add("this is a test", 3), 3)
         self.assertEqual(hh1.add("this is also a test"), 1)
@@ -606,13 +615,13 @@ class TestHeavyHitters(unittest.TestCase):
         self.assertEqual(hh1.heavy_hitters, {"this is not a test": 10, "this is also a test": 4})
 
     def test_hh_remove(self):
-        """ test remove from heavy hitters exception """
+        """test remove from heavy hitters exception"""
         hh1 = HeavyHitters(num_hitters=2, width=1000, depth=5)
         self.assertEqual(hh1.add("this is a test", 3), 3)
         self.assertRaises(NotSupportedError, lambda: hh1.remove("this is a test"))
 
     def test_hh_remove_msg(self):
-        """ test remove from heavy hitters exception message """
+        """test remove from heavy hitters exception message"""
         hh1 = HeavyHitters(num_hitters=2, width=1000, depth=5)
         self.assertEqual(hh1.add("this is a test", 3), 3)
         try:
@@ -628,7 +637,7 @@ class TestHeavyHitters(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_hh_clear(self):
-        """ test clearing out the heavy hitters object """
+        """test clearing out the heavy hitters object"""
         hh1 = HeavyHitters(num_hitters=1000, width=1000, depth=5)
         self.assertEqual(hh1.width, 1000)
         self.assertEqual(hh1.depth, 5)
@@ -647,7 +656,7 @@ class TestHeavyHitters(unittest.TestCase):
         self.assertEqual(hh1.heavy_hitters, dict())
 
     def test_hh_export(self):
-        """ test exporting a heavy hitters sketch """
+        """test exporting a heavy hitters sketch"""
         md5_val = "fb1c39dd1a73f1ef0d7fc79f60fc028e"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".cms", delete=DELETE_TEMP_FILES) as fobj:
             hh1 = HeavyHitters(num_hitters=1000, width=1000, depth=5)
@@ -657,7 +666,7 @@ class TestHeavyHitters(unittest.TestCase):
         self.assertEqual(md5_out, md5_val)
 
     def test_hh_load(self):
-        """ test loading a heavy hitters from file """
+        """test loading a heavy hitters from file"""
         md5_val = "fb1c39dd1a73f1ef0d7fc79f60fc028e"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".cms", delete=DELETE_TEMP_FILES) as fobj:
             hh1 = HeavyHitters(num_hitters=1000, width=1000, depth=5)
@@ -680,7 +689,7 @@ class TestHeavyHitters(unittest.TestCase):
             self.assertEqual(hh2.heavy_hitters, {"this is a test": 101})
 
     def test_hh_str(self):
-        """ test the string representation of the heavy hitters sketch """
+        """test the string representation of the heavy hitters sketch"""
         hh1 = HeavyHitters(num_hitters=2, width=1000, depth=5)
         self.assertEqual(hh1.add("this is a test", 100), 100)
         msg = (
@@ -696,35 +705,35 @@ class TestHeavyHitters(unittest.TestCase):
         self.assertEqual(str(hh1), msg)
 
     def test_hh_join(self):
-        """ test that stream threshold raises exception """
+        """test that stream threshold raises exception"""
         hh1 = HeavyHitters(num_hitters=2, width=1000, depth=5)
         hh2 = HeavyHitters(num_hitters=2, width=1000, depth=5)
         self.assertRaises(NotSupportedError, lambda: hh1.join(hh2))
 
 
 class TestCountMeanSketch(unittest.TestCase):
-    """ test the basic count-mean sketch """
+    """test the basic count-mean sketch"""
 
     def test_default_count_mean_query(self):
-        """ test the default query of the count-mean sketch """
+        """test the default query of the count-mean sketch"""
         cms = CountMeanSketch(width=1000, depth=5)
         self.assertEqual(cms.query_type, "mean")
 
 
 class TestCountMeanMinSketch(unittest.TestCase):
-    """ test the basic count-mean-min sketch """
+    """test the basic count-mean-min sketch"""
 
     def test_def_count_mean_min_query(self):
-        """ test the default query of the count-mean-min sketch """
+        """test the default query of the count-mean-min sketch"""
         cms = CountMeanMinSketch(width=1000, depth=5)
         self.assertEqual(cms.query_type, "mean-min")
 
 
 class TestStreamThreshold(unittest.TestCase):
-    """ Test the default stream threshold implementation """
+    """Test the default stream threshold implementation"""
 
     def test_streamthreshold_init_wd(self):
-        """ test initializing the stream threshold using width and depth """
+        """test initializing the stream threshold using width and depth"""
         st1 = StreamThreshold(threshold=1000, width=1000, depth=5)
         self.assertEqual(st1.width, 1000)
         self.assertEqual(st1.depth, 5)
@@ -747,7 +756,7 @@ class TestStreamThreshold(unittest.TestCase):
         self.assertEqual(st1.threshold, 1000)
 
     def test_streamthreshold_add(self):
-        """ test adding elements to the stream threshold in singular """
+        """test adding elements to the stream threshold in singular"""
         st1 = StreamThreshold(threshold=2, width=1000, depth=5)
         self.assertEqual(st1.add("this is a test"), 1)
         self.assertEqual(st1.meets_threshold, dict())
@@ -763,7 +772,7 @@ class TestStreamThreshold(unittest.TestCase):
         self.assertEqual(st1.elements_added, 6)
 
     def test_streamthreshold_add_mult(self):
-        """ test adding elements to the stream threshold in multiple """
+        """test adding elements to the stream threshold in multiple"""
         st1 = StreamThreshold(threshold=10, width=1000, depth=5)
         self.assertEqual(st1.add("this is a test", 5), 5)
         self.assertEqual(st1.meets_threshold, dict())
@@ -778,7 +787,7 @@ class TestStreamThreshold(unittest.TestCase):
         self.assertEqual(st1.elements_added, 41)
 
     def test_streamthreshold_clear(self):
-        """ test clearing the stream threshold """
+        """test clearing the stream threshold"""
         st1 = StreamThreshold(threshold=10, width=1000, depth=5)
         self.assertEqual(st1.add("this is a test", 5), 5)
         self.assertEqual(st1.meets_threshold, dict())
@@ -797,7 +806,7 @@ class TestStreamThreshold(unittest.TestCase):
         self.assertEqual(st1.elements_added, 0)
 
     def test_streamthreshold_remove(self):
-        """ test removing elements from the stream threshold singular """
+        """test removing elements from the stream threshold singular"""
         st1 = StreamThreshold(threshold=10, width=1000, depth=5)
         self.assertEqual(st1.add("this is a test", 5), 5)
         self.assertEqual(st1.meets_threshold, dict())
@@ -818,7 +827,7 @@ class TestStreamThreshold(unittest.TestCase):
         self.assertEqual(st1.elements_added, 38)
 
     def test_streamthreshold_rem_mult(self):
-        """ test adding elements to the stream threshold in multiple """
+        """test adding elements to the stream threshold in multiple"""
         st1 = StreamThreshold(threshold=10, width=1000, depth=5)
         self.assertEqual(st1.add("this is a test", 30), 30)
         self.assertEqual(st1.add("this is not a test", 11), 11)
@@ -829,7 +838,7 @@ class TestStreamThreshold(unittest.TestCase):
         self.assertEqual(st1.elements_added, 39)
 
     def test_streamthreshold_export(self):
-        """ test exporting a stream threshold sketch """
+        """test exporting a stream threshold sketch"""
         md5_val = "fb1c39dd1a73f1ef0d7fc79f60fc028e"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".cms", delete=DELETE_TEMP_FILES) as fobj:
             st1 = StreamThreshold(threshold=10, width=1000, depth=5)
@@ -839,7 +848,7 @@ class TestStreamThreshold(unittest.TestCase):
         self.assertEqual(md5_out, md5_val)
 
     def test_streamthreshold_load(self):
-        """ test loading a stream threshold sketch from file """
+        """test loading a stream threshold sketch from file"""
         md5_val = "fb1c39dd1a73f1ef0d7fc79f60fc028e"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".cms", delete=DELETE_TEMP_FILES) as fobj:
             st1 = StreamThreshold(threshold=10, width=1000, depth=5)
@@ -862,7 +871,7 @@ class TestStreamThreshold(unittest.TestCase):
             self.assertEqual(st2.meets_threshold, {"this is a test": 101})
 
     def test_streamthreshold_str(self):
-        """ test the string representation of the stream threshold sketch """
+        """test the string representation of the stream threshold sketch"""
         st1 = StreamThreshold(threshold=10, width=1000, depth=5)
         self.assertEqual(st1.add("this is a test", 100), 100)
         msg = (
@@ -878,7 +887,7 @@ class TestStreamThreshold(unittest.TestCase):
         self.assertEqual(str(st1), msg)
 
     def test_streamthreshold_join(self):
-        """ test that stream threshold raises exception """
+        """test that stream threshold raises exception"""
         st1 = StreamThreshold(threshold=1000, width=1000, depth=5)
         st2 = StreamThreshold(threshold=1000, width=1000, depth=5)
         self.assertRaises(NotSupportedError, lambda: st1.join(st2))

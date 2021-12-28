@@ -304,6 +304,9 @@ class BloomFilterOnDisk(BaseBloom):
         """handle if user doesn't close the on disk Bloom Filter"""
         self.close()
 
+    def __bytes__(self) -> bytes:
+        return bytes(self._bloom)
+
     def close(self) -> None:
         """Clean up the BloomFilterOnDisk object"""
         if self.__file_pointer is not None:
@@ -332,7 +335,7 @@ class BloomFilterOnDisk(BaseBloom):
         self._on_disk = True
         self.__filename = filepath  # type: ignore
 
-    def export(self, filename: str) -> None:
+    def export(self, filename: str) -> None:  # type: ignore
         """ Export to disk if a different location
 
             Args:

@@ -7,13 +7,16 @@
 import math
 import os
 import typing
+from io import BytesIO, IOBase
+from mmap import mmap
 from numbers import Number
+from pathlib import Path
 from struct import calcsize, pack, unpack
 
 from ..constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN
 from ..exceptions import CountMinSketchError, InitializationError, NotSupportedError
 from ..hashes import HashFuncT, HashResultsT, KeyT, default_fnv_1a
-from ..utilities import is_valid_file
+from ..utilities import MMap, is_valid_file
 
 
 class CountMinSketch(object):
@@ -60,7 +63,7 @@ class CountMinSketch(object):
         depth: typing.Optional[int] = None,
         confidence: typing.Optional[float] = None,
         error_rate: typing.Optional[float] = None,
-        filepath: typing.Optional[str] = None,
+        filepath: typing.Optional[typing.Union[str, Path]] = None,
         hash_function: typing.Optional[HashFuncT] = None,
     ) -> None:
         """default initilization function"""
@@ -133,6 +136,12 @@ class CountMinSketch(object):
     def __contains__(self, key: KeyT) -> bool:
         """setup the `in` keyword"""
         return True if self.check(key) != 0 else False
+
+    def __bytes__(self) -> bytes:
+        """Export countmin-sketch to `bytes`"""
+        with BytesIO() as f:
+            self.export(f)
+            return f.getvalue()
 
     @property
     def width(self) -> int:
@@ -314,17 +323,20 @@ class CountMinSketch(object):
         bins = self.__get_values_sorted(hashes)
         return self.__query_method(bins)
 
-    def export(self, filepath: str) -> None:
+    def export(self, file: typing.Union[Path, str, IOBase, mmap]) -> None:
         """ Export the count-min sketch to disk
 
             Args:
                 filename (str): The filename to which the count-min sketch \
                 will be written. """
-        with open(filepath, "wb") as filepointer:
+        if not isinstance(file, (IOBase, mmap)):
+            with open(file, "wb") as filepointer:
+                self.export(filepointer)  # type: ignore
+        else:
             # write out the bins
             rep = "i" * len(self._bins)
-            filepointer.write(pack(rep, *self._bins))
-            filepointer.write(pack("IIq", self.width, self.depth, self.elements_added))
+            file.write(pack(rep, *self._bins))
+            file.write(pack("IIq", self.width, self.depth, self.elements_added))
 
     def join(self, second: "CountMinSketch") -> None:
         """ Join two count-min sketchs into a single count-min sketch; the
@@ -369,23 +381,27 @@ class CountMinSketch(object):
         elif self.elements_added < INT64_T_MIN:
             self.__elements_added = INT64_T_MIN
 
-    def __load(self, filepath: str):
+    def __load(self, file: typing.Union[Path, str, IOBase]):
         """load the count-min sketch from file"""
-        with open(filepath, "rb") as filepointer:
+        if not isinstance(file, (IOBase, mmap)):
+            file = Path(file)
+            with MMap(file) as filepointer:
+                self.__load(filepointer)
+        else:
             offset = calcsize("IIq")
-            filepointer.seek(offset * -1, os.SEEK_END)
-            mybytes = unpack("IIq", filepointer.read(offset))
+            file.seek(offset * -1, os.SEEK_END)
+            mybytes = unpack("IIq", file.read(offset))
             self.__width = mybytes[0]
             self.__depth = mybytes[1]
             self.__elements_added = mybytes[2]
             self.__confidence = 1 - (1 / math.pow(2, self.depth))
             self.__error_rate = 2 / self.width
 
-            filepointer.seek(0, os.SEEK_SET)
+            file.seek(0, os.SEEK_SET)
             length = self.width * self.depth
             rep = "i" * length
             offset = calcsize(rep)
-            self._bins = list(unpack(rep, filepointer.read(offset)))
+            self._bins = list(unpack(rep, file.read(offset)))
 
     def __get_values_sorted(self, hashes: HashResultsT) -> HashResultsT:
         """get the values sorted"""
@@ -540,12 +556,12 @@ class HeavyHitters(CountMinSketch):
         depth: typing.Optional[int] = None,
         confidence: typing.Optional[float] = None,
         error_rate: typing.Optional[float] = None,
-        filepath: typing.Optional[str] = None,
+        filepath: typing.Optional[typing.Union[str, Path]] = None,
         hash_function: typing.Optional[HashFuncT] = None,
     ) -> None:
 
         super(HeavyHitters, self).__init__(width, depth, confidence, error_rate, filepath, hash_function)
-        self.__top_x = dict()  # top x heavy hitters
+        self.__top_x = dict()  # type: ignore
         self.__top_x_size = 0
         self.__num_hitters = num_hitters
         self.__smallest = 0
@@ -572,7 +588,7 @@ class HeavyHitters(CountMinSketch):
             Not settable"""
         return self.__num_hitters
 
-    def add(self, key: str, num_els: int = 1) -> int:
+    def add(self, key: str, num_els: int = 1) -> int:  # type: ignore
         """Add element to heavy hitters
 
         Args:
@@ -585,7 +601,7 @@ class HeavyHitters(CountMinSketch):
         hashes = self.hashes(key)
         return self.add_alt(key, hashes, num_els)
 
-    def add_alt(self, key: str, hashes: HashResultsT, num_els: int = 1) -> int:
+    def add_alt(self, key: str, hashes: HashResultsT, num_els: int = 1) -> int:  # type: ignore
         """ Add the element `key` represented as hashes to the HeavyHitters
             object (hence the different signature on the function!)
 
@@ -643,7 +659,7 @@ class HeavyHitters(CountMinSketch):
         self.__top_x_size = 0
         self.__smallest = 0
 
-    def join(self, second: "HeavyHitters"):
+    def join(self, second: "HeavyHitters"):  # type: ignore
         """ Join is not supported by HeavyHitters
 
             Raises:
@@ -670,7 +686,7 @@ class StreamThreshold(CountMinSketch):
     ) -> None:
         super(StreamThreshold, self).__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.__threshold = threshold
-        self.__meets_threshold = dict()
+        self.__meets_threshold = dict()  # type: ignore
 
     def __str__(self) -> str:
         """stream threshold string rep"""
@@ -693,7 +709,7 @@ class StreamThreshold(CountMinSketch):
         super(StreamThreshold, self).clear()
         self.__meets_threshold = dict()
 
-    def add(self, key: str, num_els: int = 1) -> int:
+    def add(self, key: str, num_els: int = 1) -> int:  # type: ignore
         """Add the element for key into the data structure
 
         Args:
@@ -706,7 +722,7 @@ class StreamThreshold(CountMinSketch):
         hashes = self.hashes(key)
         return self.add_alt(key, hashes, num_els)
 
-    def add_alt(self, key: str, hashes: HashResultsT, num_els: int = 1) -> int:
+    def add_alt(self, key: str, hashes: HashResultsT, num_els: int = 1) -> int:  # type: ignore
         """ Add the element for key into the data structure
 
             Args:
@@ -725,7 +741,7 @@ class StreamThreshold(CountMinSketch):
             self.__meets_threshold[key] = res
         return res
 
-    def remove(self, key: str, num_els: int = 1) -> int:
+    def remove(self, key: str, num_els: int = 1) -> int:  # type: ignore
         """ Remove element 'key' from the count-min sketch
 
             Args:
@@ -739,7 +755,7 @@ class StreamThreshold(CountMinSketch):
         hashes = self.hashes(key)
         return self.remove_alt(key, hashes, num_els)
 
-    def remove_alt(self, key: str, hashes: HashResultsT, num_els: int = 1) -> int:
+    def remove_alt(self, key: str, hashes: HashResultsT, num_els: int = 1) -> int:  # type: ignore
         """ Remove an element by using the hash representation
 
             Args:
@@ -760,7 +776,7 @@ class StreamThreshold(CountMinSketch):
             self.__meets_threshold[key] = res
         return res
 
-    def join(self, second: "StreamThreshold"):
+    def join(self, second: "StreamThreshold"):  # type: ignore
         """ Join is not supported by StreamThreshold
 
             Raises:

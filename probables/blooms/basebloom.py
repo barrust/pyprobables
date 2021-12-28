@@ -254,15 +254,11 @@ class BaseBloom(object):
             rep = self.__impt_type * self.bloom_length
             self._bloom = list(unpack(rep, file.read(offset)))
 
-    def loads(self, d: ByteString) -> None:
-        with BytesIO(d) as f:
-            self.__load(f)
-
     def _parse_footer(self, stct: Struct, d: ByteString) -> float:
-        tmp_data = stct.unpack_from(d)
+        tmp_data = stct.unpack_from(bytearray(d))
         self.__est_elements = tmp_data[0]
         self._els_added = tmp_data[1]
-        fpr = tmp_data[2]
+        fpr = float(tmp_data[2])
         return fpr
 
     def _load_hex(self, hex_string: str, hash_function: typing.Optional[HashFuncT] = None) -> None:
@@ -311,7 +307,7 @@ class BaseBloom(object):
 
         if not isinstance(file, (IOBase, mmap)):
             with open(file, "wb") as filepointer:
-                self.export(filepointer)
+                self.export(filepointer)  # type:ignore
         else:
             rep = self.__impt_type * self.bloom_length
             file.write(pack(rep, *self.bloom))
@@ -324,8 +320,7 @@ class BaseBloom(object):
             )
 
     def __bytes__(self) -> bytes:
-        """Export cuckoo filter to `bytes`"""
-
+        """Export bloom filter to `bytes`"""
         with BytesIO() as f:
             self.export(f)
             return f.getvalue()

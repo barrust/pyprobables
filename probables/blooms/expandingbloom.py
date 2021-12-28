@@ -6,11 +6,14 @@
 
 import os
 import typing
+from io import BytesIO, IOBase
+from mmap import mmap
+from pathlib import Path
 from struct import calcsize, pack, unpack
 
 from ..exceptions import RotatingBloomFilterError
 from ..hashes import HashFuncT, HashResultsT, KeyT
-from ..utilities import is_valid_file
+from ..utilities import MMap, is_valid_file
 from .bloom import BloomFilter
 
 
@@ -64,6 +67,13 @@ class ExpandingBloomFilter(object):
     def __contains__(self, key: KeyT) -> bool:
         """setup the `in` functionality"""
         return self.check(key)
+
+    def __bytes__(self) -> bytes:
+        """Export bloom filter to `bytes`"""
+
+        with BytesIO() as f:
+            self.export(f)
+            return f.getvalue()
 
     @property
     def expansions(self) -> int:
@@ -155,17 +165,21 @@ class ExpandingBloomFilter(object):
         if self._blooms[-1].elements_added >= self.__est_elements:
             self.__add_bloom_filter()
 
-    def export(self, filepath: str) -> None:
+    def export(self, file: typing.Union[Path, str, IOBase, mmap]) -> None:
         """Export an expanding Bloom Filter, or subclass, to disk
 
         Args:
             filepath (str): The path to the file to import"""
-        with open(filepath, "wb") as fileobj:
+        if not isinstance(file, (IOBase, mmap)):
+            with open(file, "wb") as filepointer:
+                self.export(filepointer)  # type:ignore
+        else:
+            filepointer = file  # type:ignore
             # add all the different Bloom bit arrays...
             for blm in self._blooms:
                 rep = "Q" + "B" * blm.bloom_length
-                fileobj.write(pack(rep, blm.elements_added, *blm.bloom))
-            fileobj.write(
+                filepointer.write(pack(rep, blm.elements_added, *blm.bloom))
+            filepointer.write(
                 pack(
                     "QQQf",
                     len(self._blooms),
@@ -175,14 +189,17 @@ class ExpandingBloomFilter(object):
                 )
             )
 
-    def __load(self, filename: str):
+    def __load(self, file: typing.Union[Path, str, IOBase, mmap]):
         """load a file"""
-        with open(filename, "rb") as fileobj:
+        if not isinstance(file, (IOBase, mmap)):
+            with MMap(file) as filepointer:
+                self.__load(filepointer)
+        else:
             offset = calcsize("QQQf")
-            fileobj.seek(offset * -1, os.SEEK_END)
-            size, est_els, els_added, fpr = unpack("QQQf", fileobj.read(offset))
+            file.seek(offset * -1, os.SEEK_END)
+            size, est_els, els_added, fpr = unpack("QQQf", file.read(offset))
 
-            fileobj.seek(0, os.SEEK_SET)
+            file.seek(0, os.SEEK_SET)
             # set the basic defaults
             self._blooms = list()
             self.__added_elements = els_added
@@ -197,7 +214,7 @@ class ExpandingBloomFilter(object):
                 # now we need to read in the correct number of bytes...
                 offset = calcsize("Q") + calcsize("B") * blm.bloom_length
                 rep = "Q" + "B" * blm.bloom_length
-                unpacked = list(unpack(rep, fileobj.read(offset)))
+                unpacked = list(unpack(rep, file.read(offset)))
                 blm._bloom = unpacked[1:]
                 blm.elements_added = unpacked[0]
                 self._blooms.append(blm)

@@ -107,7 +107,7 @@ class CountingBloomFilter(BaseBloom):
             els_added,
         )
 
-    def add(self, key: KeyT, num_els: int = 1) -> int:
+    def add(self, key: KeyT, num_els: int = 1) -> int:  # type: ignore
         """Add the key to the Counting Bloom Filter
 
         Args:
@@ -118,7 +118,7 @@ class CountingBloomFilter(BaseBloom):
         hashes = self.hashes(key)
         return self.add_alt(hashes, num_els)
 
-    def add_alt(self, hashes: HashResultsT, num_els: int = 1) -> int:
+    def add_alt(self, hashes: HashResultsT, num_els: int = 1) -> int:  # type: ignore
         """ Add the element represented by hashes into the Counting Bloom
             Filter
 
