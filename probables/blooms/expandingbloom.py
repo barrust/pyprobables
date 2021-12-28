@@ -13,7 +13,7 @@ from struct import calcsize, pack, unpack
 
 from ..exceptions import RotatingBloomFilterError
 from ..hashes import HashFuncT, HashResultsT, KeyT
-from ..utilities import is_valid_file
+from ..utilities import MMap, is_valid_file
 from .bloom import BloomFilter
 
 
@@ -189,14 +189,17 @@ class ExpandingBloomFilter(object):
                 )
             )
 
-    def __load(self, filename: str):
+    def __load(self, file: typing.Union[Path, str, IOBase, mmap]):
         """load a file"""
-        with open(filename, "rb") as fileobj:
+        if not isinstance(file, (IOBase, mmap)):
+            with MMap(file) as filepointer:
+                self.__load(filepointer)
+        else:
             offset = calcsize("QQQf")
-            fileobj.seek(offset * -1, os.SEEK_END)
-            size, est_els, els_added, fpr = unpack("QQQf", fileobj.read(offset))
+            file.seek(offset * -1, os.SEEK_END)
+            size, est_els, els_added, fpr = unpack("QQQf", file.read(offset))
 
-            fileobj.seek(0, os.SEEK_SET)
+            file.seek(0, os.SEEK_SET)
             # set the basic defaults
             self._blooms = list()
             self.__added_elements = els_added
@@ -211,7 +214,7 @@ class ExpandingBloomFilter(object):
                 # now we need to read in the correct number of bytes...
                 offset = calcsize("Q") + calcsize("B") * blm.bloom_length
                 rep = "Q" + "B" * blm.bloom_length
-                unpacked = list(unpack(rep, fileobj.read(offset)))
+                unpacked = list(unpack(rep, file.read(offset)))
                 blm._bloom = unpacked[1:]
                 blm.elements_added = unpacked[0]
                 self._blooms.append(blm)

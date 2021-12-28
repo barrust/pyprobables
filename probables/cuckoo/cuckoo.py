@@ -324,9 +324,9 @@ class CuckooFilter(object):
         filename = Path(filename)
         with MMap(filename) as d:
             self._parse_footer(d)
-        self._inserted_elements = 0
-        # now pull everything in!
-        self._parse_buckets(d)
+            self._inserted_elements = 0
+            # now pull everything in!
+            self._parse_buckets(d)
 
     SINGLE_INT_C = "I"
     SINGLE_INT_SIZE = calcsize(SINGLE_INT_C)

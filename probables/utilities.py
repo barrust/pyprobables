@@ -5,7 +5,7 @@ import mmap
 import os
 import string
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Iterable, Optional, Union
 
 
 def is_hex_string(hex_string: Optional[str]) -> bool:
@@ -15,7 +15,7 @@ def is_hex_string(hex_string: Optional[str]) -> bool:
     return all(c in string.hexdigits for c in hex_string)
 
 
-def is_valid_file(filepath: Optional[str]) -> bool:
+def is_valid_file(filepath: Optional[Union[str, Path]]) -> bool:
     """check if the passed filepath points to a real file"""
     if filepath is None:
         return False
@@ -34,48 +34,33 @@ def get_x_bits(num: int, max_bits: int, num_bits: int, right_bits: bool = True) 
 def convert_to_typed(tp: str, arr: Iterable[int]) -> array.array:
     """Converts a container of untyped ints into a typed array"""
     t = array.ArrayType(tp)
-    t.fromlist(arr)
+    t.fromlist(arr)  # type: ignore
     return t
 
 
-# mmap wrapper is taken from https://github.com/prebuilder/fsutilz.py/blob/master/fsutilz/__init__.py
-class ommap(mmap.mmap):
-    """Our children of `mmap.mmap` that closes its `_parent`"""
+class MMap(object):
+    """Simplified mmap.mmap class"""
 
-    __slots__ = ("parent",)
+    __slots__ = ("path", "f", "__m")
 
-    def __init__(self, *args, _parent, **kwargs):
-        self.parent = _parent
+    def __init__(self, path: Union[Path, str]):
+        self.path = Path(path)
+        self.f = self.path.open("rb")
+        self.__m = mmap.mmap(self.f.fileno(), 0, prot=mmap.PROT_READ)
 
-    __init__.__wraps__ = mmap.mmap.__init__
+    def __enter__(self) -> mmap.mmap:
+        return self.__m
 
-    def __new__(cls, *args, _parent, **kwargs):
-        return mmap.mmap.__new__(cls, *args, **kwargs)
-
-    __new__.__wraps__ = mmap.mmap.__new__
-
-    def __exit__(self, *args, **kwargs):
-        super().__exit__(*args, **kwargs)
-        self.parent.__exit__(*args, **kwargs)
-
-
-class MMap:
-    """Our class for memory mapping making its usage much easier."""
-
-    __slots__ = ("path", "f", "m")
-
-    def __init__(self, path: Path):
-        self.path = path
-        self.f = None
-        self.m = None
-
-    def __enter__(self):
-        self.f = self.path.open("rb").__enter__()
-        self.m = ommap(self.f.fileno(), 0, prot=mmap.PROT_READ, _parent=self).__enter__()
-        return self.m
-
-    def __exit__(self, *args, **kwargs):
-        self.m = None
+    def __exit__(self, *args, **kwargs) -> None:
+        self.__m.close()
         if self.f:
-            self.f.__exit__(*args, **kwargs)
-            self.f = None
+            self.f.close()
+        self.f = None
+        self.__m = None
+
+    @property
+    def map(self) -> mmap.mmap:
+        return self.__m
+
+    def close(self) -> None:
+        self.__exit__()
