@@ -6,6 +6,9 @@
 
 import os
 import typing
+from io import BytesIO, IOBase
+from mmap import mmap
+from pathlib import Path
 from struct import calcsize, pack, unpack
 
 from ..exceptions import RotatingBloomFilterError
@@ -64,6 +67,13 @@ class ExpandingBloomFilter(object):
     def __contains__(self, key: KeyT) -> bool:
         """setup the `in` functionality"""
         return self.check(key)
+
+    def __bytes__(self) -> bytes:
+        """Export bloom filter to `bytes`"""
+
+        with BytesIO() as f:
+            self.export(f)
+            return f.getvalue()
 
     @property
     def expansions(self) -> int:
@@ -155,17 +165,21 @@ class ExpandingBloomFilter(object):
         if self._blooms[-1].elements_added >= self.__est_elements:
             self.__add_bloom_filter()
 
-    def export(self, filepath: str) -> None:
+    def export(self, file: typing.Union[Path, str, IOBase, mmap]) -> None:
         """Export an expanding Bloom Filter, or subclass, to disk
 
         Args:
             filepath (str): The path to the file to import"""
-        with open(filepath, "wb") as fileobj:
+        if not isinstance(file, (IOBase, mmap)):
+            with open(file, "wb") as filepointer:
+                self.export(filepointer)  # type:ignore
+        else:
+            filepointer = file  # type:ignore
             # add all the different Bloom bit arrays...
             for blm in self._blooms:
                 rep = "Q" + "B" * blm.bloom_length
-                fileobj.write(pack(rep, blm.elements_added, *blm.bloom))
-            fileobj.write(
+                filepointer.write(pack(rep, blm.elements_added, *blm.bloom))
+            filepointer.write(
                 pack(
                     "QQQf",
                     len(self._blooms),

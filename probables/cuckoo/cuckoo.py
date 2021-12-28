@@ -278,7 +278,6 @@ class CuckooFilter(object):
 
     def __bytes__(self) -> bytes:
         """Export cuckoo filter to `bytes`"""
-
         with BytesIO() as f:
             self.export(f)
             return f.getvalue()

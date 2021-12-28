@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """ Unittest class """
 
+import hashlib
 import os
 import sys
 import unittest
@@ -21,7 +22,7 @@ DELETE_TEMP_FILES = True
 
 class TestExpandingBloomFilter(unittest.TestCase):
     def test_ebf_init(self):
-        """ test the initialization of an expanding bloom filter """
+        """test the initialization of an expanding bloom filter"""
         blm = ExpandingBloomFilter(est_elements=10, false_positive_rate=0.05)
         self.assertEqual(blm.expansions, 0)
         self.assertEqual(blm.false_positive_rate, 0.05)
@@ -29,14 +30,14 @@ class TestExpandingBloomFilter(unittest.TestCase):
         self.assertEqual(blm.elements_added, 0)
 
     def test_ebf_add_lots(self):
-        """ test adding "lots" of elements to force the expansion """
+        """test adding "lots" of elements to force the expansion"""
         blm = ExpandingBloomFilter(est_elements=10, false_positive_rate=0.05)
         for i in range(100):
             blm.add("{}".format(i), True)
         self.assertEqual(blm.expansions, 9)
 
     def test_ebf_add_lots_without_force(self):
-        """ testing adding "lots" but force them to be inserted multiple times"""
+        """testing adding "lots" but force them to be inserted multiple times"""
         blm = ExpandingBloomFilter(est_elements=10, false_positive_rate=0.05)
         # simulate false positives... notice it didn't grow a few...
         for i in range(120):
@@ -45,7 +46,7 @@ class TestExpandingBloomFilter(unittest.TestCase):
         self.assertEqual(blm.elements_added, 120)
 
     def test_ebf_check(self):
-        """ ensure that checking the expanding bloom filter works """
+        """ensure that checking the expanding bloom filter works"""
         blm = ExpandingBloomFilter(est_elements=30, false_positive_rate=0.05)
         # expand it out some first!
         for i in range(100):
@@ -59,7 +60,7 @@ class TestExpandingBloomFilter(unittest.TestCase):
         self.assertEqual(blm.check("this is not another test"), False)
 
     def test_ebf_contains(self):
-        """ ensure that "in" functionality for the expanding bloom filter works """
+        """ensure that "in" functionality for the expanding bloom filter works"""
         blm = ExpandingBloomFilter(est_elements=30, false_positive_rate=0.05)
         # expand it out some first!
         for i in range(100):
@@ -73,7 +74,7 @@ class TestExpandingBloomFilter(unittest.TestCase):
         self.assertEqual("this is not another test" in blm, False)
 
     def test_ebf_push(self):
-        """ ensure that we are able to push new Bloom Filters """
+        """ensure that we are able to push new Bloom Filters"""
         blm = ExpandingBloomFilter(est_elements=25, false_positive_rate=0.05)
         self.assertEqual(blm.expansions, 0)
         blm.push()
@@ -87,14 +88,19 @@ class TestExpandingBloomFilter(unittest.TestCase):
         self.assertEqual(blm.elements_added, 0)
 
     def test_ebf_export(self):
-        """ basic expanding Bloom Filter export test """
+        """basic expanding Bloom Filter export test"""
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".ebf", delete=DELETE_TEMP_FILES) as fobj:
             blm = ExpandingBloomFilter(est_elements=25, false_positive_rate=0.05)
             blm.export(fobj.name)
             self.assertEqual(calc_file_md5(fobj.name), "eb5769ae9babdf7b37d6ce64d58812bc")
 
+    def test_ebf_bytes(self):
+        """basic expanding Bloom Filter export bytes test"""
+        blm = ExpandingBloomFilter(est_elements=25, false_positive_rate=0.05)
+        self.assertEqual(hashlib.md5(bytes(blm)).hexdigest(), "eb5769ae9babdf7b37d6ce64d58812bc")
+
     def test_ebf_import_empty(self):
-        """ test that expanding Bloom Filter is correct on import """
+        """test that expanding Bloom Filter is correct on import"""
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".ebf", delete=DELETE_TEMP_FILES) as fobj:
             blm = ExpandingBloomFilter(est_elements=25, false_positive_rate=0.05)
             blm.export(fobj.name)
@@ -105,7 +111,7 @@ class TestExpandingBloomFilter(unittest.TestCase):
                 self.assertEqual(bloom.elements_added, 0)
 
     def test_ebf_import_non_empty(self):
-        """ test expanding Bloom Filter import when non-empty """
+        """test expanding Bloom Filter import when non-empty"""
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".ebf", delete=DELETE_TEMP_FILES) as fobj:
             blm = ExpandingBloomFilter(est_elements=25, false_positive_rate=0.05)
             for i in range(15):
@@ -126,13 +132,13 @@ class TestExpandingBloomFilter(unittest.TestCase):
 
 class TestRotatingBloomFilter(unittest.TestCase):
     def test_rbf_init(self):
-        """ test the initialization of an rotating bloom filter """
+        """test the initialization of an rotating bloom filter"""
         blm = RotatingBloomFilter(est_elements=10, false_positive_rate=0.05, max_queue_size=10)
         self.assertEqual(blm.expansions, 0)
         self.assertEqual(blm.max_queue_size, 10)
 
     def test_rbf_rotate(self):
-        """ test that the bloom filter rotates the first bloom off the stack """
+        """test that the bloom filter rotates the first bloom off the stack"""
         blm = RotatingBloomFilter(est_elements=10, false_positive_rate=0.05, max_queue_size=5)
         self.assertEqual(blm.expansions, 0)
         blm.add("test")
@@ -199,12 +205,12 @@ class TestRotatingBloomFilter(unittest.TestCase):
         self.assertEqual("that" in blm, True)
 
     def test_rbf_pop_exception(self):
-        """ ensure the correct exception is thrown """
+        """ensure the correct exception is thrown"""
         blm = RotatingBloomFilter(est_elements=10, false_positive_rate=0.05, max_queue_size=5)
         self.assertRaises(RotatingBloomFilterError, lambda: blm.pop())
 
     def test_rbf_pop_exception_msg(self):
-        """ rotating bloom filter error: check the resulting error message """
+        """rotating bloom filter error: check the resulting error message"""
         blm = RotatingBloomFilter(est_elements=10, false_positive_rate=0.05, max_queue_size=5)
         try:
             blm.pop()
@@ -215,14 +221,19 @@ class TestRotatingBloomFilter(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_rfb_basic_export(self):
-        """ basic rotating Bloom Filter export test """
+        """basic rotating Bloom Filter export test"""
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".rbf", delete=DELETE_TEMP_FILES) as fobj:
             blm = RotatingBloomFilter(est_elements=25, false_positive_rate=0.05)
             blm.export(fobj.name)
             self.assertEqual(calc_file_md5(fobj.name), "eb5769ae9babdf7b37d6ce64d58812bc")
 
+    def test_rfb_basic_bytes(self):
+        """basic rotating Bloom Filter export bytes test"""
+        blm = RotatingBloomFilter(est_elements=25, false_positive_rate=0.05)
+        self.assertEqual(hashlib.md5(bytes(blm)).hexdigest(), "eb5769ae9babdf7b37d6ce64d58812bc")
+
     def test_rbf_import_empty(self):
-        """ test that rotating Bloom Filter is correct on import """
+        """test that rotating Bloom Filter is correct on import"""
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".rbf", delete=DELETE_TEMP_FILES) as fobj:
             blm = RotatingBloomFilter(est_elements=25, false_positive_rate=0.05)
             blm.export(fobj.name)
@@ -233,7 +244,7 @@ class TestRotatingBloomFilter(unittest.TestCase):
                 self.assertEqual(bloom.elements_added, 0)
 
     def test_rbf_non_basic_import(self):
-        """ test that the imported rotating Bloom filter is correct """
+        """test that the imported rotating Bloom filter is correct"""
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".rbf", delete=DELETE_TEMP_FILES) as fobj:
             blm = RotatingBloomFilter(est_elements=25, false_positive_rate=0.05)
             for i in range(15):

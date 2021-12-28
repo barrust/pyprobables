@@ -215,7 +215,7 @@ class CountingCuckooFilter(CuckooFilter):
             return idx_2
         return None
 
-    def _load(self, filename: str) -> None:
+    def _load(self, filename: typing.Union[Path, str]) -> None:
         """load a cuckoo filter from file"""
         with open(filename, "rb") as filepointer:
             offset = calcsize("II")
@@ -278,7 +278,7 @@ class CountingCuckooBin(object):
         self.__fingerprint = fingerprint
         self.__count = count
 
-    def __contains__(self, val: KeyT) -> bool:
+    def __contains__(self, val: int) -> bool:
         """setup the `in` construct"""
         return self.__fingerprint == val
 
