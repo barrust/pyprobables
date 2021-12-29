@@ -233,6 +233,48 @@ class TestCountingBloomFilter(unittest.TestCase):
         )
         self.assertRaises(InitializationError, lambda: CountingBloomFilter(hex_string=h_val))
 
+    def test_cbf_export_c_header(self):
+        """test exporting a c header"""
+        hex_val = (
+            "01000000000000000100000002000000000000000100000001000000"
+            "00000000000000000000000001000000000000000000000002000000"
+            "00000000010000000200000000000000000000000000000001000000"
+            "00000000000000000200000000000000010000000200000000000000"
+            "00000000000000000100000000000000000000000100000000000000"
+            "01000000020000000000000000000000000000000100000001000000"
+            "00000000010000000000000001000000020000000000000000000000"
+            "01000000000000000100000001000000010000000000000001000000"
+            "03000000000000000100000001000000000000000000000001000000"
+            "000000000000000a000000000000000a3d4ccccd"
+        )
+        blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        for i in range(0, 10):
+            tmp = "this is a test {0}".format(i)
+            blm.add(tmp)
+
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
+            blm.export_c_header(fobj.name)
+
+            # now load the file, parse it and do some tests!
+            with open(fobj.name, "r") as fobj:
+                data = fobj.readlines()
+
+        data = [x.strip() for x in data]
+
+        self.assertEqual("/* BloomFilter Export of a CountingBloomFilter */", data[0])
+        self.assertEqual("#include <inttypes.h>", data[1])
+        self.assertEqual("const uint64_t estimated_elements = {};".format(blm.estimated_elements), data[2])
+        self.assertEqual("const uint64_t elements_added = {};".format(blm.elements_added), data[3])
+        self.assertEqual("const float false_positive_rate = {};".format(blm.false_positive_rate), data[4])
+        self.assertEqual("const uint64_t number_bits = {};".format(blm.number_bits), data[5])
+        self.assertEqual("const unsigned int number_hashes = {};".format(blm.number_hashes), data[6])
+        self.assertEqual("const unsigned char bloom[] = {", data[7])
+        self.assertEqual("};", data[-1])
+
+        # rebuild the hex version!
+        new_hex = "".join([x.strip().replace("0x", "") for x in " ".join(data[8:-1]).split(",")])
+        self.assertEqual(hex_val, new_hex)
+
     def test_cbf_export_size(self):
         """test the size of the exported file"""
         blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)

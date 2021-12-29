@@ -381,7 +381,7 @@ class CountMinSketch(object):
         elif self.elements_added < INT64_T_MIN:
             self.__elements_added = INT64_T_MIN
 
-    def __load(self, file: typing.Union[Path, str, IOBase]):
+    def __load(self, file: typing.Union[Path, str, IOBase, mmap]):
         """load the count-min sketch from file"""
         if not isinstance(file, (IOBase, mmap)):
             file = Path(file)

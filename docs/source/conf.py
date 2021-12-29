@@ -42,6 +42,9 @@ extensions = [
     "sphinx.ext.todo",
 ]
 
+# Turn off typehints in discription
+autodoc_typehints = "description"
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
 
@@ -55,8 +58,8 @@ source_suffix = ".rst"
 master_doc = "index"
 
 # General information about the project.
-project = u"probables"
-copyright = u"2017, Tyler Barrus"
+project = "probables"
+copyright = "2017, Tyler Barrus"
 author = probables.__author__
 
 # The version info for the project you're documenting, acts as replacement for
@@ -137,8 +140,8 @@ latex_documents = [
     (
         master_doc,
         "pyprobables.tex",
-        u"pyprobables Documentation",
-        u"Tyler Barrus",
+        "pyprobables Documentation",
+        "Tyler Barrus",
         "manual",
     ),
 ]
@@ -148,7 +151,7 @@ latex_documents = [
 
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
-man_pages = [(master_doc, "pyprobables", u"pyprobables Documentation", [author], 1)]
+man_pages = [(master_doc, "pyprobables", "pyprobables Documentation", [author], 1)]
 
 
 # -- Options for Texinfo output -------------------------------------------
@@ -160,7 +163,7 @@ texinfo_documents = [
     (
         master_doc,
         "pyprobables",
-        u"pyprobables Documentation",
+        "pyprobables Documentation",
         author,
         "pyprobables",
         "One line description of project.",

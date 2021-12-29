@@ -319,14 +319,17 @@ class CuckooFilter(object):
         # if we got here we have an error... we might need to know what is left
         return fingerprint
 
-    def _load(self, filename: typing.Union[Path, str]) -> None:
+    def _load(self, file: typing.Union[Path, str, IOBase, mmap]) -> None:
         """load a cuckoo filter from file"""
-        filename = Path(filename)
-        with MMap(filename) as d:
-            self._parse_footer(d)
+        if not isinstance(file, (IOBase, mmap)):
+            file = Path(file)
+            with MMap(file) as filepointer:
+                self._load(filepointer)
+        else:
+            self._parse_footer(file)  # type: ignore
             self._inserted_elements = 0
             # now pull everything in!
-            self._parse_buckets(d)
+            self._parse_buckets(file)  # type: ignore
 
     SINGLE_INT_C = "I"
     SINGLE_INT_SIZE = calcsize(SINGLE_INT_C)
