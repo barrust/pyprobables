@@ -226,7 +226,10 @@ class BaseBloom(object):
     HEADER_STRUCT_BE = Struct(">" + HEADER_STRUCT_FORMAT)
 
     def __load(
-        self, blm_type: str, file: typing.Union[Path, str, IOBase], hash_function: typing.Optional[HashFuncT] = None
+        self,
+        blm_type: str,
+        file: typing.Union[Path, str, IOBase, mmap],
+        hash_function: typing.Optional[HashFuncT] = None,
     ) -> None:
         """load the Bloom Filter from file"""
         # read in the needed information, and then call _set_optimized_params
@@ -290,7 +293,7 @@ class BaseBloom(object):
             self.false_positive_rate,
         )
         if self.__blm_type in ["regular", "reg-ondisk"]:
-            bytes_string = hexlify(bytearray(self.bloom)) + hexlify(mybytes)
+            bytes_string = hexlify(bytearray(self.bloom[: self.bloom_length])) + hexlify(mybytes)
         else:
             bytes_string = b""
             for val in self.bloom:
@@ -331,13 +334,13 @@ class BaseBloom(object):
             Args:
                 filename (str): The filename to which the Bloom Filter will \
                 be written. """
-        trailer = self.__class__.HEADER_STRUCT_BE.pack(
-            self.estimated_elements,
-            self.elements_added,
-            self.false_positive_rate,
+        data = (
+            "  " + line
+            for line in wrap(", ".join(("0x{:02x}".format(e) for e in bytearray.fromhex(self.export_hex()))), 80)
         )
-        data = ("  " + line for line in wrap(", ".join(("0x{:02x}".format(e) for e in chain(self.bloom, trailer))), 80))
+        bloom_type = "standard BloomFilter" if self.__blm_type in ("regular", "reg-ondisk") else "CountingBloomFilter"
         with open(filename, "w") as file:
+            print("/* BloomFilter Export of a {} */".format(bloom_type), file=file)
             print("#include <inttypes.h>", file=file)
             print("const uint64_t estimated_elements = ", self.estimated_elements, ";", sep="", file=file)
             print("const uint64_t elements_added = ", self.elements_added, ";", sep="", file=file)

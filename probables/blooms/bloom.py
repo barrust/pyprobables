@@ -7,6 +7,7 @@
 import mmap
 import os
 import typing
+from pathlib import Path
 from shutil import copyfile
 from struct import calcsize, pack, unpack
 
@@ -251,7 +252,7 @@ class BloomFilterOnDisk(BaseBloom):
 
     def __init__(
         self,
-        filepath: str,
+        filepath: typing.Union[str, Path],
         est_elements: typing.Optional[int] = None,
         false_positive_rate: typing.Optional[float] = None,
         hex_string: typing.Optional[str] = None,
@@ -271,7 +272,7 @@ class BloomFilterOnDisk(BaseBloom):
             pass
 
         self.__file_pointer = None
-        self.__filename = None
+        self.__filename = Path(filepath)
         self.__export_offset = calcsize("Qf")
         self._on_disk = True
 
@@ -315,7 +316,7 @@ class BloomFilterOnDisk(BaseBloom):
             self.__file_pointer.close()
             self.__file_pointer = None
 
-    def __load(self, filepath: str, hash_function: typing.Optional[HashFuncT] = None):
+    def __load(self, filepath: typing.Union[str, Path], hash_function: typing.Optional[HashFuncT] = None):
         """load the Bloom Filter on disk"""
         # read the file, set the optimal params
         # mmap everything
@@ -333,9 +334,9 @@ class BloomFilterOnDisk(BaseBloom):
         self.__file_pointer = open(filepath, "r+b")  # type: ignore
         self._bloom = mmap.mmap(self.__file_pointer.fileno(), 0)  # type: ignore
         self._on_disk = True
-        self.__filename = filepath  # type: ignore
+        self.__filename = Path(filepath)
 
-    def export(self, filename: str) -> None:  # type: ignore
+    def export(self, filename: typing.Union[str, Path]) -> None:  # type: ignore
         """ Export to disk if a different location
 
             Args:
@@ -344,9 +345,10 @@ class BloomFilterOnDisk(BaseBloom):
             Note:
                 Only exported if the filename is not the original filename """
         self.__update()
-        if filename != self.__filename:
+        filename = Path(filename)
+        if filename.name != self.__filename.name:
             # setup the new bloom filter
-            copyfile(self.__filename, filename)
+            copyfile(self.__filename.name, filename.name)
         # otherwise, nothing to do!
 
     def add_alt(self, hashes: HashResultsT) -> None:
@@ -424,15 +426,6 @@ class BloomFilterOnDisk(BaseBloom):
         if super(BloomFilterOnDisk, self)._verify_bloom_similarity(second) is False:
             return None
         return _tmp_jaccard_index(self, second)
-
-    def export_hex(self) -> str:
-        """ Export to a hex string
-
-            Raises:
-                NotSupportedError: This functionality is currently not \
-                supported """
-        msg = "`export_hex` is currently not supported by the on disk Bloom Filter"
-        raise NotSupportedError(msg)
 
     def _load_hex(self, hex_string: str, hash_function: typing.Optional[HashFuncT] = None):
         """load from hex ..."""

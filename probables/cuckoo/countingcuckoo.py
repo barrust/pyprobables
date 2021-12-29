@@ -13,6 +13,7 @@ from struct import calcsize, pack, unpack
 
 from ..exceptions import CuckooFilterFullError
 from ..hashes import KeyT, SimpleHashT
+from ..utilities import MMap
 from .cuckoo import CuckooFilter
 
 
@@ -215,25 +216,29 @@ class CountingCuckooFilter(CuckooFilter):
             return idx_2
         return None
 
-    def _load(self, filename: typing.Union[Path, str]) -> None:
+    def _load(self, file: typing.Union[Path, str, IOBase, mmap]) -> None:
         """load a cuckoo filter from file"""
-        with open(filename, "rb") as filepointer:
+        if not isinstance(file, (IOBase, mmap)):
+            file = Path(file)
+            with MMap(file) as filepointer:
+                self._load(filepointer)
+        else:
             offset = calcsize("II")
             int_size = calcsize("II")
-            filepointer.seek(offset * -1, os.SEEK_END)
-            list_size = filepointer.tell()
-            mybytes = unpack("II", filepointer.read(offset))
+            file.seek(offset * -1, os.SEEK_END)
+            list_size = file.tell()
+            mybytes = unpack("II", file.read(offset))
             self._bucket_size = mybytes[0]
             self.__max_cuckoo_swaps = mybytes[1]
             self._cuckoo_capacity = list_size // int_size // self.bucket_size
             self._inserted_elements = 0
             # now pull everything in!
-            filepointer.seek(0, os.SEEK_SET)
+            file.seek(0, os.SEEK_SET)
             self._buckets = list()
             for i in range(self.capacity):
                 self.buckets.append(list())
                 for _ in range(self.bucket_size):
-                    finger, count = unpack("II", filepointer.read(int_size))
+                    finger, count = unpack("II", file.read(int_size))
                     if finger > 0:
                         ccb = CountingCuckooBin(finger, count)
                         self.buckets[i].append(ccb)

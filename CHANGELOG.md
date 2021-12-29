@@ -1,10 +1,18 @@
 # PyProbables Changelog
 
+### Version 0.5.3
+* Additional type hinting
+* Improved format parsing and serialization; [see PR#81](https://github.com/barrust/pyprobables/pull/81). Thanks [@KOLANICH](https://github.com/KOLANICH)
+* Bloom Filters
+    * Added `export_to_hex` functionality for Bloom Filters on Disk
+    * Export as C header (**\*.h**) for Bloom Filters on Disk and Counting Bloom Filters
+* Added support for more input types for exporting and loading of saved files
+
+
 ### Version 0.5.2
 * Add ability to hash bytes along with strings
 * Make all tests files individually executable from the CLI. Thanks [@KOLANICH](https://github.com/KOLANICH)
 * Added type hints
-
 
 ### Version 0.5.1
 * Bloom Filter:
