@@ -1,5 +1,9 @@
 # PyProbables Changelog
 
+### Future Version
+* Cuckoo Filters:
+    * Added `fingerprint_size_bits` property
+
 ### Version 0.5.3
 * Additional type hinting
 * Improved format parsing and serialization; [see PR#81](https://github.com/barrust/pyprobables/pull/81). Thanks [@KOLANICH](https://github.com/KOLANICH)

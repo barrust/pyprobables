@@ -79,7 +79,7 @@ class CuckooFilter(object):
         self.expansion_rate = expansion_rate
         self.__auto_expand = True
         self.auto_expand = auto_expand
-        self.__fingerprint_size = None
+        self.__fingerprint_size = 4
         self.fingerprint_size = finger_size
 
         if hash_function is None:
@@ -183,6 +183,11 @@ class CuckooFilter(object):
     def auto_expand(self, val: bool):
         """set the self expand value"""
         self.__auto_expand = bool(val)
+
+    @property
+    def fingerprint_size_bits(self) -> int:
+        """int: The size in bits of the fingerprint"""
+        return self.__fingerprint_size
 
     @property
     def fingerprint_size(self) -> int:
@@ -417,7 +422,7 @@ class CuckooFilter(object):
         """
         # generate the fingerprint along with the two possible indecies
         hash_val = self.__hash_func(key)
-        fingerprint = get_x_bits(hash_val, 64, self.__fingerprint_size, True)
+        fingerprint = get_x_bits(hash_val, 64, self.fingerprint_size_bits, True)
         idx_1, idx_2 = self._indicies_from_fingerprint(fingerprint)
 
         # NOTE: This should never happen...
