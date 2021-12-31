@@ -8,11 +8,9 @@ import math
 import random
 import typing
 from collections.abc import ByteString
-from decimal import Decimal
 from io import BytesIO, IOBase
 from mmap import mmap
 from numbers import Number
-from os import error
 from pathlib import Path
 from struct import Struct, calcsize, pack
 
