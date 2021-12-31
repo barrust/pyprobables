@@ -4,13 +4,15 @@
 """
 
 import array
-import os
+import math
 import random
 import typing
 from collections.abc import ByteString
+from decimal import Decimal
 from io import BytesIO, IOBase
 from mmap import mmap
 from numbers import Number
+from os import error
 from pathlib import Path
 from struct import Struct, calcsize, pack
 
@@ -31,7 +33,7 @@ class CuckooFilter(object):
             finger_size (int): The size of the fingerprint to use in bytes \
             (between 1 and 4); exported as 4 bytes; up to the user to reset \
             the size correctly on import
-            filename (str): The path to the file to load or None if no file
+            filepath (str): The path to the file to load or None if no file
             hash_function (function): Hashing strategy function to use \
             `hf(key)`
         Returns:
@@ -43,10 +45,11 @@ class CuckooFilter(object):
         "__max_cuckoo_swaps",
         "__expansion_rate",
         "__auto_expand",
-        "__fingerprint_size",
+        "_fingerprint_size",
         "__hash_func",
         "_inserted_elements",
         "_buckets",
+        "_error_rate",
     ]
 
     def __init__(
@@ -58,7 +61,7 @@ class CuckooFilter(object):
         auto_expand: bool = True,
         finger_size: int = 4,
         filepath: typing.Optional[str] = None,
-        hash_function: typing.Optional[SimpleHashT] = None,  # this is incorrect
+        hash_function: typing.Optional[SimpleHashT] = None,
     ):
         """setup the data structure"""
         valid_prms = (
@@ -75,11 +78,11 @@ class CuckooFilter(object):
         self._bucket_size = int(bucket_size)
         self._cuckoo_capacity = int(capacity)
         self.__max_cuckoo_swaps = int(max_swaps)
-        self.__expansion_rate = None
+        self.__expansion_rate = 2
         self.expansion_rate = expansion_rate
         self.__auto_expand = True
         self.auto_expand = auto_expand
-        self.__fingerprint_size = 4
+        self._fingerprint_size = 32
         self.fingerprint_size = finger_size
 
         if hash_function is None:
@@ -96,6 +99,62 @@ class CuckooFilter(object):
         else:
             msg = "CuckooFilter: failed to load provided file"
             raise InitializationError(msg)
+
+        self._error_rate = self._calc_error_rate()
+
+    @classmethod
+    def init_error_rate(
+        cls,
+        error_rate: float,
+        capacity: int = 10000,
+        bucket_size: int = 4,
+        max_swaps: int = 500,
+        expansion_rate: int = 2,
+        auto_expand: bool = True,
+        hash_function: typing.Optional[SimpleHashT] = None,
+    ):
+        """Initialize a simple Cuckoo Filter based on error rate
+
+        Args:
+            error_rate (float):
+            capacity (int): The number of bins
+            bucket_size (int): The number of buckets per bin
+            max_swaps (int): The number of cuckoo swaps before stopping
+            expansion_rate (int): The rate at which to expand
+            auto_expand (bool): If the filter should automatically expand
+            hash_function (function): Hashing strategy function to use \
+            `hf(key)`
+        Returns:
+            CuckooFilter: A Cuckoo Filter object"""
+        cku = CuckooFilter(
+            capacity=capacity,
+            bucket_size=bucket_size,
+            auto_expand=auto_expand,
+            max_swaps=max_swaps,
+            expansion_rate=expansion_rate,
+            hash_function=hash_function,
+        )
+        # reset fingerprint based on error rate
+        cku._fingerprint_size = int(math.ceil(math.log(1.0 / error_rate, 2) + math.log(2 * cku.bucket_size, 2)))
+        cku._error_rate = error_rate
+        return cku
+
+    @classmethod
+    def load_error_rate(cls, error_rate: float, filepath: str, hash_function: typing.Optional[SimpleHashT] = None):
+        """Initialize a previously exported Cuckoo Filter based on error rate
+
+        Args:
+            error_rate (float):
+            filepath (str): The path to the file to load or None if no file
+            hash_function (function): Hashing strategy function to use \
+            `hf(key)`
+        Returns:
+            CuckooFilter: A Cuckoo Filter object
+        """
+        cku = CuckooFilter(filepath=filepath, hash_function=hash_function)
+        cku._fingerprint_size = int(math.ceil(math.log(1.0 / error_rate, 2) + math.log(2 * cku.bucket_size, 2)))
+        cku._error_rate = error_rate
+        return cku
 
     def __contains__(self, key: KeyT) -> bool:
         """setup the `in` keyword"""
@@ -175,6 +234,11 @@ class CuckooFilter(object):
         self.__expansion_rate = int(val)
 
     @property
+    def error_rate(self) -> float:
+        """float: The error rate of the cuckoo filter"""
+        return self._error_rate
+
+    @property
     def auto_expand(self) -> bool:
         """bool: True if the cuckoo filter will expand automatically"""
         return self.__auto_expand
@@ -187,7 +251,7 @@ class CuckooFilter(object):
     @property
     def fingerprint_size_bits(self) -> int:
         """int: The size in bits of the fingerprint"""
-        return self.__fingerprint_size
+        return self._fingerprint_size
 
     @property
     def fingerprint_size(self) -> int:
@@ -197,7 +261,7 @@ class CuckooFilter(object):
             ValueError: If the size is not between 1 and 4
         Note:
             The size of the fingerprint must be between 1 and 4"""
-        return self.__fingerprint_size // 8
+        return math.ceil(self.fingerprint_size_bits / 8)
 
     @fingerprint_size.setter
     def fingerprint_size(self, val: int):
@@ -207,7 +271,8 @@ class CuckooFilter(object):
             msg = ("{}: fingerprint size must be between 1 and 4").format(self.__class__.__name__)
             raise ValueError(msg)
         # bytes to bits
-        self.__fingerprint_size = tmp * 8  # type: ignore
+        self._fingerprint_size = tmp * 8  # type: ignore
+        self._calc_error_rate()  # if updating fingerprint size then error rate may change
 
     def load_factor(self) -> float:
         """float: How full the Cuckoo Filter is currently"""
@@ -440,3 +505,6 @@ class CuckooFilter(object):
         else:
             msg = "The {} is currently full".format(self.__class__.__name__)
             raise CuckooFilterFullError(msg)
+
+    def _calc_error_rate(self):
+        return float(1 / (2 ** (self.fingerprint_size_bits - math.log(2 * self.bucket_size, 2))))
