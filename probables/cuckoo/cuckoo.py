@@ -100,7 +100,7 @@ class CuckooFilter(object):
             msg = "CuckooFilter: failed to load provided file"
             raise InitializationError(msg)
 
-        self._error_rate = self._calc_error_rate()
+        self._error_rate = float(self._calc_error_rate())
 
     @classmethod
     def init_error_rate(
