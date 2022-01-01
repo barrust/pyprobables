@@ -3,7 +3,6 @@
     Author: Tyler Barrus (barrust@gmail.com)
 """
 
-import math
 import os
 import random
 import typing
