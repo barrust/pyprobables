@@ -132,7 +132,6 @@ class CuckooFilter(object):
             expansion_rate=expansion_rate,
             hash_function=hash_function,
         )
-        # reset fingerprint based on error rate
         cku._error_rate = error_rate
         cku._fingerprint_size = cku._calc_fingerprint_size()
         return cku
@@ -505,7 +504,9 @@ class CuckooFilter(object):
             raise CuckooFilterFullError(msg)
 
     def _calc_error_rate(self):
-        return float(1 / (2 ** (self.fingerprint_size_bits - math.log(2 * self.bucket_size, 2))))
+        """calculate error rate based on fingerprint size (bits) and bucket size"""
+        return float(1 / (2 ** (self.fingerprint_size_bits - (math.log2(self.bucket_size) + 1))))
 
     def _calc_fingerprint_size(self) -> int:
-        return int(math.ceil(math.log(1.0 / self.error_rate, 2) + math.log(2 * self.bucket_size, 2)))
+        """calculate fingerprint size (bits) based on error rate and bucket size"""
+        return int(math.ceil(math.log2(1.0 / self.error_rate) + math.log2(self.bucket_size) + 1))
