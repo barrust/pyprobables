@@ -100,9 +100,8 @@ class CountingCuckooFilter(CuckooFilter):
             expansion_rate=expansion_rate,
             hash_function=hash_function,
         )
-        # reset fingerprint based on error rate
-        cku._fingerprint_size = int(math.ceil(math.log(1.0 / error_rate, 2) + math.log(2 * cku.bucket_size, 2)))
         cku._error_rate = error_rate
+        cku._fingerprint_size = cku._calc_fingerprint_size()
         return cku
 
     @classmethod
@@ -118,8 +117,8 @@ class CountingCuckooFilter(CuckooFilter):
             CuckooFilter: A Cuckoo Filter object
         """
         cku = CountingCuckooFilter(filepath=filepath, hash_function=hash_function)
-        cku._fingerprint_size = int(math.ceil(math.log(1.0 / error_rate, 2) + math.log(2 * cku.bucket_size, 2)))
         cku._error_rate = error_rate
+        cku._fingerprint_size = cku._calc_fingerprint_size()
         return cku
 
     def __contains__(self, val: KeyT) -> bool:
