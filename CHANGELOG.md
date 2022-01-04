@@ -3,6 +3,10 @@
 ### Future Version
 * Cuckoo Filters:
     * Added `fingerprint_size_bits` property
+    * Added `error_rate` property
+    * Added ability to initialize based on error rate
+* Simplified typing
+* Ensure all `filepaths` can be `str` or `Path`
 
 ### Version 0.5.3
 * Additional type hinting
