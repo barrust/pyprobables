@@ -231,6 +231,18 @@ Import a Cuckoo Filter
     >>> ccf2 = CuckooFilter(filepath='war_and_peace.cko')
     >>> print(ccf2.check('fleches'))  # prints True
 
+Cuckoo Filters based on Error Rate
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+To use error rate to initialize a Cuckoo Filter, there are class methods that can be used.
+`init_error_rate()` can be used to initialize a Cuckoo Filter that has not been exported, and
+`load_error_rate()` can be used to load in a previously exported Cuckoo Filter that used error rate
+to determine the parameters.
+
+.. code:: python3
+
+    >>> cko = CuckooFilter.init_error_rate(0.00001)
+    >>> cko.export('war_and_peace.cko')
+    >>> ckf = CuckooFilter.load_error_rate(0.00001)
 
 Other Cuckoo Filters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

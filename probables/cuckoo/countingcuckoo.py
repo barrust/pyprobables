@@ -40,6 +40,7 @@ class CountingCuckooFilter(CuckooFilter):
         "__max_cuckoo_swaps",
         "_cuckoo_capacity",
         "_buckets",
+        "_fingerprint_size",
     ]
 
     def __init__(
@@ -65,6 +66,59 @@ class CountingCuckooFilter(CuckooFilter):
             filepath,
             hash_function,
         )
+
+    @classmethod
+    def init_error_rate(
+        cls,
+        error_rate: float,
+        capacity: int = 10000,
+        bucket_size: int = 4,
+        max_swaps: int = 500,
+        expansion_rate: int = 2,
+        auto_expand: bool = True,
+        hash_function: typing.Optional[SimpleHashT] = None,
+    ):
+        """Initialize a simple Cuckoo Filter based on error rate
+
+        Args:
+            error_rate (float):
+            capacity (int): The number of bins
+            bucket_size (int): The number of buckets per bin
+            max_swaps (int): The number of cuckoo swaps before stopping
+            expansion_rate (int): The rate at which to expand
+            auto_expand (bool): If the filter should automatically expand
+            hash_function (function): Hashing strategy function to use \
+            `hf(key)`
+        Returns:
+            CuckooFilter: A Cuckoo Filter object"""
+        cku = CountingCuckooFilter(
+            capacity=capacity,
+            bucket_size=bucket_size,
+            auto_expand=auto_expand,
+            max_swaps=max_swaps,
+            expansion_rate=expansion_rate,
+            hash_function=hash_function,
+        )
+        cku._error_rate = error_rate
+        cku._fingerprint_size = cku._calc_fingerprint_size()
+        return cku
+
+    @classmethod
+    def load_error_rate(cls, error_rate: float, filepath: str, hash_function: typing.Optional[SimpleHashT] = None):
+        """Initialize a previously exported Cuckoo Filter based on error rate
+
+        Args:
+            error_rate (float):
+            filepath (str): The path to the file to load or None if no file
+            hash_function (function): Hashing strategy function to use \
+            `hf(key)`
+        Returns:
+            CuckooFilter: A Cuckoo Filter object
+        """
+        cku = CountingCuckooFilter(filepath=filepath, hash_function=hash_function)
+        cku._error_rate = error_rate
+        cku._fingerprint_size = cku._calc_fingerprint_size()
+        return cku
 
     def __contains__(self, val: KeyT) -> bool:
         """setup the `in` keyword"""

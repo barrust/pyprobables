@@ -283,5 +283,115 @@ class TestCountingCuckooFilter(unittest.TestCase):
         self.assertEqual(str(cko), msg)
 
 
+class TestCuckooFilterErrorRate(unittest.TestCase):
+    def test_c_cuckoo_filter_er_default(self):
+        """test cuckoo filter default properties"""
+        cko = CountingCuckooFilter.init_error_rate(0.00001)
+        self.assertEqual(10000, cko.capacity)
+        self.assertEqual(4, cko.bucket_size)
+        self.assertEqual(500, cko.max_swaps)
+        self.assertEqual(2, cko.expansion_rate)
+        self.assertEqual(True, cko.auto_expand)
+        self.assertEqual(3, cko.fingerprint_size)
+        self.assertEqual(20, cko.fingerprint_size_bits)
+        self.assertEqual(0.00001, cko.error_rate)
+
+    def test_c_cuckoo_filter_er_add_check(self):
+        """test adding to the cuckoo filter"""
+        cko = CountingCuckooFilter.init_error_rate(0.00001)
+        cko.add("this is a test")
+        self.assertEqual(cko.elements_added, 1)
+        cko.add("this is another test")
+        self.assertEqual(cko.elements_added, 2)
+        cko.add("this is yet another test")
+        self.assertEqual(cko.elements_added, 3)
+
+        # check
+        self.assertEqual(cko.check("this is a test"), True)
+        self.assertEqual(cko.check("this is another test"), True)
+        self.assertEqual(cko.check("this is yet another test"), True)
+        self.assertEqual(cko.check("this is not another test"), False)
+        self.assertEqual(cko.check("this is not a test"), False)
+
+        # use of `in`
+        self.assertEqual("this is a test" in cko, True)
+        self.assertEqual("this is another test" in cko, True)
+        self.assertEqual("this is yet another test" in cko, True)
+        self.assertEqual("this is not another test" in cko, False)
+        self.assertEqual("this is not a test" in cko, False)
+
+    def test_c_cuckoo_filter_er_export(self):
+        """test exporting a cuckoo filter"""
+        md5sum = "f68767bd97b21426f5d2315fb38961ad"
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".cko", delete=DELETE_TEMP_FILES) as fobj:
+            cko = CountingCuckooFilter.init_error_rate(0.00001)
+            for i in range(1000):
+                cko.add(str(i))
+            cko.export(fobj.name)
+            md5_out = calc_file_md5(fobj.name)
+            self.assertEqual(md5sum, md5_out)
+
+    def test_c_cuckoo_filter_load(self):
+        """test loading a saved cuckoo filter"""
+        md5sum = "88bc3a08bfc967f9ba60e9d57c21207f"
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".cko", delete=DELETE_TEMP_FILES) as fobj:
+            cko = CountingCuckooFilter.init_error_rate(0.00001)
+            for i in range(1000):
+                cko.add(str(i))
+                if i % 2 == 1:
+                    cko.add(str(i))
+            cko.export(fobj.name)
+            md5_out = calc_file_md5(fobj.name)
+            self.assertEqual(md5sum, md5_out)
+
+            ckf = CountingCuckooFilter.load_error_rate(error_rate=0.00001, filepath=fobj.name)
+            for i in range(1000):
+                self.assertEqual(ckf.check(str(i)), (i % 2) + 1)
+
+            self.assertEqual(10000, ckf.capacity)
+            self.assertEqual(4, ckf.bucket_size)
+            self.assertEqual(500, ckf.max_swaps)
+            self.assertEqual(2, ckf.expansion_rate)
+            self.assertEqual(True, ckf.auto_expand)
+            self.assertEqual(20, ckf.fingerprint_size_bits)
+            self.assertEqual(3, ckf.fingerprint_size)
+            self.assertEqual(0.00001, ckf.error_rate)
+            self.assertEqual(0.025, ckf.load_factor())
+
+    def test_c_cuckoo_filter_er_bytes(self):
+        """test exporting a cuckoo filter to bytes"""
+        md5sum = "f68767bd97b21426f5d2315fb38961ad"
+        cko = CountingCuckooFilter.init_error_rate(0.00001)
+        for i in range(1000):
+            cko.add(str(i))
+        md5_out = hashlib.md5(bytes(cko)).hexdigest()
+        self.assertEqual(md5sum, md5_out)
+
+    def test_c_cuckoo_filter_er_remove(self):
+        """test removing from the counting cuckoo filter"""
+        cko = CountingCuckooFilter.init_error_rate(0.00001)
+        cko.add("this is a test")
+        self.assertEqual(cko.elements_added, 1)
+        cko.add("this is another test")
+        self.assertEqual(cko.elements_added, 2)
+        cko.add("this is yet another test")
+        self.assertEqual(cko.elements_added, 3)
+        self.assertEqual(cko.unique_elements, 3)
+        cko.add("this is a test")
+        cko.add("this is a test")
+        cko.add("this is a test")
+        self.assertEqual(cko.elements_added, 6)
+        self.assertEqual(cko.unique_elements, 3)
+
+        res = cko.remove("this is another test")
+        self.assertTrue(res)
+        self.assertEqual(cko.elements_added, 5)
+        self.assertEqual(cko.unique_elements, 2)
+
+        self.assertTrue(cko.check("this is a test"))
+        self.assertFalse(cko.check("this is another test"))
+        self.assertTrue(cko.check("this is yet another test"))
+
+
 if __name__ == "__main__":
     unittest.main()
