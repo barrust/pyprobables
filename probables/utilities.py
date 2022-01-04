@@ -2,7 +2,6 @@
 
 import array
 import mmap
-import os
 import string
 from pathlib import Path
 from typing import Iterable, Union
