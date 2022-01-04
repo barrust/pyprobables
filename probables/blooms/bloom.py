@@ -345,10 +345,11 @@ class BloomFilterOnDisk(BaseBloom):
             Note:
                 Only exported if the filename is not the original filename """
         self.__update()
-        filename = Path(filename)
-        if filename.name != self.__filename.name:
+        if filename and Path(filename).exists():
+            filename = Path(filename).name
+        if filename != self.__filename:
             # setup the new bloom filter
-            copyfile(self.__filename.name, filename.name)
+            copyfile(self.__filename.name, str(filename))
         # otherwise, nothing to do!
 
     def add_alt(self, hashes: HashResultsT) -> None:

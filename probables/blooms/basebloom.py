@@ -326,7 +326,7 @@ class BaseBloom(object):
             self.export(f)
             return f.getvalue()
 
-    def export_c_header(self, filename: str) -> None:
+    def export_c_header(self, filename: Union[str, Path]) -> None:
         """ Export the Bloom Filter to disk as a C header file.
 
             Args:

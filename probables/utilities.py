@@ -19,7 +19,7 @@ def is_valid_file(filepath: Union[str, Path, None]) -> bool:
     """check if the passed filepath points to a real file"""
     if filepath is None:
         return False
-    return os.path.isfile(filepath)
+    return Path(filepath).exists()
 
 
 def get_x_bits(num: int, max_bits: int, num_bits: int, right_bits: bool = True) -> int:
