@@ -48,7 +48,7 @@ class ExpandingBloomFilter(object):
         self,
         est_elements: Union[int, None] = None,
         false_positive_rate: Union[float, None] = None,
-        filepath: Union[str, None] = None,
+        filepath: Union[str, Path, None] = None,
         hash_function: Union[HashFuncT, None] = None,
     ):
         """initialize"""
@@ -256,7 +256,7 @@ class RotatingBloomFilter(ExpandingBloomFilter):
         est_elements: Union[int, None] = None,
         false_positive_rate: Union[float, None] = None,
         max_queue_size: int = 10,
-        filepath: Union[str, None] = None,
+        filepath: Union[str, Path, None] = None,
         hash_function: Union[HashFuncT, None] = None,
     ) -> None:
         """initialize"""

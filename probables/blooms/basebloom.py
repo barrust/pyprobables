@@ -42,7 +42,7 @@ class BaseBloom(object):
         blm_type: str,
         est_elements: Union[int, None] = None,
         false_positive_rate: Union[float, None] = None,
-        filepath: Union[str, None] = None,
+        filepath: Union[str, Path, None] = None,
         hex_string: Union[str, None] = None,
         hash_function: Union[HashFuncT, None] = None,
     ) -> None:

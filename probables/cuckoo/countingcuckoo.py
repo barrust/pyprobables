@@ -51,7 +51,7 @@ class CountingCuckooFilter(CuckooFilter):
         expansion_rate: int = 2,
         auto_expand: bool = True,
         finger_size: int = 4,
-        filepath: Union[str, None] = None,
+        filepath: Union[str, Path, None] = None,
         hash_function: Union[SimpleHashT, None] = None,  # this is INCORRECT!
     ) -> None:
         """setup the data structure"""
@@ -104,7 +104,9 @@ class CountingCuckooFilter(CuckooFilter):
         return cku
 
     @classmethod
-    def load_error_rate(cls, error_rate: float, filepath: str, hash_function: Union[SimpleHashT, None] = None):
+    def load_error_rate(
+        cls, error_rate: float, filepath: Union[str, Path], hash_function: Union[SimpleHashT, None] = None
+    ):
         """Initialize a previously exported Cuckoo Filter based on error rate
 
         Args:

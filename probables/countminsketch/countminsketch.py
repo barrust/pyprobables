@@ -473,7 +473,7 @@ class CountMeanSketch(CountMinSketch):
         depth: Union[int, None] = None,
         confidence: Union[float, None] = None,
         error_rate: Union[float, None] = None,
-        filepath: str = None,
+        filepath: Union[str, Path, None] = None,
         hash_function: Union[HashFuncT, None] = None,
     ) -> None:
         super(CountMeanSketch, self).__init__(width, depth, confidence, error_rate, filepath, hash_function)
@@ -514,7 +514,7 @@ class CountMeanMinSketch(CountMinSketch):
         depth: Union[int, None] = None,
         confidence: Union[float, None] = None,
         error_rate: Union[float, None] = None,
-        filepath: Union[str, None] = None,
+        filepath: Union[str, Path, None] = None,
         hash_function: Union[HashFuncT, None] = None,
     ) -> None:
         super(CountMeanMinSketch, self).__init__(width, depth, confidence, error_rate, filepath, hash_function)
@@ -681,7 +681,7 @@ class StreamThreshold(CountMinSketch):
         depth: Union[int, None] = None,
         confidence: Union[float, None] = None,
         error_rate: Union[float, None] = None,
-        filepath: Union[str, None] = None,
+        filepath: Union[str, Path, None] = None,
         hash_function: Union[HashFuncT, None] = None,
     ) -> None:
         super(StreamThreshold, self).__init__(width, depth, confidence, error_rate, filepath, hash_function)
