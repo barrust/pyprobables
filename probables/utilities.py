@@ -2,24 +2,23 @@
 
 import array
 import mmap
-import os
 import string
 from pathlib import Path
-from typing import Iterable, Optional, Union
+from typing import Iterable, Union
 
 
-def is_hex_string(hex_string: Optional[str]) -> bool:
+def is_hex_string(hex_string: Union[str, None]) -> bool:
     """check if the passed in string is really hex"""
     if hex_string is None:
         return False
     return all(c in string.hexdigits for c in hex_string)
 
 
-def is_valid_file(filepath: Optional[Union[str, Path]]) -> bool:
+def is_valid_file(filepath: Union[str, Path, None]) -> bool:
     """check if the passed filepath points to a real file"""
     if filepath is None:
         return False
-    return os.path.isfile(filepath)
+    return Path(filepath).exists()
 
 
 def get_x_bits(num: int, max_bits: int, num_bits: int, right_bits: bool = True) -> int:

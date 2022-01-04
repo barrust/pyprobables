@@ -4,7 +4,8 @@
     URL: https://github.com/barrust/counting_bloom
 """
 
-import typing
+from pathlib import Path
+from typing import Union
 
 from ..constants import UINT32_T_MAX, UINT64_T_MAX
 from ..hashes import HashFuncT, HashResultsT, KeyT
@@ -45,11 +46,11 @@ class CountingBloomFilter(BaseBloom):
 
     def __init__(
         self,
-        est_elements: typing.Optional[int] = None,
-        false_positive_rate: typing.Optional[float] = None,
-        filepath: typing.Optional[str] = None,
-        hex_string: typing.Optional[str] = None,
-        hash_function: typing.Optional[HashFuncT] = None,
+        est_elements: Union[int, None] = None,
+        false_positive_rate: Union[float, None] = None,
+        filepath: Union[str, Path, None] = None,
+        hex_string: Union[str, None] = None,
+        hash_function: Union[HashFuncT, None] = None,
     ) -> None:
         """setup the basic values needed"""
         super(CountingBloomFilter, self).__init__(
@@ -246,7 +247,7 @@ class CountingBloomFilter(BaseBloom):
         res.elements_added = res.estimate_elements()
         return res
 
-    def jaccard_index(self, second: "CountingBloomFilter") -> typing.Optional[float]:
+    def jaccard_index(self, second: "CountingBloomFilter") -> Union[float, None]:
         """ Take the Jaccard Index of two Counting Bloom Filters
 
             Args:
@@ -280,7 +281,7 @@ class CountingBloomFilter(BaseBloom):
             return 1.0
         return count_inter / count_union
 
-    def union(self, second: "CountingBloomFilter") -> typing.Optional["CountingBloomFilter"]:
+    def union(self, second: "CountingBloomFilter") -> Union["CountingBloomFilter", None]:
         """ Return a new Countiong Bloom Filter that contains the union of
             the two
 

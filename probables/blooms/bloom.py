@@ -6,10 +6,10 @@
 
 import mmap
 import os
-import typing
 from pathlib import Path
 from shutil import copyfile
 from struct import calcsize, pack, unpack
+from typing import Union
 
 from ..exceptions import InitializationError, NotSupportedError
 from ..hashes import HashFuncT, HashResultsT
@@ -18,7 +18,7 @@ from .basebloom import BaseBloom
 
 MISMATCH_MSG = "The parameter second must be of type BloomFilter or a BloomFilterOnDisk"
 
-SimpleBloomT = typing.Union["BloomFilter", "BloomFilterOnDisk"]
+SimpleBloomT = Union["BloomFilter", "BloomFilterOnDisk"]
 
 
 def _verify_not_type_mismatch(second: SimpleBloomT) -> bool:
@@ -98,11 +98,11 @@ class BloomFilter(BaseBloom):
 
     def __init__(
         self,
-        est_elements: typing.Optional[int] = None,
-        false_positive_rate: typing.Optional[float] = None,
-        filepath: typing.Optional[str] = None,
-        hex_string: typing.Optional[str] = None,
-        hash_function: typing.Optional[HashFuncT] = None,
+        est_elements: Union[int, None] = None,
+        false_positive_rate: Union[float, None] = None,
+        filepath: Union[str, Path, None] = None,
+        hex_string: Union[str, None] = None,
+        hash_function: Union[HashFuncT, None] = None,
     ) -> None:
         """setup the basic values needed"""
         super(BloomFilter, self).__init__(
@@ -145,7 +145,7 @@ class BloomFilter(BaseBloom):
             on_disk,
         )
 
-    def intersection(self, second: SimpleBloomT) -> typing.Optional["BaseBloom"]:
+    def intersection(self, second: SimpleBloomT) -> Union["BaseBloom", None]:
         """ Return a new Bloom Filter that contains the intersection of the
             two
 
@@ -170,7 +170,7 @@ class BloomFilter(BaseBloom):
 
         return _tmp_intersection(self, second)
 
-    def union(self, second: SimpleBloomT) -> typing.Optional["BaseBloom"]:
+    def union(self, second: SimpleBloomT) -> Union["BaseBloom", None]:
         """ Return a new Bloom Filter that contains the union of the two
 
             Args:
@@ -194,7 +194,7 @@ class BloomFilter(BaseBloom):
 
         return _tmp_union(self, second)
 
-    def jaccard_index(self, second: SimpleBloomT) -> typing.Optional[float]:
+    def jaccard_index(self, second: SimpleBloomT) -> Union[float, None]:
         """ Calculate the jaccard similarity score between two Bloom Filters
 
             Args:
@@ -252,11 +252,11 @@ class BloomFilterOnDisk(BaseBloom):
 
     def __init__(
         self,
-        filepath: typing.Union[str, Path],
-        est_elements: typing.Optional[int] = None,
-        false_positive_rate: typing.Optional[float] = None,
-        hex_string: typing.Optional[str] = None,
-        hash_function: typing.Optional[HashFuncT] = None,
+        filepath: Union[str, Path],
+        est_elements: Union[int, None] = None,
+        false_positive_rate: Union[float, None] = None,
+        hex_string: Union[str, None] = None,
+        hash_function: Union[HashFuncT, None] = None,
     ) -> None:
         # since we cannot load from a file only (to memory), we can't pass
         # the file to the constructor; therefore, we will have to catch
@@ -316,7 +316,7 @@ class BloomFilterOnDisk(BaseBloom):
             self.__file_pointer.close()
             self.__file_pointer = None
 
-    def __load(self, filepath: typing.Union[str, Path], hash_function: typing.Optional[HashFuncT] = None):
+    def __load(self, filepath: Union[str, Path], hash_function: Union[HashFuncT, None] = None):
         """load the Bloom Filter on disk"""
         # read the file, set the optimal params
         # mmap everything
@@ -336,7 +336,7 @@ class BloomFilterOnDisk(BaseBloom):
         self._on_disk = True
         self.__filename = Path(filepath)
 
-    def export(self, filename: typing.Union[str, Path]) -> None:  # type: ignore
+    def export(self, filename: Union[str, Path]) -> None:  # type: ignore
         """ Export to disk if a different location
 
             Args:
@@ -345,17 +345,18 @@ class BloomFilterOnDisk(BaseBloom):
             Note:
                 Only exported if the filename is not the original filename """
         self.__update()
-        filename = Path(filename)
-        if filename.name != self.__filename.name:
+        if filename and Path(filename).exists():
+            filename = Path(filename).name
+        if filename != self.__filename:
             # setup the new bloom filter
-            copyfile(self.__filename.name, filename.name)
+            copyfile(self.__filename.name, str(filename))
         # otherwise, nothing to do!
 
     def add_alt(self, hashes: HashResultsT) -> None:
         super(BloomFilterOnDisk, self).add_alt(hashes)
         self.__update()
 
-    def union(self, second: SimpleBloomT) -> typing.Optional["BaseBloom"]:
+    def union(self, second: SimpleBloomT) -> Union["BaseBloom", None]:
         """ Return a new Bloom Filter that contains the union of the two
 
             Args:
@@ -379,7 +380,7 @@ class BloomFilterOnDisk(BaseBloom):
 
         return _tmp_union(self, second)
 
-    def intersection(self, second: SimpleBloomT) -> typing.Optional["BaseBloom"]:
+    def intersection(self, second: SimpleBloomT) -> Union["BaseBloom", None]:
         """ Return a new Bloom Filter that contains the intersection of the
             two
 
@@ -404,7 +405,7 @@ class BloomFilterOnDisk(BaseBloom):
 
         return _tmp_intersection(self, second)
 
-    def jaccard_index(self, second: SimpleBloomT) -> typing.Optional[float]:
+    def jaccard_index(self, second: SimpleBloomT) -> Union[float, None]:
         """ Calculate the jaccard similarity score between two Bloom Filters
 
             Args:
@@ -427,7 +428,7 @@ class BloomFilterOnDisk(BaseBloom):
             return None
         return _tmp_jaccard_index(self, second)
 
-    def _load_hex(self, hex_string: str, hash_function: typing.Optional[HashFuncT] = None):
+    def _load_hex(self, hex_string: str, hash_function: Union[HashFuncT, None] = None):
         """load from hex ..."""
         msg = "Loading from hex_string is currently not supported by the on disk Bloom Filter"
         raise NotSupportedError(msg)
