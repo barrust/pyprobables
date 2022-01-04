@@ -5,11 +5,11 @@
 
 import os
 import random
-import typing
 from io import IOBase
 from mmap import mmap
 from pathlib import Path
 from struct import calcsize, pack, unpack
+from typing import List, Union
 
 from ..exceptions import CuckooFilterFullError
 from ..hashes import KeyT, SimpleHashT
@@ -51,8 +51,8 @@ class CountingCuckooFilter(CuckooFilter):
         expansion_rate: int = 2,
         auto_expand: bool = True,
         finger_size: int = 4,
-        filepath: typing.Optional[str] = None,
-        hash_function: typing.Optional[SimpleHashT] = None,  # this is INCORRECT!
+        filepath: Union[str, None] = None,
+        hash_function: Union[SimpleHashT, None] = None,  # this is INCORRECT!
     ) -> None:
         """setup the data structure"""
         self.__unique_elements = 0
@@ -76,7 +76,7 @@ class CountingCuckooFilter(CuckooFilter):
         max_swaps: int = 500,
         expansion_rate: int = 2,
         auto_expand: bool = True,
-        hash_function: typing.Optional[SimpleHashT] = None,
+        hash_function: Union[SimpleHashT, None] = None,
     ):
         """Initialize a simple Cuckoo Filter based on error rate
 
@@ -104,7 +104,7 @@ class CountingCuckooFilter(CuckooFilter):
         return cku
 
     @classmethod
-    def load_error_rate(cls, error_rate: float, filepath: str, hash_function: typing.Optional[SimpleHashT] = None):
+    def load_error_rate(cls, error_rate: float, filepath: str, hash_function: Union[SimpleHashT, None] = None):
         """Initialize a previously exported Cuckoo Filter based on error rate
 
         Args:
@@ -132,7 +132,7 @@ class CountingCuckooFilter(CuckooFilter):
         return self.__unique_elements
 
     @property
-    def buckets(self) -> typing.List[typing.List["CountingCuckooBin"]]:  # type: ignore
+    def buckets(self) -> List[List["CountingCuckooBin"]]:  # type: ignore
         """list(list): The buckets holding the fingerprints
 
         Note:
@@ -204,7 +204,7 @@ class CountingCuckooFilter(CuckooFilter):
         """Expand the cuckoo filter"""
         self._expand_logic(None)
 
-    def export(self, file: typing.Union[Path, str, IOBase, mmap]) -> None:
+    def export(self, file: Union[Path, str, IOBase, mmap]) -> None:
         """Export cuckoo filter to file
 
         Args:
@@ -227,7 +227,7 @@ class CountingCuckooFilter(CuckooFilter):
 
     def _insert_fingerprint_alt(
         self, fingerprint: int, idx_1: int, idx_2: int, count: int = 1
-    ) -> typing.Optional["CountingCuckooBin"]:
+    ) -> Union["CountingCuckooBin", None]:
         """insert a fingerprint, but with a count parameter!"""
         if self.__insert_element(fingerprint, idx_1, count):
             self._inserted_elements += 1
@@ -262,7 +262,7 @@ class CountingCuckooFilter(CuckooFilter):
         # if we got here we have an error... we might need to know what is left
         return prv_bin
 
-    def _check_if_present(self, idx_1: int, idx_2: int, fingerprint: int) -> typing.Optional[int]:
+    def _check_if_present(self, idx_1: int, idx_2: int, fingerprint: int) -> Union[int, None]:
         """wrapper for checking if fingerprint is already inserted"""
         if fingerprint in [x.finger for x in self.buckets[idx_1]]:
             return idx_1
@@ -270,7 +270,7 @@ class CountingCuckooFilter(CuckooFilter):
             return idx_2
         return None
 
-    def _load(self, file: typing.Union[Path, str, IOBase, mmap]) -> None:
+    def _load(self, file: Union[Path, str, IOBase, mmap]) -> None:
         """load a cuckoo filter from file"""
         if not isinstance(file, (IOBase, mmap)):
             file = Path(file)

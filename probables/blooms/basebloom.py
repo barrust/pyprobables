@@ -5,17 +5,15 @@
 
 import math
 import os
-import typing
-from abc import abstractmethod
 from binascii import hexlify, unhexlify
 from collections.abc import ByteString
 from io import BytesIO, IOBase
-from itertools import chain
 from mmap import mmap
 from numbers import Number
 from pathlib import Path
 from struct import Struct, calcsize, pack, unpack
 from textwrap import wrap
+from typing import List, Tuple, Union
 
 from ..exceptions import InitializationError
 from ..hashes import HashFuncT, HashResultsT, KeyT, default_fnv_1a
@@ -42,11 +40,11 @@ class BaseBloom(object):
     def __init__(
         self,
         blm_type: str,
-        est_elements: typing.Optional[int] = None,
-        false_positive_rate: typing.Optional[float] = None,
-        filepath: typing.Optional[str] = None,
-        hex_string: typing.Optional[str] = None,
-        hash_function: typing.Optional[HashFuncT] = None,
+        est_elements: Union[int, None] = None,
+        false_positive_rate: Union[float, None] = None,
+        filepath: Union[str, None] = None,
+        hex_string: Union[str, None] = None,
+        hash_function: Union[HashFuncT, None] = None,
     ) -> None:
         """setup the basic values needed"""
         self._bloom = None
@@ -89,7 +87,7 @@ class BaseBloom(object):
         else:
             raise InitializationError(msg)
 
-    def __contains__(self, key: KeyT) -> typing.Union[int, bool]:
+    def __contains__(self, key: KeyT) -> Union[int, bool]:
         """setup the `in` keyword"""
         return self.check(key)
 
@@ -163,7 +161,7 @@ class BaseBloom(object):
         return self.__bloom_length
 
     @property
-    def bloom(self) -> typing.List[int]:
+    def bloom(self) -> List[int]:
         """list(int): The bit/int array"""
         return self._bloom  # type: ignore
 
@@ -175,7 +173,7 @@ class BaseBloom(object):
             Not settable"""
         return self.__hash_func  # type: ignore
 
-    def hashes(self, key: KeyT, depth: typing.Optional[int] = None) -> HashResultsT:
+    def hashes(self, key: KeyT, depth: Union[int, None] = None) -> HashResultsT:
         """ Return the hashes based on the provided key
 
             Args:
@@ -189,8 +187,8 @@ class BaseBloom(object):
 
     @staticmethod
     def _set_optimized_params(
-        estimated_elements: int, false_positive_rate: float, hash_function: typing.Optional[HashFuncT]
-    ) -> typing.Tuple[HashFuncT, float, int, int]:
+        estimated_elements: int, false_positive_rate: float, hash_function: Union[HashFuncT, None]
+    ) -> Tuple[HashFuncT, float, int, int]:
         """set the parameters to the optimal sizes"""
         tmp_hash = hash_function
         if hash_function is None:
@@ -228,8 +226,8 @@ class BaseBloom(object):
     def __load(
         self,
         blm_type: str,
-        file: typing.Union[Path, str, IOBase, mmap],
-        hash_function: typing.Optional[HashFuncT] = None,
+        file: Union[Path, str, IOBase, mmap],
+        hash_function: Union[HashFuncT, None] = None,
     ) -> None:
         """load the Bloom Filter from file"""
         # read in the needed information, and then call _set_optimized_params
@@ -264,7 +262,7 @@ class BaseBloom(object):
         fpr = float(tmp_data[2])
         return fpr
 
-    def _load_hex(self, hex_string: str, hash_function: typing.Optional[HashFuncT] = None) -> None:
+    def _load_hex(self, hex_string: str, hash_function: Union[HashFuncT, None] = None) -> None:
         """placeholder for loading from hex string"""
         offset = self.__class__.HEADER_STRUCT_BE.size * 2
         fpr = self._parse_footer(self.__class__.HEADER_STRUCT_BE, unhexlify(hex_string[-offset:]))
@@ -301,7 +299,7 @@ class BaseBloom(object):
             bytes_string += hexlify(mybytes)
         return str(bytes_string, "utf-8")
 
-    def export(self, file: typing.Union[Path, str, IOBase, mmap]) -> None:
+    def export(self, file: Union[Path, str, IOBase, mmap]) -> None:
         """ Export the Bloom Filter to disk
 
             Args:
@@ -415,7 +413,7 @@ class BaseBloom(object):
             self._bloom[idx] = tmp_bit  # type: ignore
         self._els_added += 1
 
-    def check(self, key: KeyT) -> typing.Union[bool, int]:
+    def check(self, key: KeyT) -> Union[bool, int]:
         """Check if the key is likely in the Bloom Filter
 
         Args:
@@ -425,7 +423,7 @@ class BaseBloom(object):
         hashes = self.hashes(key)
         return self.check_alt(hashes)
 
-    def check_alt(self, hashes: HashResultsT) -> typing.Union[bool, int]:
+    def check_alt(self, hashes: HashResultsT) -> Union[bool, int]:
         """ Check if the element represented by hashes is in the Bloom Filter
 
             Args:
@@ -439,24 +437,8 @@ class BaseBloom(object):
                 return False
         return True
 
-    @abstractmethod
-    def union(self, second) -> typing.Optional["BaseBloom"]:
-        """Return a new Bloom Filter that contains the typing.Union of the two"""
-        pass
-
-    @abstractmethod
-    def intersection(self, second) -> typing.Optional["BaseBloom"]:
-        """Return a new Bloom Filter that contains the intersection of the
-        two"""
-        pass
-
-    @abstractmethod
-    def jaccard_index(self, second) -> typing.Optional[float]:
-        """Return a the Jaccard Similarity score between two bloom filters"""
-        pass
-
     def _verify_bloom_similarity(self, second: "BaseBloom") -> bool:
-        """can the blooms be used in intersection, typing.Union, or jaccard index"""
+        """can the blooms be used in intersection, union, or jaccard index"""
         hash_match = self.number_hashes != second.number_hashes
         same_bits = self.number_bits != second.number_bits
         next_hash = self.hashes("test") != second.hashes("test")

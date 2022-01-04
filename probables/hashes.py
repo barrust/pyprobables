@@ -1,17 +1,17 @@
 """ Probables Hashing library """
 
-import typing
 from functools import wraps
 from hashlib import md5, sha256
 from struct import unpack
+from typing import Callable, List, Union
 
 from .constants import UINT64_T_MAX
 
-KeyT = typing.Union[str, bytes]
-SimpleHashT = typing.Callable[[KeyT, int], int]
-HashResultsT = typing.List[int]
-HashFuncT = typing.Callable[[KeyT, int], HashResultsT]
-HashFuncBytesT = typing.Callable[[KeyT, int], bytes]
+KeyT = Union[str, bytes]
+SimpleHashT = Callable[[KeyT, int], int]
+HashResultsT = List[int]
+HashFuncT = Callable[[KeyT, int], HashResultsT]
+HashFuncBytesT = Callable[[KeyT, int], bytes]
 
 
 def hash_with_depth_bytes(func: HashFuncBytesT) -> HashFuncT:
@@ -69,7 +69,7 @@ def hash_with_depth_int(func: HashFuncT) -> HashFuncT:
     return hashing_func
 
 
-def default_fnv_1a(key: KeyT, depth: int = 1) -> typing.List[int]:
+def default_fnv_1a(key: KeyT, depth: int = 1) -> List[int]:
     """The default fnv-1a hashing routine
 
     Args:

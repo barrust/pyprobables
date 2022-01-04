@@ -6,12 +6,12 @@
 
 import math
 import os
-import typing
 from io import BytesIO, IOBase
 from mmap import mmap
 from numbers import Number
 from pathlib import Path
 from struct import calcsize, pack, unpack
+from typing import Dict, Union
 
 from ..constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN
 from ..exceptions import CountMinSketchError, InitializationError, NotSupportedError
@@ -59,12 +59,12 @@ class CountMinSketch(object):
 
     def __init__(
         self,
-        width: typing.Optional[int] = None,
-        depth: typing.Optional[int] = None,
-        confidence: typing.Optional[float] = None,
-        error_rate: typing.Optional[float] = None,
-        filepath: typing.Optional[typing.Union[str, Path]] = None,
-        hash_function: typing.Optional[HashFuncT] = None,
+        width: Union[int, None] = None,
+        depth: Union[int, None] = None,
+        confidence: Union[float, None] = None,
+        error_rate: Union[float, None] = None,
+        filepath: Union[str, Path, None] = None,
+        hash_function: Union[HashFuncT, None] = None,
     ) -> None:
         """default initilization function"""
         # default values
@@ -221,7 +221,7 @@ class CountMinSketch(object):
         for i, _ in enumerate(self._bins):
             self._bins[i] = 0
 
-    def hashes(self, key: KeyT, depth: typing.Optional[int] = None) -> HashResultsT:
+    def hashes(self, key: KeyT, depth: Union[int, None] = None) -> HashResultsT:
         """ Return the hashes based on the provided key
 
             Args:
@@ -323,7 +323,7 @@ class CountMinSketch(object):
         bins = self.__get_values_sorted(hashes)
         return self.__query_method(bins)
 
-    def export(self, file: typing.Union[Path, str, IOBase, mmap]) -> None:
+    def export(self, file: Union[Path, str, IOBase, mmap]) -> None:
         """ Export the count-min sketch to disk
 
             Args:
@@ -381,7 +381,7 @@ class CountMinSketch(object):
         elif self.elements_added < INT64_T_MIN:
             self.__elements_added = INT64_T_MIN
 
-    def __load(self, file: typing.Union[Path, str, IOBase, mmap]):
+    def __load(self, file: Union[Path, str, IOBase, mmap]):
         """load the count-min sketch from file"""
         if not isinstance(file, (IOBase, mmap)):
             file = Path(file)
@@ -469,12 +469,12 @@ class CountMeanSketch(CountMinSketch):
 
     def __init__(
         self,
-        width: typing.Optional[int] = None,
-        depth: typing.Optional[int] = None,
-        confidence: typing.Optional[float] = None,
-        error_rate: typing.Optional[float] = None,
+        width: Union[int, None] = None,
+        depth: Union[int, None] = None,
+        confidence: Union[float, None] = None,
+        error_rate: Union[float, None] = None,
         filepath: str = None,
-        hash_function: typing.Optional[HashFuncT] = None,
+        hash_function: Union[HashFuncT, None] = None,
     ) -> None:
         super(CountMeanSketch, self).__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.query_type = "mean"
@@ -510,12 +510,12 @@ class CountMeanMinSketch(CountMinSketch):
 
     def __init__(
         self,
-        width: typing.Optional[int] = None,
-        depth: typing.Optional[int] = None,
-        confidence: typing.Optional[float] = None,
-        error_rate: typing.Optional[float] = None,
-        filepath: typing.Optional[str] = None,
-        hash_function: typing.Optional[HashFuncT] = None,
+        width: Union[int, None] = None,
+        depth: Union[int, None] = None,
+        confidence: Union[float, None] = None,
+        error_rate: Union[float, None] = None,
+        filepath: Union[str, None] = None,
+        hash_function: Union[HashFuncT, None] = None,
     ) -> None:
         super(CountMeanMinSketch, self).__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.query_type = "mean-min"
@@ -552,12 +552,12 @@ class HeavyHitters(CountMinSketch):
     def __init__(
         self,
         num_hitters: int = 100,
-        width: typing.Optional[int] = None,
-        depth: typing.Optional[int] = None,
-        confidence: typing.Optional[float] = None,
-        error_rate: typing.Optional[float] = None,
-        filepath: typing.Optional[typing.Union[str, Path]] = None,
-        hash_function: typing.Optional[HashFuncT] = None,
+        width: Union[int, None] = None,
+        depth: Union[int, None] = None,
+        confidence: Union[float, None] = None,
+        error_rate: Union[float, None] = None,
+        filepath: Union[str, Path, None] = None,
+        hash_function: Union[HashFuncT, None] = None,
     ) -> None:
 
         super(HeavyHitters, self).__init__(width, depth, confidence, error_rate, filepath, hash_function)
@@ -573,7 +573,7 @@ class HeavyHitters(CountMinSketch):
         return tmp.format(msg, self.number_heavy_hitters, self.__top_x_size)
 
     @property
-    def heavy_hitters(self) -> typing.Dict[str, int]:
+    def heavy_hitters(self) -> Dict[str, int]:
         """dict: Return the heavy hitters, or most common elements
 
         Note:
@@ -677,12 +677,12 @@ class StreamThreshold(CountMinSketch):
     def __init__(
         self,
         threshold: int = 100,
-        width: typing.Optional[int] = None,
-        depth: typing.Optional[int] = None,
-        confidence: typing.Optional[float] = None,
-        error_rate: typing.Optional[float] = None,
-        filepath: typing.Optional[str] = None,
-        hash_function: typing.Optional[HashFuncT] = None,
+        width: Union[int, None] = None,
+        depth: Union[int, None] = None,
+        confidence: Union[float, None] = None,
+        error_rate: Union[float, None] = None,
+        filepath: Union[str, None] = None,
+        hash_function: Union[HashFuncT, None] = None,
     ) -> None:
         super(StreamThreshold, self).__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.__threshold = threshold
@@ -695,7 +695,7 @@ class StreamThreshold(CountMinSketch):
         return tmp.format(msg, self.threshold, len(self.__meets_threshold))
 
     @property
-    def meets_threshold(self) -> typing.Dict[str, int]:
+    def meets_threshold(self) -> Dict[str, int]:
         """dict: Those keys that meet the required threshold (with value)"""
         return self.__meets_threshold
 

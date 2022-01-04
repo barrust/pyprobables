@@ -5,11 +5,11 @@
 """
 
 import os
-import typing
 from io import BytesIO, IOBase
 from mmap import mmap
 from pathlib import Path
 from struct import calcsize, pack, unpack
+from typing import Union
 
 from ..exceptions import RotatingBloomFilterError
 from ..hashes import HashFuncT, HashResultsT, KeyT
@@ -46,10 +46,10 @@ class ExpandingBloomFilter(object):
 
     def __init__(
         self,
-        est_elements: typing.Optional[int] = None,
-        false_positive_rate: typing.Optional[float] = None,
-        filepath: typing.Optional[str] = None,
-        hash_function: typing.Optional[HashFuncT] = None,
+        est_elements: Union[int, None] = None,
+        false_positive_rate: Union[float, None] = None,
+        filepath: Union[str, None] = None,
+        hash_function: Union[HashFuncT, None] = None,
     ):
         """initialize"""
         self._blooms = list()  # type: ignore
@@ -165,7 +165,7 @@ class ExpandingBloomFilter(object):
         if self._blooms[-1].elements_added >= self.__est_elements:
             self.__add_bloom_filter()
 
-    def export(self, file: typing.Union[Path, str, IOBase, mmap]) -> None:
+    def export(self, file: Union[Path, str, IOBase, mmap]) -> None:
         """Export an expanding Bloom Filter, or subclass, to disk
 
         Args:
@@ -189,7 +189,7 @@ class ExpandingBloomFilter(object):
                 )
             )
 
-    def __load(self, file: typing.Union[Path, str, IOBase, mmap]):
+    def __load(self, file: Union[Path, str, IOBase, mmap]):
         """load a file"""
         if not isinstance(file, (IOBase, mmap)):
             with MMap(file) as filepointer:
@@ -253,11 +253,11 @@ class RotatingBloomFilter(ExpandingBloomFilter):
 
     def __init__(
         self,
-        est_elements: typing.Optional[int] = None,
-        false_positive_rate: typing.Optional[float] = None,
+        est_elements: Union[int, None] = None,
+        false_positive_rate: Union[float, None] = None,
         max_queue_size: int = 10,
-        filepath: typing.Optional[str] = None,
-        hash_function: typing.Optional[HashFuncT] = None,
+        filepath: Union[str, None] = None,
+        hash_function: Union[HashFuncT, None] = None,
     ) -> None:
         """initialize"""
         super(RotatingBloomFilter, self).__init__(
