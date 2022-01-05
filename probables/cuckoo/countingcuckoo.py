@@ -313,7 +313,7 @@ class CountingCuckooFilter(CuckooFilter):
         self._buckets = list()
         for i in range(self.capacity):
             self.buckets.append(list())
-            for q in range(self.bucket_size):
+            for _ in range(self.bucket_size):
                 finger, count = unpack("II", bytes(d[start:end]))
                 if finger > 0:
                     ccb = CountingCuckooBin(finger, count)
