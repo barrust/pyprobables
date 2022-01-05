@@ -239,43 +239,40 @@ class BaseBloom(object):
         else:
             offset = self.__class__.HEADER_STRUCT.size
             file.seek(offset * -1, os.SEEK_END)
-            fpr = self._parse_footer(self.__class__.HEADER_STRUCT, file.read(offset))
-            vals = self._set_optimized_params(self.__est_elements, fpr, hash_function)
-            self.__hash_func = vals[0]  # type: ignore
-            self.__fpr = vals[1]
-            self.__number_hashes = vals[2]
-            self.__num_bits = vals[3]
-            if blm_type in ["regular", "reg-ondisk"]:
-                self.__bloom_length = int(math.ceil(self.__num_bits / 8.0))
-            else:
-                self.__bloom_length = self.number_bits
+            self._parse_footer(self.__class__.HEADER_STRUCT, file.read(offset), hash_function)
+            self._set_bloom_length()
             # now read in the bit array!
             file.seek(0, os.SEEK_SET)
-            offset = calcsize(self.__impt_type) * self.bloom_length
-            rep = self.__impt_type * self.bloom_length
-            self._bloom = list(unpack(rep, file.read(offset)))
+            self._parse_bloom_array(file)  # type: ignore
 
-    def _parse_footer(self, stct: Struct, d: ByteString) -> float:
+    def _parse_footer(self, stct: Struct, d: ByteString, hash_function: Union[HashFuncT, None] = None) -> None:
         tmp_data = stct.unpack_from(bytearray(d))
         self.__est_elements = tmp_data[0]
         self._els_added = tmp_data[1]
         fpr = float(tmp_data[2])
-        return fpr
-
-    def _load_hex(self, hex_string: str, hash_function: Union[HashFuncT, None] = None) -> None:
-        """placeholder for loading from hex string"""
-        offset = self.__class__.HEADER_STRUCT_BE.size * 2
-        fpr = self._parse_footer(self.__class__.HEADER_STRUCT_BE, unhexlify(hex_string[-offset:]))
         vals = self._set_optimized_params(self.__est_elements, fpr, hash_function)
         self.__hash_func = vals[0]  # type: ignore
         self.__fpr = vals[1]
         self.__number_hashes = vals[2]
         self.__num_bits = vals[3]
+
+    def _parse_bloom_array(self, b: ByteString):
+        offset = calcsize(self.__impt_type) * self.bloom_length
+        rep = self.__impt_type * self.bloom_length
+        self._bloom = list(unpack(rep, bytearray(b[:offset])))
+
+    def _set_bloom_length(self) -> None:
+        """House setting the bloom length based on the bloom filter itself"""
         if self.__blm_type in ["regular", "reg-ondisk"]:
             self.__bloom_length = int(math.ceil(self.__num_bits / 8.0))
         else:
             self.__bloom_length = self.number_bits
 
+    def _load_hex(self, hex_string: str, hash_function: Union[HashFuncT, None] = None) -> None:
+        """placeholder for loading from hex string"""
+        offset = self.__class__.HEADER_STRUCT_BE.size * 2
+        self._parse_footer(self.__class__.HEADER_STRUCT_BE, unhexlify(hex_string[-offset:]), hash_function)
+        self._set_bloom_length()
         tmp_bloom = unhexlify(hex_string[:-offset])
         rep = self.__impt_type * self.bloom_length
         self._bloom = list(unpack(rep, tmp_bloom))

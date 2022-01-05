@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 from shutil import copyfile
 from struct import calcsize, pack, unpack
-from typing import Union
+from typing import ByteString, Union
 
 from ..exceptions import InitializationError, NotSupportedError
 from ..hashes import HashFuncT, HashResultsT
@@ -113,6 +113,15 @@ class BloomFilter(BaseBloom):
             hex_string,
             hash_function,
         )
+
+    @classmethod
+    def frombytes(cls, b: ByteString, hash_function: Union[HashFuncT, None] = None) -> "BloomFilter":
+        blm = BloomFilter(est_elements=1, false_positive_rate=0.1, hash_function=hash_function)  # some dummy values
+        offset = cls.HEADER_STRUCT.size
+        blm._parse_footer(cls.HEADER_STRUCT, bytes(b[-offset:]))
+        blm._set_bloom_length()
+        blm._parse_bloom_array(b)
+        return blm
 
     def __str__(self) -> str:
         """output statistics of the bloom filter"""
@@ -300,6 +309,14 @@ class BloomFilterOnDisk(BaseBloom):
         else:
             msg = "Insufecient parameters to set up the On Disk Bloom Filter"
             raise InitializationError(msg)
+
+    @classmethod
+    def frombytes(cls, b: ByteString, hash_function: Union[HashFuncT, None] = None) -> "BloomFilter":
+        """
+        Raises: NotSupportedError
+        """
+        msg = "Loading from bytes is currently not supported by the on disk Bloom Filter"
+        raise NotSupportedError(msg)
 
     def __del__(self) -> None:
         """handle if user doesn't close the on disk Bloom Filter"""

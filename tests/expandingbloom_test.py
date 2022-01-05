@@ -58,6 +58,7 @@ class TestExpandingBloomFilter(unittest.TestCase):
         self.assertEqual(blm.check("this is another test"), True)
         self.assertEqual(blm.check("this is yet another test!"), False)
         self.assertEqual(blm.check("this is not another test"), False)
+        self.assertEqual(blm.elements_added, 102)
 
     def test_ebf_contains(self):
         """ensure that "in" functionality for the expanding bloom filter works"""
@@ -98,6 +99,23 @@ class TestExpandingBloomFilter(unittest.TestCase):
         """basic expanding Bloom Filter export bytes test"""
         blm = ExpandingBloomFilter(est_elements=25, false_positive_rate=0.05)
         self.assertEqual(hashlib.md5(bytes(blm)).hexdigest(), "eb5769ae9babdf7b37d6ce64d58812bc")
+
+    def test_ebf_frombytes(self):
+        """expanding Bloom Filter load bytes test"""
+        blm = ExpandingBloomFilter(est_elements=25, false_positive_rate=0.05)
+        for i in range(105):
+            blm.add(str(i))
+        bytes_out = bytes(blm)
+
+        blm2 = ExpandingBloomFilter.frombytes(bytes_out)
+        self.assertEqual(blm2.expansions, 3)
+        self.assertEqual(blm2.false_positive_rate, 0.05000000074505806)
+        self.assertEqual(blm2.estimated_elements, 25)
+        self.assertEqual(blm2.elements_added, 105)
+        self.assertEqual(bytes(blm2), bytes(blm))
+
+        for i in range(105):
+            self.assertTrue(blm.check(str(i)))
 
     def test_ebf_import_empty(self):
         """test that expanding Bloom Filter is correct on import"""
@@ -169,6 +187,8 @@ class TestRotatingBloomFilter(unittest.TestCase):
         self.assertEqual(blm.check("test"), False)  # it should roll off
         self.assertEqual(blm.current_queue_size, 5)
 
+        self.assertEqual(blm.elements_added, 51)
+
     def test_rbf_push_pop(self):
         blm = RotatingBloomFilter(est_elements=10, false_positive_rate=0.05, max_queue_size=5)
         self.assertEqual(blm.current_queue_size, 1)
@@ -232,6 +252,23 @@ class TestRotatingBloomFilter(unittest.TestCase):
         blm = RotatingBloomFilter(est_elements=25, false_positive_rate=0.05)
         self.assertEqual(hashlib.md5(bytes(blm)).hexdigest(), "eb5769ae9babdf7b37d6ce64d58812bc")
 
+    def test_rfb_from_bytes(self):
+        """basic rotating Bloom Filter export bytes test"""
+        blm = RotatingBloomFilter(est_elements=25, false_positive_rate=0.05, max_queue_size=3)
+        for i in range(105):
+            blm.add(str(i))
+        bytes_out = bytes(blm)
+
+        blm2 = RotatingBloomFilter.frombytes(bytes_out, max_queue_size=3)
+        self.assertEqual(blm2.expansions, 2)
+        self.assertEqual(blm2.false_positive_rate, 0.05000000074505806)
+        self.assertEqual(blm2.estimated_elements, 25)
+        self.assertEqual(blm2.elements_added, 105)
+        self.assertEqual(blm2.current_queue_size, 3)
+        self.assertEqual(bytes(blm2), bytes(blm))
+        for i in range(105):
+            self.assertEqual(blm.check(str(i)), blm2.check(str(i)))
+
     def test_rbf_import_empty(self):
         """test that rotating Bloom Filter is correct on import"""
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".rbf", delete=DELETE_TEMP_FILES) as fobj:
@@ -261,6 +298,7 @@ class TestRotatingBloomFilter(unittest.TestCase):
                 self.assertEqual("{}".format(i) in blm2, True)
             self.assertEqual(blm2.current_queue_size, 10)
             self.assertEqual(blm2.expansions, 9)
+            self.assertEqual(blm2.elements_added, 15)
 
 
 if __name__ == "__main__":

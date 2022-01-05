@@ -142,8 +142,7 @@ class TestBloomFilter(unittest.TestCase):
         self.assertEqual(230041400, blm.number_bits)
 
     def test_bf_intersection_diff(self):
-        """make sure checking for different bloom filters works
-        intersection"""
+        """make sure checking for different bloom filters works intersection"""
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         blm.add("this is a test")
         blm2 = BloomFilter(est_elements=100, false_positive_rate=0.05)
@@ -337,12 +336,30 @@ class TestBloomFilter(unittest.TestCase):
         self.assertEqual(md5_out, md5_val)
 
     def test_bf_bytes(self):
+        """test exporting BloomFilter to bytes"""
         md5_val = "8d27e30e1c5875b0edcf7413c7bdb221"
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         blm.add("this is a test")
         b = bytes(blm)
         md5_out = hashlib.md5(b).hexdigest()
         self.assertEqual(md5_out, md5_val)
+
+    def test_bf_frombytes(self):
+        """test loading BloomFilter from bytes"""
+        md5_val = "8d27e30e1c5875b0edcf7413c7bdb221"
+        blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm.add("this is a test")
+        bytes_out = bytes(blm)
+
+        blm2 = BloomFilter.frombytes(bytes_out)
+
+        self.assertEqual(blm2.false_positive_rate, 0.05000000074505806)
+        self.assertEqual(blm2.estimated_elements, 10)
+        self.assertEqual(blm2.number_hashes, 4)
+        self.assertEqual(blm2.number_bits, 63)
+        self.assertEqual(blm2.elements_added, 1)
+        self.assertEqual(blm2.is_on_disk, False)
+        self.assertEqual(blm2.bloom_length, 63 // 8 + 1)
 
     def test_bf_load_file(self):
         """test loading bloom filter from file"""
@@ -713,6 +730,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
                 self.assertEqual(md5_1, md5_2)
 
     def test_bfod_bytes(self):
+        """test exporting an on disk Bloom Filter to bytes"""
         md5_val = "8d27e30e1c5875b0edcf7413c7bdb221"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
             blm = BloomFilterOnDisk(fobj.name, 10, 0.05)
@@ -720,6 +738,28 @@ class TestBloomFilterOnDisk(unittest.TestCase):
             b = bytes(blm)
             md5_out = hashlib.md5(b).hexdigest()
             self.assertEqual(md5_out, md5_val)
+
+    def test_bfod_frombytes(self):
+        """test loading an on disk BloomFilter from bytes (raises exception)"""
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
+            blm = BloomFilterOnDisk(fobj.name, 10, 0.05)
+            blm.add("this is a test")
+            bytes_out = bytes(blm)
+        self.assertRaises(NotSupportedError, lambda: BloomFilterOnDisk.frombytes(bytes_out))
+
+    def test_bfod_frombytes_msg(self):
+        """test loading an on disk BloomFilter from bytes (message)"""
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
+            blm = BloomFilterOnDisk(fobj.name, 10, 0.05)
+            blm.add("this is a test")
+            bytes_out = bytes(blm)
+        try:
+            BloomFilterOnDisk.frombytes(bytes_out)
+        except NotSupportedError as ex:
+            msg = "Loading from bytes is currently not supported by the on disk Bloom Filter"
+            self.assertEqual(str(ex), msg)
+        else:
+            self.assertEqual(True, False)
 
     def test_bfod_export_hex(self):
         """test that page error is thrown correctly"""
@@ -810,9 +850,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
             self.assertEqual(blm3, None)
 
     def test_bfod_intersection_diff(self):
-        """make sure checking for different bloom filters on disk works
-        intersection
-        """
+        """make sure checking for different bloom filters on disk works intersection"""
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
             blm = BloomFilterOnDisk(fobj.name, est_elements=10, false_positive_rate=0.05)
             blm.add("this is a test")
@@ -822,9 +860,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
             self.assertEqual(blm3, None)
 
     def test_bfod_jaccard_diff(self):
-        """make sure checking for different bloom filters on disk works
-        jaccard
-        """
+        """make sure checking for different bloom filters on disk works jaccard"""
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
             blm = BloomFilterOnDisk(fobj.name, est_elements=10, false_positive_rate=0.05)
             blm.add("this is a test")
