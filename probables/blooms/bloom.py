@@ -6,10 +6,11 @@
 
 import mmap
 import os
+from collections.abc import ByteString
 from pathlib import Path
 from shutil import copyfile
 from struct import calcsize, pack, unpack
-from typing import ByteString, Union
+from typing import Union
 
 from ..exceptions import InitializationError, NotSupportedError
 from ..hashes import HashFuncT, HashResultsT
@@ -116,6 +117,13 @@ class BloomFilter(BaseBloom):
 
     @classmethod
     def frombytes(cls, b: ByteString, hash_function: Union[HashFuncT, None] = None) -> "BloomFilter":
+        """
+        Args:
+            b (ByteString): The bytes to load as a Bloom Filter
+            hash_function (function): Hashing strategy function to use `hf(key, number)`
+        Returns:
+            BloomFilter: A Bloom Filter object
+        """
         blm = BloomFilter(est_elements=1, false_positive_rate=0.1, hash_function=hash_function)  # some dummy values
         offset = cls.HEADER_STRUCT.size
         blm._parse_footer(cls.HEADER_STRUCT, bytes(b[-offset:]))

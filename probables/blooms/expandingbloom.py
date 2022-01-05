@@ -4,12 +4,12 @@
     URL: https://github.com/barrust/pyprobables
 """
 
-import os
+from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from pathlib import Path
 from struct import calcsize, pack, unpack
-from typing import ByteString, Union
+from typing import Union
 
 from ..exceptions import RotatingBloomFilterError
 from ..hashes import HashFuncT, HashResultsT, KeyT
@@ -66,6 +66,13 @@ class ExpandingBloomFilter(object):
 
     @classmethod
     def frombytes(cls, b: ByteString, hash_function: Union[HashFuncT, None] = None) -> "ExpandingBloomFilter":
+        """
+        Args:
+            b (ByteString): The bytes to load as a Expanding Bloom Filter
+            hash_function (function): Hashing strategy function to use `hf(key, number)`
+        Returns:
+            ExpandingBloomFilter: A Bloom Filter object
+        """
         blm = ExpandingBloomFilter(est_elements=1, false_positive_rate=0.1, hash_function=hash_function)
         size = blm._parse_footer(b)  # type: ignore
         blm._parse_blooms(b, size)  # type:ignore
@@ -288,6 +295,15 @@ class RotatingBloomFilter(ExpandingBloomFilter):
     def frombytes(  # type:ignore
         cls, b: ByteString, max_queue_size: int, hash_function: Union[HashFuncT, None] = None
     ) -> "RotatingBloomFilter":
+        """
+        Args:
+            b (ByteString): The bytes to load as a Expanding Bloom Filter
+            max_queue_size (int): This is the number is used to determine the maximum number \
+                of Bloom Filters. Total elements added is based on `max_queue_size * est_elements`
+            hash_function (function): Hashing strategy function to use `hf(key, number)`
+        Returns:
+            RotatingBloomFilter: A Bloom Filter object
+        """
         blm = RotatingBloomFilter(
             est_elements=1, false_positive_rate=0.1, max_queue_size=max_queue_size, hash_function=hash_function
         )

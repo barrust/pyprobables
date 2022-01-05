@@ -4,8 +4,9 @@
     URL: https://github.com/barrust/counting_bloom
 """
 
+from collections.abc import ByteString
 from pathlib import Path
-from typing import ByteString, Union
+from typing import Union
 
 from ..constants import UINT32_T_MAX, UINT64_T_MAX
 from ..hashes import HashFuncT, HashResultsT, KeyT
@@ -64,6 +65,13 @@ class CountingBloomFilter(BaseBloom):
 
     @classmethod
     def frombytes(cls, b: ByteString, hash_function: Union[HashFuncT, None] = None) -> "CountingBloomFilter":
+        """
+        Args:
+            b (ByteString): the bytes to load as a Counting Bloom Filter
+            hash_function (function): Hashing strategy function to use `hf(key, number)`
+        Returns:
+            CountingBloomFilter: A Counting Bloom Filter object
+        """
         blm = CountingBloomFilter(
             est_elements=1, false_positive_rate=0.1, hash_function=hash_function
         )  # some dummy values

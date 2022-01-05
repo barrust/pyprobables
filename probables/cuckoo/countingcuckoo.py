@@ -3,13 +3,13 @@
     Author: Tyler Barrus (barrust@gmail.com)
 """
 
-import os
 import random
+from collections.abc import ByteString
 from io import IOBase
 from mmap import mmap
 from pathlib import Path
 from struct import calcsize, pack, unpack
-from typing import ByteString, List, Union
+from typing import List, Union
 
 from ..exceptions import CuckooFilterFullError
 from ..hashes import KeyT, SimpleHashT
@@ -126,6 +126,14 @@ class CountingCuckooFilter(CuckooFilter):
     def frombytes(
         cls, b: ByteString, error_rate: Union[float, None] = None, hash_function: Union[SimpleHashT, None] = None
     ) -> "CountingCuckooFilter":
+        """
+        Args:
+            b (ByteString): The bytes to load as a Expanding Bloom Filter
+            error_rate (float): The error rate of the cuckoo filter, if used to generate the original filter
+            hash_function (function): Hashing strategy function to use `hf(key, number)`
+        Returns:
+            CountingCuckooFilter: A Bloom Filter object
+        """
         cku = CountingCuckooFilter(hash_function=hash_function)
         cku._parse_footer(b)
         cku._inserted_elements = 0

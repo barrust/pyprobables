@@ -5,13 +5,13 @@
 """
 
 import math
-import os
+from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from numbers import Number
 from pathlib import Path
 from struct import calcsize, pack, unpack
-from typing import ByteString, Dict, Union
+from typing import Dict, Union
 
 from ..constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN
 from ..exceptions import CountMinSketchError, InitializationError, NotSupportedError
@@ -145,6 +145,13 @@ class CountMinSketch(object):
 
     @classmethod
     def frombytes(cls, b: ByteString, hash_function: Union[HashFuncT, None] = None) -> "CountMinSketch":
+        """
+        Args:
+            b (ByteString): The bytes to load as a Count-Min Sketch
+            hash_function (function): Hashing strategy function to use `hf(key, number)`
+        Returns:
+            CountMinSketch: A count-min sketch object
+        """
         cms = CountMinSketch(width=1, depth=1, hash_function=hash_function)  # these are dummy values!
         cms._parse_bytes(b)
         return cms
@@ -578,6 +585,14 @@ class HeavyHitters(CountMinSketch):
     def frombytes(  # type: ignore
         cls, b: ByteString, num_hitters: int = 100, hash_function: Union[HashFuncT, None] = None
     ) -> "HeavyHitters":
+        """
+        Args:
+            b (ByteString): The bytes to load as a Expanding Bloom Filter
+            num_hitters (int): The maximum number of distinct elements to track
+            hash_function (function): Hashing strategy function to use `hf(key, number)`
+        Returns:
+            HeavyHitters: A Bloom Filter object
+        """
         hh = HeavyHitters(width=1, depth=1, num_hitters=num_hitters, hash_function=hash_function)  # dummy values
         hh._parse_bytes(b)
         return hh
@@ -686,7 +701,28 @@ class HeavyHitters(CountMinSketch):
 
 
 class StreamThreshold(CountMinSketch):
-    """keep track of those elements over a certain threshold"""
+    """ Find and track those elements that are above a certain threshold
+
+        Args:
+            threshold (int): The threshold above which an element will be tracked
+            width (int): The width of the count-min sketch
+            depth (int): The depth of the count-min sketch
+            confidence (float): The level of confidence desired
+            error_rate (float): The desired error rate
+            filepath (str): Path to file to load
+            hash_function (function): Hashing strategy function to use `hf(key, number)`
+        Returns:
+            StreamThreshold: A Count-Min Sketch object
+        Note:
+            Initialization order of operations:
+                1) From file
+                2) Width and depth
+                3) Confidence and error rate
+        Note:
+            Default query type is `min`
+        Note:
+            For width and depth, width may realistically be in the thousands \
+            while depth is in the single digit to teens  """
 
     __slots__ = ["__threshold", "__meets_threshold"]
 
@@ -708,7 +744,14 @@ class StreamThreshold(CountMinSketch):
     def frombytes(  # type: ignore
         cls, b: ByteString, threshold: int = 100, hash_function: Union[HashFuncT, None] = None
     ) -> "StreamThreshold":
-
+        """
+        Args:
+            b (ByteString): The bytes to load as a Expanding Bloom Filter
+            threshold (int): The threshold above which an element will be tracked
+            hash_function (function): Hashing strategy function to use `hf(key, number)`
+        Returns:
+            StreamThreshold: A Bloom Filter object
+        """
         st = StreamThreshold(width=1, depth=1, threshold=threshold, hash_function=hash_function)  # dummy values
         st._parse_bytes(b)
         return st
