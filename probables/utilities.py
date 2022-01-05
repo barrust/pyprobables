@@ -83,6 +83,6 @@ class MMap(object):
         """Implement a method to seek on top of the MMap class"""
         self.m.seek(pos, whence)
 
-    def read(self, n: Union[int, None]) -> bytes:
+    def read(self, n: int = -1) -> bytes:
         """Implement a method to read from the file on top of the MMap class"""
         return self.m.read(n)
