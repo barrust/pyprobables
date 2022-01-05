@@ -346,7 +346,6 @@ class TestBloomFilter(unittest.TestCase):
 
     def test_bf_frombytes(self):
         """test loading BloomFilter from bytes"""
-        md5_val = "8d27e30e1c5875b0edcf7413c7bdb221"
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         blm.add("this is a test")
         bytes_out = bytes(blm)

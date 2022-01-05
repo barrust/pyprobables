@@ -1,6 +1,8 @@
 # PyProbables Changelog
 
 ### Future Version
+* All Probablistic Data Structures:
+    * Added ability to load each `frombytes()`
 * Cuckoo Filters:
     * Added `fingerprint_size_bits` property
     * Added `error_rate` property

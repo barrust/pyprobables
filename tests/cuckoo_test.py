@@ -64,6 +64,7 @@ class TestCuckooFilter(unittest.TestCase):
         """test using a different hash function"""
 
         def my_hash(key):
+            """fake hash"""
             return int(hashlib.sha512(key.encode("utf-8")).hexdigest(), 16)
 
         cko = CuckooFilter(
@@ -366,7 +367,7 @@ class TestCuckooFilter(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_invalid_buckets(self):
-        """test invalid capacity"""
+        """test invalid buckets"""
 
         def runner():
             """runner"""
@@ -382,7 +383,7 @@ class TestCuckooFilter(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_invalid_swaps(self):
-        """test invalid capacity"""
+        """test invalid swaps"""
 
         def runner():
             """runner"""
@@ -398,7 +399,7 @@ class TestCuckooFilter(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_invalid_capacity_2(self):
-        """test invalid capacity"""
+        """test invalid capacity (2)"""
 
         def runner():
             """runner"""
@@ -414,7 +415,7 @@ class TestCuckooFilter(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_invalid_buckets_2(self):
-        """test invalid capacity"""
+        """test invalid buckets (2)"""
 
         def runner():
             """runner"""
@@ -430,7 +431,7 @@ class TestCuckooFilter(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_invalid_swaps_2(self):
-        """test invalid capacity"""
+        """test invalid swaps (2)"""
 
         def runner():
             """runner"""
@@ -447,6 +448,8 @@ class TestCuckooFilter(unittest.TestCase):
 
 
 class TestCuckooFilterErrorRate(unittest.TestCase):
+    """Test Cuckoo Filter using Error Rate"""
+
     def test_cuckoo_filter_er_default(self):
         """test cuckoo filter default properties"""
         cko = CuckooFilter.init_error_rate(0.00001)

@@ -298,6 +298,8 @@ class TestCountingCuckooFilter(unittest.TestCase):
 
 
 class TestCuckooFilterErrorRate(unittest.TestCase):
+    """Test CountingCuckooFilter using Error Rate"""
+
     def test_c_cuckoo_filter_er_default(self):
         """test cuckoo filter default properties"""
         cko = CountingCuckooFilter.init_error_rate(0.00001)

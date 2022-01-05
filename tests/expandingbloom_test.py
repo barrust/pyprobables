@@ -21,6 +21,8 @@ DELETE_TEMP_FILES = True
 
 
 class TestExpandingBloomFilter(unittest.TestCase):
+    """Test ExpandingBloomFilter"""
+
     def test_ebf_init(self):
         """test the initialization of an expanding bloom filter"""
         blm = ExpandingBloomFilter(est_elements=10, false_positive_rate=0.05)
@@ -149,6 +151,8 @@ class TestExpandingBloomFilter(unittest.TestCase):
 
 
 class TestRotatingBloomFilter(unittest.TestCase):
+    """Test RotatingBloomFilter"""
+
     def test_rbf_init(self):
         """test the initialization of an rotating bloom filter"""
         blm = RotatingBloomFilter(est_elements=10, false_positive_rate=0.05, max_queue_size=10)
@@ -190,6 +194,7 @@ class TestRotatingBloomFilter(unittest.TestCase):
         self.assertEqual(blm.elements_added, 51)
 
     def test_rbf_push_pop(self):
+        """test forcing push and pop"""
         blm = RotatingBloomFilter(est_elements=10, false_positive_rate=0.05, max_queue_size=5)
         self.assertEqual(blm.current_queue_size, 1)
         blm.add("test")
