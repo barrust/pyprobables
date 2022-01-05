@@ -218,6 +218,20 @@ class TestCountingCuckooFilter(unittest.TestCase):
         md5_out = hashlib.md5(bytes(cko)).hexdigest()
         self.assertEqual(md5sum, md5_out)
 
+    def test_c_cuckoo_filter_frombytes(self):
+        """test initializing a counting cuckoo filter frombytes"""
+        cko = CountingCuckooFilter(capacity=1000, bucket_size=2, auto_expand=False)
+        for i in range(100):
+            cko.add(str(i))
+        bytes_out = bytes(cko)
+
+        cko2 = CountingCuckooFilter.frombytes(bytes_out)
+
+        self.assertEqual(bytes_out, bytes(cko2))
+        for i in range(100):
+            self.assertTrue(cko2.check(str(i)))
+        self.assertFalse(cko2.check("999"))
+
     def test_c_cuckoo_filter_load(self):
         """test loading a saved counting cuckoo filter"""
         md5sum = "6a98c2df1ec9fbb4f75f8e6392696b9b"
@@ -366,6 +380,20 @@ class TestCuckooFilterErrorRate(unittest.TestCase):
             cko.add(str(i))
         md5_out = hashlib.md5(bytes(cko)).hexdigest()
         self.assertEqual(md5sum, md5_out)
+
+    def test_c_cuckoo_filter_er_frombytes(self):
+        """test initializing a couting cuckoo filter from bytes"""
+        cko = CountingCuckooFilter.init_error_rate(0.00001)
+        for i in range(1000):
+            cko.add(str(i))
+        bytes_out = bytes(cko)
+
+        cko2 = CountingCuckooFilter.frombytes(bytes_out, error_rate=0.00001)
+
+        self.assertEqual(bytes_out, bytes(cko2))
+        for i in range(1000):
+            self.assertTrue(cko2.check(str(i)))
+        self.assertFalse(cko2.check("9999"))
 
     def test_c_cuckoo_filter_er_remove(self):
         """test removing from the counting cuckoo filter"""

@@ -62,15 +62,27 @@ class MMap(object):
 
     @property
     def closed(self) -> bool:
+        """Is the MMap closed"""
         return self._closed
 
     @property
     def map(self) -> mmap.mmap:
+        """Return a pointer to the mmap"""
         return self.m
 
     @property
     def path(self) -> Path:
+        """Return the path to the mmap'd file"""
         return self.p
 
     def close(self) -> None:
+        """Close the MMap class includeing cleaning up open files, etc"""
         self.__exit__()
+
+    def seek(self, pos: int, whence: int) -> None:
+        """Implement a method to seek on top of the MMap class"""
+        self.m.seek(pos, whence)
+
+    def read(self, n: Union[int, None]) -> bytes:
+        """Implement a method to read from the file on top of the MMap class"""
+        return self.m.read(n)

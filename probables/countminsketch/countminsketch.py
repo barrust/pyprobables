@@ -11,7 +11,7 @@ from mmap import mmap
 from numbers import Number
 from pathlib import Path
 from struct import calcsize, pack, unpack
-from typing import Dict, Union
+from typing import ByteString, Dict, Union
 
 from ..constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN
 from ..exceptions import CountMinSketchError, InitializationError, NotSupportedError
@@ -142,6 +142,12 @@ class CountMinSketch(object):
         with BytesIO() as f:
             self.export(f)
             return f.getvalue()
+
+    @classmethod
+    def frombytes(cls, b: ByteString, hash_function: Union[HashFuncT, None] = None) -> "CountMinSketch":
+        cms = CountMinSketch(width=1, depth=1, hash_function=hash_function)  # these are dummy values!
+        cms._parse_bytes(b)
+        return cms
 
     @property
     def width(self) -> int:
@@ -388,20 +394,22 @@ class CountMinSketch(object):
             with MMap(file) as filepointer:
                 self.__load(filepointer)
         else:
-            offset = calcsize("IIq")
-            file.seek(offset * -1, os.SEEK_END)
-            mybytes = unpack("IIq", file.read(offset))
-            self.__width = mybytes[0]
-            self.__depth = mybytes[1]
-            self.__elements_added = mybytes[2]
-            self.__confidence = 1 - (1 / math.pow(2, self.depth))
-            self.__error_rate = 2 / self.width
+            self._parse_bytes(file)  # type: ignore
 
-            file.seek(0, os.SEEK_SET)
-            length = self.width * self.depth
-            rep = "i" * length
-            offset = calcsize(rep)
-            self._bins = list(unpack(rep, file.read(offset)))
+    def _parse_bytes(self, file: ByteString):
+        """parse bytes or a mapped file to setup the CountMin-Sketch"""
+        offset = calcsize("IIq")
+        mybytes = unpack("IIq", bytes(file[-offset:]))
+        self.__width = mybytes[0]
+        self.__depth = mybytes[1]
+        self.__elements_added = mybytes[2]
+        self.__confidence = 1 - (1 / math.pow(2, self.depth))
+        self.__error_rate = 2 / self.width
+
+        length = self.width * self.depth
+        rep = "i" * length
+        offset = calcsize(rep)
+        self._bins = list(unpack(rep, bytes(file[:offset])))
 
     def __get_values_sorted(self, hashes: HashResultsT) -> HashResultsT:
         """get the values sorted"""
@@ -566,6 +574,14 @@ class HeavyHitters(CountMinSketch):
         self.__num_hitters = num_hitters
         self.__smallest = 0
 
+    @classmethod
+    def frombytes(  # type: ignore
+        cls, b: ByteString, num_hitters: int = 100, hash_function: Union[HashFuncT, None] = None
+    ) -> "HeavyHitters":
+        hh = HeavyHitters(width=1, depth=1, num_hitters=num_hitters, hash_function=hash_function)  # dummy values
+        hh._parse_bytes(b)
+        return hh
+
     def __str__(self) -> str:
         """heavy hitters string rep"""
         msg = super(HeavyHitters, self).__str__()
@@ -687,6 +703,15 @@ class StreamThreshold(CountMinSketch):
         super(StreamThreshold, self).__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.__threshold = threshold
         self.__meets_threshold = dict()  # type: ignore
+
+    @classmethod
+    def frombytes(  # type: ignore
+        cls, b: ByteString, threshold: int = 100, hash_function: Union[HashFuncT, None] = None
+    ) -> "StreamThreshold":
+
+        st = StreamThreshold(width=1, depth=1, threshold=threshold, hash_function=hash_function)  # dummy values
+        st._parse_bytes(b)
+        return st
 
     def __str__(self) -> str:
         """stream threshold string rep"""

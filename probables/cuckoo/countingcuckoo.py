@@ -9,7 +9,7 @@ from io import IOBase
 from mmap import mmap
 from pathlib import Path
 from struct import calcsize, pack, unpack
-from typing import List, Union
+from typing import ByteString, List, Union
 
 from ..exceptions import CuckooFilterFullError
 from ..hashes import KeyT, SimpleHashT
@@ -120,6 +120,22 @@ class CountingCuckooFilter(CuckooFilter):
         cku = CountingCuckooFilter(filepath=filepath, hash_function=hash_function)
         cku._error_rate = error_rate
         cku._fingerprint_size = cku._calc_fingerprint_size()
+        return cku
+
+    @classmethod
+    def frombytes(
+        cls, b: ByteString, error_rate: Union[float, None] = None, hash_function: Union[SimpleHashT, None] = None
+    ) -> "CountingCuckooFilter":
+        cku = CountingCuckooFilter(hash_function=hash_function)
+        cku._parse_footer(b)
+        cku._inserted_elements = 0
+        # now pull everything in!
+        cku._parse_buckets(b)
+
+        # if error rate is provided, use it
+        if error_rate is not None:
+            cku._error_rate = error_rate
+            cku._fingerprint_size = cku._calc_fingerprint_size()
         return cku
 
     def __contains__(self, val: KeyT) -> bool:
@@ -279,27 +295,33 @@ class CountingCuckooFilter(CuckooFilter):
             with MMap(file) as filepointer:
                 self._load(filepointer)
         else:
-            offset = calcsize("II")
-            int_size = calcsize("II")
-            file.seek(offset * -1, os.SEEK_END)
-            list_size = file.tell()
-            mybytes = unpack("II", file.read(offset))
-            self._bucket_size = mybytes[0]
-            self.__max_cuckoo_swaps = mybytes[1]
-            self._cuckoo_capacity = list_size // int_size // self.bucket_size
+            self._parse_footer(file)  # type: ignore
             self._inserted_elements = 0
-            # now pull everything in!
-            file.seek(0, os.SEEK_SET)
-            self._buckets = list()
-            for i in range(self.capacity):
-                self.buckets.append(list())
-                for _ in range(self.bucket_size):
-                    finger, count = unpack("II", file.read(int_size))
-                    if finger > 0:
-                        ccb = CountingCuckooBin(finger, count)
-                        self.buckets[i].append(ccb)
-                        self._inserted_elements += count
-                        self.__unique_elements += 1
+            self._parse_buckets(file)  # type: ignore
+
+    def _parse_footer(self, d: ByteString) -> None:
+        offset = calcsize("II")
+        mybytes = unpack("II", bytes(d[-offset:]))
+        self._bucket_size = mybytes[0]
+        self.__max_cuckoo_swaps = mybytes[1]
+
+    def _parse_buckets(self, d: ByteString) -> None:
+        int_size = calcsize("II")
+        self._cuckoo_capacity = (len(bytes(d)) - int_size) // int_size // self.bucket_size
+        start = 0
+        end = int_size
+        self._buckets = list()
+        for i in range(self.capacity):
+            self.buckets.append(list())
+            for q in range(self.bucket_size):
+                finger, count = unpack("II", bytes(d[start:end]))
+                if finger > 0:
+                    ccb = CountingCuckooBin(finger, count)
+                    self.buckets[i].append(ccb)
+                    self._inserted_elements += count
+                    self.__unique_elements += 1
+                start = end
+                end += int_size
 
     def _expand_logic(self, extra_fingerprint: "CountingCuckooBin") -> None:
         """the logic to acutally expand the cuckoo filter"""

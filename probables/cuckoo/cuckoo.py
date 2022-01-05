@@ -155,6 +155,22 @@ class CuckooFilter(object):
         cku._fingerprint_size = cku._calc_fingerprint_size()
         return cku
 
+    @classmethod
+    def frombytes(
+        cls, b: ByteString, error_rate: Union[float, None] = None, hash_function: Union[SimpleHashT, None] = None
+    ) -> "CuckooFilter":
+        cku = CuckooFilter(hash_function=hash_function)
+        cku._parse_footer(b)
+        cku._inserted_elements = 0
+        # now pull everything in!
+        cku._parse_buckets(b)
+
+        # if error rate is provided, use it
+        if error_rate is not None:
+            cku._error_rate = error_rate
+            cku._fingerprint_size = cku._calc_fingerprint_size()
+        return cku
+
     def __contains__(self, key: KeyT) -> bool:
         """setup the `in` keyword"""
         return self.check(key)
