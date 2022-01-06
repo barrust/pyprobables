@@ -385,7 +385,7 @@ class TestCuckooFilterErrorRate(unittest.TestCase):
 
     def test_c_cuckoo_filter_er_frombytes(self):
         """test initializing a couting cuckoo filter from bytes"""
-        cko = CountingCuckooFilter.init_error_rate(0.00001)
+        cko = CountingCuckooFilter.init_error_rate(0.00001, capacity=3000)
         for i in range(1000):
             cko.add(str(i))
         bytes_out = bytes(cko)
@@ -396,6 +396,7 @@ class TestCuckooFilterErrorRate(unittest.TestCase):
         for i in range(1000):
             self.assertTrue(cko2.check(str(i)))
         self.assertFalse(cko2.check("9999"))
+        self.assertEqual(cko2.capacity, 3000)
 
     def test_c_cuckoo_filter_er_remove(self):
         """test removing from the counting cuckoo filter"""
