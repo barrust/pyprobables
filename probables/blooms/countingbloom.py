@@ -77,11 +77,10 @@ class CountingBloomFilter(BaseBloom):
         Returns:
             CountingBloomFilter: A Counting Bloom Filter object
         """
-        blm = CountingBloomFilter(
-            est_elements=1, false_positive_rate=0.1, hash_function=hash_function
-        )  # some dummy values
         offset = cls.__HEADER_STRUCT.size
-        blm._parse_footer(cls.__HEADER_STRUCT, bytes(b[-offset:]))
+        est_elms, _, fpr, _, _, _ = cls._parse_footer(cls.__HEADER_STRUCT, bytes(b[-offset:]))
+        blm = CountingBloomFilter(est_elements=est_elms, false_positive_rate=fpr, hash_function=hash_function)
+        blm._parse_footer_set(cls.__HEADER_STRUCT, bytes(b[-offset:]))
         blm._set_bloom_length()
         blm._parse_bloom_array(b)
         return blm

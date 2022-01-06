@@ -9,7 +9,7 @@ import os
 from collections.abc import ByteString
 from pathlib import Path
 from shutil import copyfile
-from struct import Struct, calcsize, pack, unpack
+from struct import Struct
 from typing import Union
 
 from ..exceptions import InitializationError, NotSupportedError
@@ -127,9 +127,10 @@ class BloomFilter(BaseBloom):
         Returns:
             BloomFilter: A Bloom Filter object
         """
-        blm = BloomFilter(est_elements=1, false_positive_rate=0.1, hash_function=hash_function)  # some dummy values
         offset = cls.__HEADER_STRUCT.size
-        blm._parse_footer(cls.__HEADER_STRUCT, bytes(b[-offset:]))
+        est_elms, _, fpr, _, _, _ = cls._parse_footer(cls.__HEADER_STRUCT, bytes(b[-offset:]))
+        blm = BloomFilter(est_elements=est_elms, false_positive_rate=fpr, hash_function=hash_function)
+        blm._parse_footer_set(cls.__HEADER_STRUCT, bytes(b[-offset:]))
         blm._set_bloom_length()
         blm._parse_bloom_array(b)
         return blm
@@ -298,7 +299,7 @@ class BloomFilterOnDisk(BaseBloom):
         if est_elements is not None and false_positive_rate is not None:
             # no need to check the file since this will over write it
             fpr = false_positive_rate
-            vals = super(BloomFilterOnDisk, self)._set_optimized_params(est_elements, fpr, hash_function)
+            vals = self.__class__._set_optimized_params(est_elements, fpr, hash_function)
             super(BloomFilterOnDisk, self).__init__(
                 "reg-ondisk",
                 est_elements=est_elements,
@@ -357,7 +358,7 @@ class BloomFilterOnDisk(BaseBloom):
             offset = self.CNT_FOOTER_STUCT.size
             filepointer.seek(offset * -1, os.SEEK_END)
             mybytes = self.CNT_FOOTER_STUCT.unpack_from(filepointer.read(offset))
-            vals = super(BloomFilterOnDisk, self)._set_optimized_params(mybytes[0], mybytes[2], hash_function)
+            vals = self.__class__._set_optimized_params(mybytes[0], mybytes[2], hash_function)
         super(BloomFilterOnDisk, self).__init__(
             "reg-ondisk",
             est_elements=mybytes[0],
