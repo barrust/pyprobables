@@ -76,11 +76,13 @@ class BaseBloom(object):
             assert hex_string is not None
             self._load_hex(hex_string, hash_function)
         elif est_elements is not None and false_positive_rate is not None:
-            vals = self._set_optimized_params(est_elements, float(false_positive_rate), hash_function)
-            self.__hash_func = vals[0]  # type: ignore
-            self.__fpr = vals[1]
-            self.__number_hashes = vals[2]
-            self.__num_bits = vals[3]
+            h_func, fpr, n_hashes, n_bits = self._set_optimized_params(
+                est_elements, float(false_positive_rate), hash_function
+            )
+            self.__hash_func = h_func  # type: ignore
+            self.__fpr = fpr
+            self.__number_hashes = n_hashes
+            self.__num_bits = n_bits
             if blm_type in ["regular", "reg-ondisk"]:
                 self.__bloom_length = int(math.ceil(self.__num_bits / 8.0))
             else:
@@ -252,13 +254,13 @@ class BaseBloom(object):
     ) -> Tuple[int, int, float, HashFuncT, int, int]:
         """parse footer returning the data: estimated elements, elements added,
         false positive rate, hash function, number hashes, number bits"""
-        tmp_data = stct.unpack_from(bytearray(d))
-        est_elements = int(tmp_data[0])
-        els_added = int(tmp_data[1])
-        fpr = float(tmp_data[2])
-        vals = cls._set_optimized_params(est_elements, fpr, hash_function)
+        e_elms, e_added, fpr = stct.unpack_from(bytearray(d))
+        est_elements = int(e_elms)
+        els_added = int(e_added)
+        fpr = float(fpr)
+        h_func, fpr, n_hashes, n_bits = cls._set_optimized_params(est_elements, fpr, hash_function)
 
-        return est_elements, els_added, float(vals[1]), vals[0], int(vals[2]), int(vals[3])
+        return est_elements, els_added, float(fpr), h_func, int(n_hashes), int(n_bits)
 
     def _parse_footer_set(self, stct: Struct, d: ByteString, hash_function: Union[HashFuncT, None] = None) -> None:
         est_elms, els_added, fpr, hash_func, num_hashes, num_bits = self._parse_footer(stct, d, hash_function)

@@ -157,8 +157,8 @@ class CountMinSketch(object):
             CountMinSketch: A count-min sketch object
         """
         offset = cls.__FOOTER_STRUCT.size
-        mybytes = cls.__FOOTER_STRUCT.unpack_from(bytes(b[-offset:]))
-        cms = CountMinSketch(width=mybytes[0], depth=mybytes[1], hash_function=hash_function)
+        width, depth, _ = cls.__FOOTER_STRUCT.unpack_from(bytes(b[-offset:]))
+        cms = CountMinSketch(width=width, depth=depth, hash_function=hash_function)
         cms._parse_bytes(b)
         return cms
 
@@ -414,8 +414,8 @@ class CountMinSketch(object):
     def _parse_footer(cls, file: ByteString) -> Tuple[int, int, int]:
         """return width, depth and elements added, in that order"""
         offset = cls.__FOOTER_STRUCT.size
-        mybytes = cls.__FOOTER_STRUCT.unpack_from(bytes(file[-offset:]))
-        return int(mybytes[0]), int(mybytes[1]), int(mybytes[2])
+        width, depth, elements_added = cls.__FOOTER_STRUCT.unpack_from(bytes(file[-offset:]))
+        return width, depth, elements_added
 
     def _parse_bytes(self, file: ByteString):
         """parse bytes or a mapped file to setup the CountMin-Sketch"""

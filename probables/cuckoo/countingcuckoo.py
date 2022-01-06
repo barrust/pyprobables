@@ -305,9 +305,9 @@ class CountingCuckooFilter(CuckooFilter):
             self._parse_buckets(file)  # type: ignore
 
     def _parse_footer(self, d: ByteString) -> None:
-        mybytes = self.__FOOTER_STRUCT.unpack(bytes(d[-self.__FOOTER_STRUCT.size :]))
-        self._bucket_size = mybytes[0]
-        self.__max_cuckoo_swaps = mybytes[1]
+        bucket_size, max_swaps = self.__FOOTER_STRUCT.unpack(bytes(d[-self.__FOOTER_STRUCT.size :]))
+        self._bucket_size = int(bucket_size)
+        self.__max_cuckoo_swaps = int(max_swaps)
 
     def _parse_buckets(self, d: ByteString) -> None:
         bin_size = self.__BIN_STRUCT.size

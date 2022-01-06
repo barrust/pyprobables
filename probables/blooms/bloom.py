@@ -299,12 +299,12 @@ class BloomFilterOnDisk(BaseBloom):
         if est_elements is not None and false_positive_rate is not None:
             # no need to check the file since this will over write it
             fpr = false_positive_rate
-            vals = self.__class__._set_optimized_params(est_elements, fpr, hash_function)
+            h_func, fpr, _, _ = self._set_optimized_params(est_elements, fpr, hash_function)
             super(BloomFilterOnDisk, self).__init__(
                 "reg-ondisk",
                 est_elements=est_elements,
-                false_positive_rate=vals[1],
-                hash_function=vals[0],
+                false_positive_rate=fpr,
+                hash_function=h_func,
             )
             # do the on disk things
             with open(filepath, "wb") as filepointer:
