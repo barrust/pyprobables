@@ -6,6 +6,7 @@
 
 from collections.abc import ByteString
 from pathlib import Path
+from struct import Struct
 from typing import Union
 
 from ..constants import UINT32_T_MAX, UINT64_T_MAX
@@ -63,6 +64,10 @@ class CountingBloomFilter(BaseBloom):
             hash_function=hash_function,
         )
 
+    __HEADER_STRUCT_FORMAT = "QQf"
+    __HEADER_STRUCT = Struct(__HEADER_STRUCT_FORMAT)
+    # __HEADER_STRUCT_BE = Struct(">" + __HEADER_STRUCT_FORMAT)
+
     @classmethod
     def frombytes(cls, b: ByteString, hash_function: Union[HashFuncT, None] = None) -> "CountingBloomFilter":
         """
@@ -75,8 +80,8 @@ class CountingBloomFilter(BaseBloom):
         blm = CountingBloomFilter(
             est_elements=1, false_positive_rate=0.1, hash_function=hash_function
         )  # some dummy values
-        offset = cls.HEADER_STRUCT.size
-        blm._parse_footer(cls.HEADER_STRUCT, bytes(b[-offset:]))
+        offset = cls.__HEADER_STRUCT.size
+        blm._parse_footer(cls.__HEADER_STRUCT, bytes(b[-offset:]))
         blm._set_bloom_length()
         blm._parse_bloom_array(b)
         return blm

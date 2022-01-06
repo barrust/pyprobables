@@ -4,12 +4,13 @@
     URL: https://github.com/barrust/pyprobables
 """
 
+import array
 from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from pathlib import Path
-from struct import calcsize, pack, unpack
-from typing import Union
+from struct import Struct
+from typing import Tuple, Union
 
 from ..exceptions import RotatingBloomFilterError
 from ..hashes import HashFuncT, HashResultsT, KeyT
@@ -64,6 +65,9 @@ class ExpandingBloomFilter(object):
             # add in the initial bloom filter!
             self.__add_bloom_filter()
 
+    __FOOTER_STRUCT = Struct("QQQf")
+    __S_INT64_STRUCT = Struct("Q")
+
     @classmethod
     def frombytes(cls, b: ByteString, hash_function: Union[HashFuncT, None] = None) -> "ExpandingBloomFilter":
         """
@@ -73,9 +77,10 @@ class ExpandingBloomFilter(object):
         Returns:
             ExpandingBloomFilter: A Bloom Filter object
         """
-        blm = ExpandingBloomFilter(est_elements=1, false_positive_rate=0.1, hash_function=hash_function)
-        size = blm._parse_footer(b)  # type: ignore
-        blm._parse_blooms(b, size)  # type:ignore
+        size, est_els, added_els, fpr = cls._parse_footer(b)
+        blm = ExpandingBloomFilter(est_elements=est_els, false_positive_rate=fpr, hash_function=hash_function)
+        blm._parse_blooms(b, size)
+        blm._added_elements = added_els
         return blm
 
     def __contains__(self, key: KeyT) -> bool:
@@ -191,11 +196,12 @@ class ExpandingBloomFilter(object):
             filepointer = file  # type:ignore
             # add all the different Bloom bit arrays...
             for blm in self._blooms:
-                rep = "Q" + "B" * blm.bloom_length
-                filepointer.write(pack(rep, blm.elements_added, *blm.bloom))
+                filepointer.write(self.__S_INT64_STRUCT.pack(blm.elements_added))
+                a = array.ArrayType("B")
+                a.fromlist(blm.bloom)
+                a.tofile(filepointer)
             filepointer.write(
-                pack(
-                    "QQQf",
+                self.__FOOTER_STRUCT.pack(
                     len(self._blooms),
                     self.estimated_elements,
                     self.elements_added,
@@ -209,19 +215,24 @@ class ExpandingBloomFilter(object):
             with MMap(file) as filepointer:
                 self.__load(filepointer)
         else:
-            size = self._parse_footer(file)  # type: ignore
+            size, est_els, els_added, fpr = self._parse_footer(file)  # type: ignore
+            self._blooms = list()
+            self._added_elements = els_added
+            self.__fpr = fpr
+            self.__est_elements = est_els
             self._parse_blooms(file, size)  # type:ignore
 
-    def _parse_footer(self, b: ByteString) -> int:
-        offset = calcsize("QQQf")
-        size, est_els, els_added, fpr = unpack("QQQf", bytes(b[-offset:]))
-        self._blooms = list()
-        self._added_elements = int(els_added)
-        self.__fpr = fpr
-        self.__est_elements = est_els
-        return int(size)
+    @classmethod
+    def _parse_footer(cls, b: ByteString) -> Tuple[int, int, int, float]:
+        offset = cls.__FOOTER_STRUCT.size
+        size, est_els, els_added, fpr = cls.__FOOTER_STRUCT.unpack(bytes(b[-offset:]))
+        return int(size), int(est_els), int(els_added), float(fpr)
 
     def _parse_blooms(self, b: ByteString, size: int) -> None:
+        # reset the bloom list
+        self._blooms = list()
+        c = Struct("B")
+        blm_size = 0
         start = 0
         end = 0
         for _ in range(size):
@@ -230,11 +241,13 @@ class ExpandingBloomFilter(object):
                 false_positive_rate=self.__fpr,
                 hash_function=self.__hash_func,
             )
-            end = start + calcsize("Q") + (calcsize("B") * blm.bloom_length)
-            rep = "Q" + "B" * blm.bloom_length
-            unpacked = list(unpack(rep, bytes(b[start:end])))
-            blm._bloom = unpacked[1:]
-            blm.elements_added = unpacked[0]
+            if blm_size == 0:
+                blm_size = c.size * blm.bloom_length
+            end = start + self.__S_INT64_STRUCT.size + blm_size
+            blm._els_added = int(self.__S_INT64_STRUCT.unpack(bytes(b[start : start + self.__S_INT64_STRUCT.size]))[0])
+            a = array.ArrayType("B")
+            a.frombytes(bytes(b[start + self.__S_INT64_STRUCT.size : end]))
+            blm._bloom = a.tolist()
             self._blooms.append(blm)
             start = end
 
@@ -304,11 +317,12 @@ class RotatingBloomFilter(ExpandingBloomFilter):
         Returns:
             RotatingBloomFilter: A Bloom Filter object
         """
+        size, est_els, added_els, fpr = cls._parse_footer(b)
         blm = RotatingBloomFilter(
-            est_elements=1, false_positive_rate=0.1, max_queue_size=max_queue_size, hash_function=hash_function
+            est_elements=est_els, false_positive_rate=fpr, max_queue_size=max_queue_size, hash_function=hash_function
         )
-        size = blm._parse_footer(b)  # type: ignore
-        blm._parse_blooms(b, size)  # type:ignore
+        blm._parse_blooms(b, size)
+        blm._added_elements = added_els
         return blm
 
     @property

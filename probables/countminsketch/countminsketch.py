@@ -4,14 +4,15 @@
     URL: https://github.com/barrust/count-min-sketch
 """
 
+import array
 import math
 from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from numbers import Number
 from pathlib import Path
-from struct import calcsize, pack, unpack
-from typing import Dict, Union
+from struct import Struct
+from typing import Dict, Tuple, Union
 
 from ..constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN
 from ..exceptions import CountMinSketchError, InitializationError, NotSupportedError
@@ -115,6 +116,9 @@ class CountMinSketch(object):
         else:
             self._hash_function = hash_function  # type: ignore
 
+    __FOOTER_STRUCT = Struct("IIq")
+    __BASIC_BIN_STRUCT = Struct("i")
+
     def __str__(self) -> str:
         """string representation of the count min sketch"""
         msg = (
@@ -152,7 +156,9 @@ class CountMinSketch(object):
         Returns:
             CountMinSketch: A count-min sketch object
         """
-        cms = CountMinSketch(width=1, depth=1, hash_function=hash_function)  # these are dummy values!
+        offset = cls.__FOOTER_STRUCT.size
+        mybytes = cls.__FOOTER_STRUCT.unpack_from(bytes(b[-offset:]))
+        cms = CountMinSketch(width=mybytes[0], depth=mybytes[1], hash_function=hash_function)
         cms._parse_bytes(b)
         return cms
 
@@ -347,9 +353,10 @@ class CountMinSketch(object):
                 self.export(filepointer)  # type: ignore
         else:
             # write out the bins
-            rep = "i" * len(self._bins)
-            file.write(pack(rep, *self._bins))
-            file.write(pack("IIq", self.width, self.depth, self.elements_added))
+            a = array.ArrayType("i")
+            a.extend([x for x in self._bins])
+            file.write(a.tobytes())
+            file.write(self.__FOOTER_STRUCT.pack(self.width, self.depth, self.elements_added))
 
     def join(self, second: "CountMinSketch") -> None:
         """ Join two count-min sketchs into a single count-min sketch; the
@@ -403,20 +410,26 @@ class CountMinSketch(object):
         else:
             self._parse_bytes(file)  # type: ignore
 
+    @classmethod
+    def _parse_footer(cls, file: ByteString) -> Tuple[int, int, int]:
+        """return width, depth and elements added, in that order"""
+        offset = cls.__FOOTER_STRUCT.size
+        mybytes = cls.__FOOTER_STRUCT.unpack_from(bytes(file[-offset:]))
+        return int(mybytes[0]), int(mybytes[1]), int(mybytes[2])
+
     def _parse_bytes(self, file: ByteString):
         """parse bytes or a mapped file to setup the CountMin-Sketch"""
-        offset = calcsize("IIq")
-        mybytes = unpack("IIq", bytes(file[-offset:]))
-        self.__width = mybytes[0]
-        self.__depth = mybytes[1]
-        self.__elements_added = mybytes[2]
+        width, depth, els_added = self._parse_footer(file)
+        self.__width = width
+        self.__depth = depth
+        self.__elements_added = els_added
         self.__confidence = 1 - (1 / math.pow(2, self.depth))
         self.__error_rate = 2 / self.width
 
-        length = self.width * self.depth
-        rep = "i" * length
-        offset = calcsize(rep)
-        self._bins = list(unpack(rep, bytes(file[:offset])))
+        offset = self.__BASIC_BIN_STRUCT.size * self.width * self.depth
+        a = array.ArrayType("i")
+        a.frombytes(bytes(file[:offset]))
+        self._bins = list(a)
 
     def __get_values_sorted(self, hashes: HashResultsT) -> HashResultsT:
         """get the values sorted"""
@@ -593,7 +606,8 @@ class HeavyHitters(CountMinSketch):
         Returns:
             HeavyHitters: A Bloom Filter object
         """
-        hh = HeavyHitters(width=1, depth=1, num_hitters=num_hitters, hash_function=hash_function)  # dummy values
+        width, depth, _ = cls._parse_footer(b)
+        hh = HeavyHitters(width=width, depth=depth, num_hitters=num_hitters, hash_function=hash_function)
         hh._parse_bytes(b)
         return hh
 
@@ -752,7 +766,8 @@ class StreamThreshold(CountMinSketch):
         Returns:
             StreamThreshold: A Bloom Filter object
         """
-        st = StreamThreshold(width=1, depth=1, threshold=threshold, hash_function=hash_function)  # dummy values
+        width, depth, _ = cls._parse_footer(b)
+        st = StreamThreshold(width=width, depth=depth, threshold=threshold, hash_function=hash_function)
         st._parse_bytes(b)
         return st
 
