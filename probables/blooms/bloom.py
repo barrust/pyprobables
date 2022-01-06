@@ -357,13 +357,13 @@ class BloomFilterOnDisk(BaseBloom):
         with open(filepath, "r+b") as filepointer:
             offset = self.CNT_FOOTER_STUCT.size
             filepointer.seek(offset * -1, os.SEEK_END)
-            mybytes = self.CNT_FOOTER_STUCT.unpack_from(filepointer.read(offset))
-            vals = self.__class__._set_optimized_params(mybytes[0], mybytes[2], hash_function)
+            est_els, _, fpr = self.CNT_FOOTER_STUCT.unpack_from(filepointer.read(offset))
+            hash_func, fpr, _, _ = self.__class__._set_optimized_params(est_els, fpr, hash_function)
         super(BloomFilterOnDisk, self).__init__(
             "reg-ondisk",
-            est_elements=mybytes[0],
-            false_positive_rate=vals[1],
-            hash_function=vals[0],
+            est_elements=est_els,
+            false_positive_rate=fpr,
+            hash_function=hash_func,
         )
         self.__file_pointer = open(filepath, "r+b")  # type: ignore
         self._bloom = mmap.mmap(self.__file_pointer.fileno(), 0)  # type: ignore

@@ -205,9 +205,8 @@ class BaseBloom(object):
         if not valid_prms:
             msg = "Bloom: false positive rate must be between 0.0 and 1.0"
             raise InitializationError(msg)
-        f = Struct("f")
-        fpr = f.pack(float(false_positive_rate))
-        t_fpr = float(f.unpack(fpr)[0])  # to mimic the c version!
+        fpr = cls.__FPR_STRUCT.pack(float(false_positive_rate))
+        t_fpr = float(cls.__FPR_STRUCT.unpack(fpr)[0])  # to mimic the c version!
         # optimal caluclations
         n_els = estimated_elements
         m_bt = math.ceil((-n_els * math.log(t_fpr)) / 0.4804530139182)  # ln(2)^2
@@ -225,6 +224,7 @@ class BaseBloom(object):
     __HEADER_STRUCT_FORMAT = "QQf"
     __HEADER_STRUCT = Struct(__HEADER_STRUCT_FORMAT)
     __HEADER_STRUCT_BE = Struct(">" + __HEADER_STRUCT_FORMAT)
+    __FPR_STRUCT = Struct("f")
 
     def __load(
         self,
