@@ -11,7 +11,7 @@ from io import BytesIO, IOBase
 from mmap import mmap
 from numbers import Number
 from pathlib import Path
-from struct import Struct, calcsize, pack
+from struct import Struct
 from typing import List, Tuple, Union
 
 from ..exceptions import CuckooFilterFullError, InitializationError
@@ -132,8 +132,7 @@ class CuckooFilter(object):
             expansion_rate=expansion_rate,
             hash_function=hash_function,
         )
-        cku._error_rate = error_rate
-        cku._fingerprint_size = cku._calc_fingerprint_size()
+        cku._set_error_rate(error_rate)
         return cku
 
     @classmethod
@@ -151,8 +150,7 @@ class CuckooFilter(object):
             CuckooFilter: A Cuckoo Filter object
         """
         cku = CuckooFilter(filepath=filepath, hash_function=hash_function)
-        cku._error_rate = error_rate
-        cku._fingerprint_size = cku._calc_fingerprint_size()
+        cku._set_error_rate(error_rate)
         return cku
 
     @classmethod
@@ -174,9 +172,7 @@ class CuckooFilter(object):
         cku._parse_buckets(b)
 
         # if error rate is provided, use it
-        if error_rate is not None:
-            cku._error_rate = error_rate
-            cku._fingerprint_size = cku._calc_fingerprint_size()
+        cku._set_error_rate(error_rate)
         return cku
 
     def __contains__(self, key: KeyT) -> bool:
@@ -361,13 +357,14 @@ class CuckooFilter(object):
                 bucket = self.buckets[i]
                 # do something for each...
                 if isinstance(bucket, list):
-                    self.buckets[i] = bucket = convert_to_typed(self.__class__.SINGLE_INT_C, bucket)  # type: ignore
+                    a = convert_to_typed(self.SINGLE_INT_C, bucket)
+                    self.buckets[i] = a.tolist()
+                    bucket = a  # type: ignore
                 filepointer.write(bucket.tobytes())  # type: ignore
                 leftover = self.bucket_size - len(bucket)
-                rep = leftover * "I"
-                filepointer.write(pack(rep, *([0] * leftover)))
+                convert_to_typed(self.SINGLE_INT_C, [0 for _ in range(leftover)]).tofile(filepointer)
             # now put out the required information at the end
-            filepointer.write(self.__class__.HEADER_STRUCT.pack(self.bucket_size, self.max_swaps))
+            filepointer.write(self.HEADER_STRUCT.pack(self.bucket_size, self.max_swaps))
 
     def __bytes__(self) -> bytes:
         """Export cuckoo filter to `bytes`"""
@@ -425,7 +422,7 @@ class CuckooFilter(object):
             self._parse_buckets(file)  # type: ignore
 
     SINGLE_INT_C = "I"
-    SINGLE_INT_SIZE = calcsize(SINGLE_INT_C)
+    SINGLE_INT_SIZE = Struct(SINGLE_INT_C).size
     HEADER_STRUCT = Struct("II")
 
     def _parse_footer(self, d: ByteString) -> None:
@@ -448,6 +445,13 @@ class CuckooFilter(object):
         bucket = convert_to_typed(self.__class__.SINGLE_INT_C, [el for el in bucket if el])
         self._inserted_elements += len(bucket)
         return bucket
+
+    def _set_error_rate(self, error_rate: Union[float, None]) -> None:
+        """set error rate correctly"""
+        # if error rate is provided, use it
+        if error_rate is not None:
+            self._error_rate = error_rate
+            self._fingerprint_size = self._calc_fingerprint_size()
 
     def _check_if_present(self, idx_1, idx_2, fingerprint):
         """wrapper for checking if fingerprint is already inserted"""

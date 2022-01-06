@@ -3,12 +3,13 @@
     Author: Tyler Barrus (barrust@gmail.com)
 """
 
+import array
 import random
 from collections.abc import ByteString
 from io import IOBase
 from mmap import mmap
 from pathlib import Path
-from struct import calcsize, pack, unpack
+from struct import Struct
 from typing import List, Union
 
 from ..exceptions import CuckooFilterFullError
@@ -67,6 +68,9 @@ class CountingCuckooFilter(CuckooFilter):
             hash_function,
         )
 
+    __FOOTER_STRUCT = Struct("II")
+    __BIN_STRUCT = Struct("II")
+
     @classmethod
     def init_error_rate(
         cls,
@@ -99,8 +103,7 @@ class CountingCuckooFilter(CuckooFilter):
             expansion_rate=expansion_rate,
             hash_function=hash_function,
         )
-        cku._error_rate = error_rate
-        cku._fingerprint_size = cku._calc_fingerprint_size()
+        cku._set_error_rate(error_rate)
         return cku
 
     @classmethod
@@ -118,8 +121,7 @@ class CountingCuckooFilter(CuckooFilter):
             CuckooFilter: A Cuckoo Filter object
         """
         cku = CountingCuckooFilter(filepath=filepath, hash_function=hash_function)
-        cku._error_rate = error_rate
-        cku._fingerprint_size = cku._calc_fingerprint_size()
+        cku._set_error_rate(error_rate)
         return cku
 
     @classmethod
@@ -141,9 +143,7 @@ class CountingCuckooFilter(CuckooFilter):
         cku._parse_buckets(b)
 
         # if error rate is provided, use it
-        if error_rate is not None:
-            cku._error_rate = error_rate
-            cku._fingerprint_size = cku._calc_fingerprint_size()
+        cku._set_error_rate(error_rate)
         return cku
 
     def __contains__(self, val: KeyT) -> bool:
@@ -241,15 +241,15 @@ class CountingCuckooFilter(CuckooFilter):
         else:
             filepointer = file  # type:ignore
             for bucket in self.buckets:
-                # do something for each...
-                rep = len(bucket) * "II"
-                wbyt = pack(rep, *[x for x in self.__bucket_decomposition(bucket)])
-                filepointer.write(wbyt)
+                a = array.ArrayType("I")
+                a.fromlist([x for x in self.__bucket_decomposition(bucket)])
+                filepointer.write(a.tobytes())
                 leftover = self.bucket_size - len(bucket)
-                rep = leftover * "II"
-                filepointer.write(pack(rep, *([0] * (leftover * 2))))
+                t = array.ArrayType("I")
+                t.fromlist([0 for _ in range(leftover * 2)])
+                filepointer.write(t.tobytes())
             # now put out the required information at the end
-            filepointer.write(pack("II", self.bucket_size, self.max_swaps))
+            filepointer.write(self.__FOOTER_STRUCT.pack(self.bucket_size, self.max_swaps))
 
     def _insert_fingerprint_alt(
         self, fingerprint: int, idx_1: int, idx_2: int, count: int = 1
@@ -308,28 +308,27 @@ class CountingCuckooFilter(CuckooFilter):
             self._parse_buckets(file)  # type: ignore
 
     def _parse_footer(self, d: ByteString) -> None:
-        offset = calcsize("II")
-        mybytes = unpack("II", bytes(d[-offset:]))
+        mybytes = self.__FOOTER_STRUCT.unpack(bytes(d[-self.__FOOTER_STRUCT.size :]))
         self._bucket_size = mybytes[0]
         self.__max_cuckoo_swaps = mybytes[1]
 
     def _parse_buckets(self, d: ByteString) -> None:
-        int_size = calcsize("II")
-        self._cuckoo_capacity = (len(bytes(d)) - int_size) // int_size // self.bucket_size
+        bin_size = self.__BIN_STRUCT.size
+        self._cuckoo_capacity = (len(bytes(d)) - bin_size) // bin_size // self.bucket_size
         start = 0
-        end = int_size
+        end = bin_size
         self._buckets = list()
         for i in range(self.capacity):
             self.buckets.append(list())
             for _ in range(self.bucket_size):
-                finger, count = unpack("II", bytes(d[start:end]))
+                finger, count = self.__BIN_STRUCT.unpack(bytes(d[start:end]))
                 if finger > 0:
                     ccb = CountingCuckooBin(finger, count)
                     self.buckets[i].append(ccb)
                     self._inserted_elements += count
                     self.__unique_elements += 1
                 start = end
-                end += int_size
+                end += bin_size
 
     def _expand_logic(self, extra_fingerprint: "CountingCuckooBin") -> None:
         """the logic to acutally expand the cuckoo filter"""
