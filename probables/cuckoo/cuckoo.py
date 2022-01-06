@@ -166,10 +166,7 @@ class CuckooFilter(object):
             CuckooFilter: A Bloom Filter object
         """
         cku = CuckooFilter(hash_function=hash_function)
-        cku._parse_footer(b)
-        cku._inserted_elements = 0
-        # now pull everything in!
-        cku._parse_buckets(b)
+        cku._load(b)  # type: ignore
 
         # if error rate is provided, use it
         cku._set_error_rate(error_rate)
@@ -409,9 +406,9 @@ class CuckooFilter(object):
         # if we got here we have an error... we might need to know what is left
         return fingerprint
 
-    def _load(self, file: Union[Path, str, IOBase, mmap]) -> None:
+    def _load(self, file: Union[Path, str, IOBase, mmap, bytes]) -> None:
         """load a cuckoo filter from file"""
-        if not isinstance(file, (IOBase, mmap)):
+        if not isinstance(file, (IOBase, mmap, bytes)):
             file = Path(file)
             with MMap(file) as filepointer:
                 self._load(filepointer)
