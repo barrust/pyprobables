@@ -4,8 +4,8 @@
     URL: https://github.com/barrust/count-min-sketch
 """
 
-import array
 import math
+from array import array
 from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
@@ -113,7 +113,7 @@ class CountMinSketch(object):
                     "    OR confidence and error rate"
                 )
                 raise InitializationError(msg)
-            self._bins = array.ArrayType("i", [0]) * (self.width * self.depth)
+            self._bins = array("i", [0]) * (self.width * self.depth)
 
         if hash_function is None:
             self._hash_function = default_fnv_1a
@@ -437,7 +437,7 @@ class CountMinSketch(object):
         self.__error_rate = 2 / self.width
 
         offset = self.__BASIC_BIN_STRUCT.size * self.width * self.depth
-        self._bins = array.ArrayType("i", bytes(file[:offset]))
+        self._bins = array("i", bytes(file[:offset]))
 
     def __get_values_sorted(self, hashes: HashResultsT) -> HashResultsT:
         """get the values sorted"""
