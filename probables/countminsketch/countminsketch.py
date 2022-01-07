@@ -113,7 +113,7 @@ class CountMinSketch(object):
                     "    OR confidence and error rate"
                 )
                 raise InitializationError(msg)
-            self._bins = array.ArrayType("i", [0 for _ in range(self.width * self.depth)])
+            self._bins = array.ArrayType("i", [0]) * (self.width * self.depth)
 
         if hash_function is None:
             self._hash_function = default_fnv_1a
