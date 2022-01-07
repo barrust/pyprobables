@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """ probables utilitites tests """
 
 import os
