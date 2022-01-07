@@ -126,9 +126,9 @@ class TestCountingBloomFilter(unittest.TestCase):
             self.assertEqual(md5_out, md5_val)
 
     def test_cbf_bytes(self):
+        """test exporting counting bloom filter to bytes"""
         md5_val = "0b83c837da30e25f768f0527c039d341"
         blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
-        # print("\n\n\n{}\n\n\n".format(blm.bloom_length))
         blm.add("test")
         blm.add("out")
         blm.add("the")
@@ -140,10 +140,38 @@ class TestCountingBloomFilter(unittest.TestCase):
         blm.add("Test")
         blm.add("out")
         blm.add("test")
-        # blm.export(fobj.name)
 
         md5_out = hashlib.md5(bytes(blm)).hexdigest()
         self.assertEqual(md5_out, md5_val)
+
+    def test_cbf_frombytes(self):
+        """test loading counting bloom filter from bytes"""
+        blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm.add("test")
+        blm.add("out")
+        blm.add("the")
+        blm.add("counting")
+        blm.add("bloom")
+        blm.add("filter")
+
+        blm.add("test")
+        blm.add("Test")
+        blm.add("out")
+        blm.add("test")
+        bytes_out = bytes(blm)
+
+        blm2 = CountingBloomFilter.frombytes(bytes_out)
+        self.assertEqual(blm.false_positive_rate, 0.05000000074505806)
+        self.assertEqual(blm.estimated_elements, 10)
+        self.assertEqual(blm.number_hashes, 4)
+        self.assertEqual(blm.number_bits, 63)
+        self.assertEqual(blm.elements_added, 10)
+        self.assertEqual(blm.is_on_disk, False)
+        self.assertEqual(blm.bloom_length, 63)
+
+        self.assertEqual(bytes(blm2), bytes(blm))
+        self.assertTrue(blm2.check("test"))
+        self.assertFalse(blm2.check("something"))
 
     def test_cbf_load_file(self):
         """test loading bloom filter from file"""

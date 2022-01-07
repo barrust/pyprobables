@@ -3,12 +3,13 @@
     Author: Tyler Barrus (barrust@gmail.com)
     URL: https://github.com/barrust/bloom
 """
-
+import array
 import mmap
 import os
+from collections.abc import ByteString
 from pathlib import Path
 from shutil import copyfile
-from struct import calcsize, pack, unpack
+from struct import Struct
 from typing import Union
 
 from ..exceptions import InitializationError, NotSupportedError
@@ -75,24 +76,23 @@ def _tmp_intersection(first: SimpleBloomT, second: SimpleBloomT) -> "BloomFilter
 
 
 class BloomFilter(BaseBloom):
-    """ Simple Bloom Filter implementation for use in python;
-        It can read and write the same format as the c version
-        (https://github.com/barrust/bloom)
+    """Simple Bloom Filter implementation for use in python;
+    It can read and write the same format as the c version
+    (https://github.com/barrust/bloom)
 
-        Args:
-            est_elements (int): The number of estimated elements to be added
-            false_positive_rate (float): The desired false positive rate
-            filepath (str): Path to file to load
-            hex_string (str): Hex based representation to be loaded
-            hash_function (function): Hashing strategy function to use \
-            `hf(key, number)`
-        Returns:
-            BloomFilter: A Bloom Filter object
-        Note:
-            Initialization order of operations:
-                1) From file
-                2) From Hex String
-                3) From params """
+    Args:
+        est_elements (int): The number of estimated elements to be added
+        false_positive_rate (float): The desired false positive rate
+        filepath (str): Path to file to load
+        hex_string (str): Hex based representation to be loaded
+        hash_function (function): Hashing strategy function to use `hf(key, number)`
+    Returns:
+        BloomFilter: A Bloom Filter object
+    Note:
+        Initialization order of operations:
+            1) From file
+            2) From Hex String
+            3) From params"""
 
     __slots__ = BaseBloom.__slots__
 
@@ -113,6 +113,27 @@ class BloomFilter(BaseBloom):
             hex_string,
             hash_function,
         )
+
+    __HEADER_STRUCT_FORMAT = "QQf"
+    __HEADER_STRUCT = Struct(__HEADER_STRUCT_FORMAT)
+    # __HEADER_STRUCT_BE = Struct(">" + __HEADER_STRUCT_FORMAT)
+
+    @classmethod
+    def frombytes(cls, b: ByteString, hash_function: Union[HashFuncT, None] = None) -> "BloomFilter":
+        """
+        Args:
+            b (ByteString): The bytes to load as a Bloom Filter
+            hash_function (function): Hashing strategy function to use `hf(key, number)`
+        Returns:
+            BloomFilter: A Bloom Filter object
+        """
+        offset = cls.__HEADER_STRUCT.size
+        est_elms, _, fpr, _, _, _ = cls._parse_footer(cls.__HEADER_STRUCT, bytes(b[-offset:]))
+        blm = BloomFilter(est_elements=est_elms, false_positive_rate=fpr, hash_function=hash_function)
+        blm._parse_footer_set(cls.__HEADER_STRUCT, bytes(b[-offset:]))
+        blm._set_bloom_length()
+        blm._parse_bloom_array(b)
+        return blm
 
     def __str__(self) -> str:
         """output statistics of the bloom filter"""
@@ -248,7 +269,7 @@ class BloomFilterOnDisk(BaseBloom):
                 2) From Hex String
                 3) Only filepath provided """
 
-    __slots__ = ["__file_pointer", "__filename", "__export_offset"]
+    __slots__ = ["__file_pointer", "__filename"]
 
     def __init__(
         self,
@@ -273,24 +294,24 @@ class BloomFilterOnDisk(BaseBloom):
 
         self.__file_pointer = None
         self.__filename = Path(filepath)
-        self.__export_offset = calcsize("Qf")
         self._on_disk = True
 
         if est_elements is not None and false_positive_rate is not None:
             # no need to check the file since this will over write it
             fpr = false_positive_rate
-            vals = super(BloomFilterOnDisk, self)._set_optimized_params(est_elements, fpr, hash_function)
+            h_func, fpr, _, _ = self._set_optimized_params(est_elements, fpr, hash_function)
             super(BloomFilterOnDisk, self).__init__(
                 "reg-ondisk",
                 est_elements=est_elements,
-                false_positive_rate=vals[1],
-                hash_function=vals[0],
+                false_positive_rate=fpr,
+                hash_function=h_func,
             )
             # do the on disk things
             with open(filepath, "wb") as filepointer:
-                for _ in range(self.bloom_length):
-                    filepointer.write(pack("B", int(0)))
-                filepointer.write(pack("QQf", est_elements, 0, false_positive_rate))
+                a = array.ArrayType("B")
+                a.extend([0 for _ in range(self.bloom_length)])
+                a.tofile(filepointer)
+                filepointer.write(self.CNT_FOOTER_STUCT.pack(est_elements, 0, false_positive_rate))
                 filepointer.flush()
             self.__load(filepath, hash_function)
         elif is_hex_string(hex_string):
@@ -300,6 +321,19 @@ class BloomFilterOnDisk(BaseBloom):
         else:
             msg = "Insufecient parameters to set up the On Disk Bloom Filter"
             raise InitializationError(msg)
+
+    CNT_ELM_STRUCT = Struct("B")
+    CNT_EXP_ELM_STRUCT = Struct("Q")
+    CNT_FOOTER_STUCT = Struct("QQf")
+    CNT_EXPORT_OFFSET = Struct("Qf")
+
+    @classmethod
+    def frombytes(cls, b: ByteString, hash_function: Union[HashFuncT, None] = None) -> "BloomFilter":
+        """
+        Raises: NotSupportedError
+        """
+        msg = "Loading from bytes is currently not supported by the on disk Bloom Filter"
+        raise NotSupportedError(msg)
 
     def __del__(self) -> None:
         """handle if user doesn't close the on disk Bloom Filter"""
@@ -312,7 +346,7 @@ class BloomFilterOnDisk(BaseBloom):
         """Clean up the BloomFilterOnDisk object"""
         if self.__file_pointer is not None:
             self.__update()
-            self._bloom.close()  # close the mmap
+            self._bloom.close()  # type: ignore
             self.__file_pointer.close()
             self.__file_pointer = None
 
@@ -321,15 +355,15 @@ class BloomFilterOnDisk(BaseBloom):
         # read the file, set the optimal params
         # mmap everything
         with open(filepath, "r+b") as filepointer:
-            offset = calcsize("QQf")
+            offset = self.CNT_FOOTER_STUCT.size
             filepointer.seek(offset * -1, os.SEEK_END)
-            mybytes = unpack("QQf", filepointer.read(offset))
-            vals = super(BloomFilterOnDisk, self)._set_optimized_params(mybytes[0], mybytes[2], hash_function)
+            est_els, _, fpr = self.CNT_FOOTER_STUCT.unpack_from(filepointer.read(offset))
+            hash_func, fpr, _, _ = self.__class__._set_optimized_params(est_els, fpr, hash_function)
         super(BloomFilterOnDisk, self).__init__(
             "reg-ondisk",
-            est_elements=mybytes[0],
-            false_positive_rate=vals[1],
-            hash_function=vals[0],
+            est_elements=est_els,
+            false_positive_rate=fpr,
+            hash_function=hash_func,
         )
         self.__file_pointer = open(filepath, "r+b")  # type: ignore
         self._bloom = mmap.mmap(self.__file_pointer.fileno(), 0)  # type: ignore
@@ -435,14 +469,14 @@ class BloomFilterOnDisk(BaseBloom):
 
     def _get_element(self, idx: int) -> int:
         """wrappper to use similar functions always!"""
-        return unpack("B", bytes([self._bloom[idx]]))[0]  # type: ignore
+        return int(self.CNT_ELM_STRUCT.unpack(bytes([self._bloom[idx]]))[0])
 
     def __update(self):
         """update the on disk Bloom Filter and ensure everything is out
         to disk"""
         self._bloom.flush()
-        self.__file_pointer.seek(-self.__export_offset, os.SEEK_END)
-        self.__file_pointer.write(pack("Q", self.elements_added))
+        self.__file_pointer.seek(-self.CNT_EXPORT_OFFSET.size, os.SEEK_END)
+        self.__file_pointer.write(self.CNT_EXP_ELM_STRUCT.pack(self.elements_added))
         self.__file_pointer.flush()
 
     def _cnt_number_bits_set(self) -> int:

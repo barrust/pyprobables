@@ -213,6 +213,18 @@ class TestCountMinSketch(unittest.TestCase):
         md5_out = hashlib.md5(bytes(cms)).hexdigest()
         self.assertEqual(md5_out, md5_val)
 
+    def test_cms_frombytes(self):
+        """test loading a count-min sketch from bytes"""
+        cms = CountMinSketch(width=1000, depth=5)
+        cms.add("this is a test", 100)
+        bytes_out = bytes(cms)
+
+        cms2 = CountMinSketch.frombytes(bytes_out)
+        self.assertEqual(bytes(cms2), bytes(cms))
+        self.assertEqual(cms2.width, 1000)
+        self.assertEqual(cms2.depth, 5)
+        self.assertEqual(cms2.check("this is a test"), 100)
+
     def test_cms_load(self):
         """test loading a count-min sketch from file"""
         md5_val = "fb1c39dd1a73f1ef0d7fc79f60fc028e"
@@ -688,6 +700,28 @@ class TestHeavyHitters(unittest.TestCase):
             self.assertEqual(hh2.add("this is a test", 1), 101)
             self.assertEqual(hh2.heavy_hitters, {"this is a test": 101})
 
+    def test_hh_bytes(self):
+        """test exporting a heavy hitters sketch as bytes"""
+        md5_val = "fb1c39dd1a73f1ef0d7fc79f60fc028e"
+
+        hh1 = HeavyHitters(num_hitters=1000, width=1000, depth=5)
+        hh1.add("this is a test", 100)
+        self.assertEqual(hashlib.md5(bytes(hh1)).hexdigest(), md5_val)
+
+    def test_hh_frombytes(self):
+        """testinitializing a heavy hitters from bytes"""
+        hh1 = HeavyHitters(num_hitters=1000, width=1000, depth=5)
+        hh1.add("this is a test", 100)
+        bytes_out = bytes(hh1)
+
+        hh2 = HeavyHitters.frombytes(bytes_out, num_hitters=500)
+        self.assertEqual(hh2.width, 1000)
+        self.assertEqual(hh2.depth, 5)
+        self.assertEqual(hh2.number_heavy_hitters, 500)
+        self.assertEqual(hh2.elements_added, 100)
+        self.assertEqual(bytes(hh2), bytes(hh1))
+        self.assertEqual(hh2.check("this is a test"), 100)
+
     def test_hh_str(self):
         """test the string representation of the heavy hitters sketch"""
         hh1 = HeavyHitters(num_hitters=2, width=1000, depth=5)
@@ -869,6 +903,32 @@ class TestStreamThreshold(unittest.TestCase):
             self.assertEqual(st2.meets_threshold, dict())
             self.assertEqual(st2.add("this is a test", 1), 101)
             self.assertEqual(st2.meets_threshold, {"this is a test": 101})
+
+    def test_streamthreshold_bytes(self):
+        """test exporting a streaming threshold as bytes"""
+        md5_val = "fb1c39dd1a73f1ef0d7fc79f60fc028e"
+        st1 = StreamThreshold(threshold=10, width=1000, depth=5)
+        st1.add("this is a test", 100)
+        bytes_out = bytes(st1)
+        self.assertEqual(hashlib.md5(bytes_out).hexdigest(), md5_val)
+
+    def test_streamthreshold_frombytes(self):
+        """testinitializing a heavy hitters from bytes"""
+        st1 = StreamThreshold(threshold=10, width=1000, depth=5)
+        st1.add("this is a test", 100)
+        bytes_out = bytes(st1)
+
+        st2 = StreamThreshold.frombytes(bytes_out, threshold=10)
+        self.assertEqual(st2.width, 1000)
+        self.assertEqual(st2.depth, 5)
+        self.assertEqual(st2.threshold, 10)
+        self.assertEqual(st2.elements_added, 100)
+        self.assertEqual(bytes(st2), bytes(st1))
+        self.assertEqual(st2.check("this is a test"), 100)
+        # show on load that the tracking of stream threshold is gone
+        self.assertEqual(st2.meets_threshold, dict())
+        self.assertEqual(st2.add("this is a test", 1), 101)
+        self.assertEqual(st2.meets_threshold, {"this is a test": 101})
 
     def test_streamthreshold_str(self):
         """test the string representation of the stream threshold sketch"""

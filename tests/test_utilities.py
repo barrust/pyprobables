@@ -12,23 +12,23 @@ sys.path.insert(0, str(this_dir.parent))
 
 from utilities import different_hash
 
-from probables.utilities import get_x_bits, is_hex_string, is_valid_file
+from probables.utilities import MMap, get_x_bits, is_hex_string, is_valid_file
 
 DELETE_TEMP_FILES = True
 
 
 class TestProbablesUtilities(unittest.TestCase):
-    """ test the utilities for pyprobables """
+    """test the utilities for pyprobables"""
 
     def test_is_hex(self):
-        """ test the is valid hex function """
-        self.assertTrue(is_hex_string("1234678909abcdef"))
-        self.assertTrue(is_hex_string("1234678909ABCDEF"))
-        self.assertFalse(is_hex_string("1234678909abcdfq"))
-        self.assertFalse(is_hex_string("1234678909ABCDEFQ"))
+        """test the is valid hex function"""
+        self.assertTrue(is_hex_string("123467890abcdef"))
+        self.assertTrue(is_hex_string("123467890ABCDEF"))
+        self.assertFalse(is_hex_string("123467890abcdfq"))
+        self.assertFalse(is_hex_string("123467890ABCDEFQ"))
 
     def test_is_valid_file(self):
-        """ test the is valid file function """
+        """test the is valid file function"""
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".rbf", delete=DELETE_TEMP_FILES) as fobj:
             self.assertFalse(is_valid_file(None))
             self.assertFalse(is_valid_file("./file_doesnt_exist.txt"))
@@ -37,7 +37,7 @@ class TestProbablesUtilities(unittest.TestCase):
             self.assertTrue(is_valid_file(fobj.name))
 
     def test_get_x_bits(self):
-        """ test the get x bits function """
+        """test the get x bits function"""
         for i in range(8):
             res = get_x_bits(i, 4, 2, True)
             self.assertEqual(res, i % 4)
@@ -49,7 +49,7 @@ class TestProbablesUtilities(unittest.TestCase):
                 self.assertEqual(res, 1)
 
     def test_get_x_bits_large(self):
-        """ test it on much larger numbers """
+        """test it on much larger numbers"""
         res = different_hash("this is a test", 1)[0]
         # 1010100101011011100100010101010011110000001010011010000101001011
         tmp1 = get_x_bits(res, 64, 32, True)
@@ -81,6 +81,21 @@ class TestProbablesUtilities(unittest.TestCase):
         tmp2 = get_x_bits(res, 64, 1, False)
         self.assertEqual(1, tmp1)
         self.assertEqual(1, tmp2)
+
+    def test_mmap_functionality(self):
+        """test some of the MMap class functionality"""
+        data = b"this is a test of the MMap system!"
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".rbf", delete=DELETE_TEMP_FILES) as fobj:
+            with open(fobj.name, "wb") as fobj:
+                fobj.write(data)
+            m = MMap(fobj.name)
+            self.assertFalse(m.closed)
+            self.assertEqual(data, m.read())
+            m.seek(0, os.SEEK_SET)
+            self.assertEqual(data[:5], m.read(5))
+            self.assertEqual(data[5:], m.read())
+            m.close()
+            self.assertTrue(m.closed)
 
 
 if __name__ == "__main__":

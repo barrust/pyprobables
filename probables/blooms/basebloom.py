@@ -3,15 +3,15 @@
     Author: Tyler Barrus (barrust@gmail.com)
 """
 
+import array
 import math
-import os
 from binascii import hexlify, unhexlify
 from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from numbers import Number
 from pathlib import Path
-from struct import Struct, calcsize, pack, unpack
+from struct import Struct
 from textwrap import wrap
 from typing import List, Tuple, Union
 
@@ -35,6 +35,7 @@ class BaseBloom(object):
         "__impt_type",
         "__blm_type",
         "__bloom_length",
+        "__impt_struct",
     ]
 
     def __init__(
@@ -60,6 +61,7 @@ class BaseBloom(object):
             self.__impt_type = "B"
         else:
             self.__impt_type = "I"
+        self.__impt_struct = Struct(self.__impt_type)
 
         if blm_type in ["regular", "reg-ondisk", "expanding"]:
             msg = "Insufecient parameters to set up the Bloom Filter"
@@ -73,11 +75,13 @@ class BaseBloom(object):
             assert hex_string is not None
             self._load_hex(hex_string, hash_function)
         elif est_elements is not None and false_positive_rate is not None:
-            vals = self._set_optimized_params(est_elements, float(false_positive_rate), hash_function)
-            self.__hash_func = vals[0]  # type: ignore
-            self.__fpr = vals[1]
-            self.__number_hashes = vals[2]
-            self.__num_bits = vals[3]
+            h_func, fpr, n_hashes, n_bits = self._set_optimized_params(
+                est_elements, float(false_positive_rate), hash_function
+            )
+            self.__hash_func = h_func  # type: ignore
+            self.__fpr = fpr
+            self.__number_hashes = n_hashes
+            self.__num_bits = n_bits
             if blm_type in ["regular", "reg-ondisk"]:
                 self.__bloom_length = int(math.ceil(self.__num_bits / 8.0))
             else:
@@ -185,9 +189,9 @@ class BaseBloom(object):
         tmp = depth if depth is not None else self.number_hashes
         return self.__hash_func(key, tmp)
 
-    @staticmethod
+    @classmethod
     def _set_optimized_params(
-        estimated_elements: int, false_positive_rate: float, hash_function: Union[HashFuncT, None]
+        cls, estimated_elements: int, false_positive_rate: float, hash_function: Union[HashFuncT, None]
     ) -> Tuple[HashFuncT, float, int, int]:
         """set the parameters to the optimal sizes"""
         tmp_hash = hash_function
@@ -202,9 +206,8 @@ class BaseBloom(object):
         if not valid_prms:
             msg = "Bloom: false positive rate must be between 0.0 and 1.0"
             raise InitializationError(msg)
-
-        fpr = pack("f", float(false_positive_rate))
-        t_fpr = unpack("f", fpr)[0]  # to mimic the c version!
+        fpr = cls.__FPR_STRUCT.pack(float(false_positive_rate))
+        t_fpr = float(cls.__FPR_STRUCT.unpack(fpr)[0])  # to mimic the c version!
         # optimal caluclations
         n_els = estimated_elements
         m_bt = math.ceil((-n_els * math.log(t_fpr)) / 0.4804530139182)  # ln(2)^2
@@ -219,9 +222,10 @@ class BaseBloom(object):
 
         return tmp_hash, t_fpr, number_hashes, int(m_bt)
 
-    HEADER_STRUCT_FORMAT = "QQf"
-    HEADER_STRUCT = Struct(HEADER_STRUCT_FORMAT)
-    HEADER_STRUCT_BE = Struct(">" + HEADER_STRUCT_FORMAT)
+    __HEADER_STRUCT_FORMAT = "QQf"
+    __HEADER_STRUCT = Struct(__HEADER_STRUCT_FORMAT)
+    __HEADER_STRUCT_BE = Struct(">" + __HEADER_STRUCT_FORMAT)
+    __FPR_STRUCT = Struct("f")
 
     def __load(
         self,
@@ -230,62 +234,69 @@ class BaseBloom(object):
         hash_function: Union[HashFuncT, None] = None,
     ) -> None:
         """load the Bloom Filter from file"""
-        # read in the needed information, and then call _set_optimized_params
-        # to set everything correctly
         if not isinstance(file, (IOBase, mmap)):
             file = Path(file)
             with MMap(file) as filepointer:
                 self.__load(blm_type, filepointer, hash_function)
         else:
-            offset = self.__class__.HEADER_STRUCT.size
-            file.seek(offset * -1, os.SEEK_END)
-            fpr = self._parse_footer(self.__class__.HEADER_STRUCT, file.read(offset))
-            vals = self._set_optimized_params(self.__est_elements, fpr, hash_function)
-            self.__hash_func = vals[0]  # type: ignore
-            self.__fpr = vals[1]
-            self.__number_hashes = vals[2]
-            self.__num_bits = vals[3]
-            if blm_type in ["regular", "reg-ondisk"]:
-                self.__bloom_length = int(math.ceil(self.__num_bits / 8.0))
-            else:
-                self.__bloom_length = self.number_bits
+            offset = self.__HEADER_STRUCT.size
+            self._parse_footer_set(self.__HEADER_STRUCT, file[-offset:], hash_function)  # type: ignore
+            self._set_bloom_length()
             # now read in the bit array!
-            file.seek(0, os.SEEK_SET)
-            offset = calcsize(self.__impt_type) * self.bloom_length
-            rep = self.__impt_type * self.bloom_length
-            self._bloom = list(unpack(rep, file.read(offset)))
+            self._parse_bloom_array(file)  # type: ignore
 
-    def _parse_footer(self, stct: Struct, d: ByteString) -> float:
-        tmp_data = stct.unpack_from(bytearray(d))
-        self.__est_elements = tmp_data[0]
-        self._els_added = tmp_data[1]
-        fpr = float(tmp_data[2])
-        return fpr
+    @classmethod
+    def _parse_footer(
+        cls, stct: Struct, d: ByteString, hash_function: Union[HashFuncT, None] = None
+    ) -> Tuple[int, int, float, HashFuncT, int, int]:
+        """parse footer returning the data: estimated elements, elements added,
+        false positive rate, hash function, number hashes, number bits"""
+        e_elms, e_added, fpr = stct.unpack_from(bytearray(d))
+        est_elements = int(e_elms)
+        els_added = int(e_added)
+        fpr = float(fpr)
+        h_func, fpr, n_hashes, n_bits = cls._set_optimized_params(est_elements, fpr, hash_function)
 
-    def _load_hex(self, hex_string: str, hash_function: Union[HashFuncT, None] = None) -> None:
-        """placeholder for loading from hex string"""
-        offset = self.__class__.HEADER_STRUCT_BE.size * 2
-        fpr = self._parse_footer(self.__class__.HEADER_STRUCT_BE, unhexlify(hex_string[-offset:]))
-        vals = self._set_optimized_params(self.__est_elements, fpr, hash_function)
-        self.__hash_func = vals[0]  # type: ignore
-        self.__fpr = vals[1]
-        self.__number_hashes = vals[2]
-        self.__num_bits = vals[3]
+        return est_elements, els_added, float(fpr), h_func, int(n_hashes), int(n_bits)
+
+    def _parse_footer_set(self, stct: Struct, d: ByteString, hash_function: Union[HashFuncT, None] = None) -> None:
+        est_elms, els_added, fpr, hash_func, num_hashes, num_bits = self._parse_footer(stct, d, hash_function)
+        self.__est_elements = est_elms
+        self._els_added = els_added
+        self.__hash_func = hash_func  # type: ignore
+        self.__fpr = fpr
+        self.__number_hashes = num_hashes
+        self.__num_bits = num_bits
+
+    def _parse_bloom_array(self, b: ByteString):
+        offset = self.__impt_struct.size * self.bloom_length
+        a = array.ArrayType(self.__impt_type)
+        a.frombytes(bytes(b[:offset]))
+        self._bloom = a.tolist()
+
+    def _set_bloom_length(self) -> None:
+        """House setting the bloom length based on the bloom filter itself"""
         if self.__blm_type in ["regular", "reg-ondisk"]:
             self.__bloom_length = int(math.ceil(self.__num_bits / 8.0))
         else:
             self.__bloom_length = self.number_bits
 
+    def _load_hex(self, hex_string: str, hash_function: Union[HashFuncT, None] = None) -> None:
+        """placeholder for loading from hex string"""
+        offset = self.__HEADER_STRUCT_BE.size * 2
+        self._parse_footer_set(self.__HEADER_STRUCT_BE, unhexlify(hex_string[-offset:]), hash_function)
+        self._set_bloom_length()
         tmp_bloom = unhexlify(hex_string[:-offset])
-        rep = self.__impt_type * self.bloom_length
-        self._bloom = list(unpack(rep, tmp_bloom))
+        a = array.ArrayType(self.__impt_type)
+        a.frombytes(tmp_bloom)
+        self._bloom = a.tolist()
 
     def export_hex(self) -> str:
         """Export the Bloom Filter as a hex string
 
         Return:
             str: Hex representation of the Bloom Filter"""
-        mybytes = self.__class__.HEADER_STRUCT_BE.pack(
+        mybytes = self.__HEADER_STRUCT_BE.pack(
             self.estimated_elements,
             self.elements_added,
             self.false_positive_rate,
@@ -293,10 +304,9 @@ class BaseBloom(object):
         if self.__blm_type in ["regular", "reg-ondisk"]:
             bytes_string = hexlify(bytearray(self.bloom[: self.bloom_length])) + hexlify(mybytes)
         else:
-            bytes_string = b""
-            for val in self.bloom:
-                bytes_string += hexlify(pack(self.__impt_type, val))
-            bytes_string += hexlify(mybytes)
+            a = array.ArrayType(self.__impt_type)
+            a.fromlist(self.bloom)
+            bytes_string = hexlify(a.tobytes()) + hexlify(mybytes)
         return str(bytes_string, "utf-8")
 
     def export(self, file: Union[Path, str, IOBase, mmap]) -> None:
@@ -310,10 +320,11 @@ class BaseBloom(object):
             with open(file, "wb") as filepointer:
                 self.export(filepointer)  # type:ignore
         else:
-            rep = self.__impt_type * self.bloom_length
-            file.write(pack(rep, *self.bloom))
+            a = array.ArrayType(self.__impt_type)
+            a.fromlist((self.bloom))
+            file.write(a.tobytes())
             file.write(
-                self.__class__.HEADER_STRUCT.pack(
+                self.__HEADER_STRUCT.pack(
                     self.estimated_elements,
                     self.elements_added,
                     self.false_positive_rate,
@@ -352,8 +363,7 @@ class BaseBloom(object):
 
         Returns:
             int: Size of the Bloom Filter when exported to disk"""
-        tmp_b = calcsize(self.__impt_type)
-        return (self.bloom_length * tmp_b) + self.__class__.HEADER_STRUCT.size
+        return (self.bloom_length * self.__impt_struct.size) + self.__HEADER_STRUCT.size
 
     def current_false_positive_rate(self) -> float:
         """Calculate the current false positive rate based on elements added

@@ -4,14 +4,15 @@
     URL: https://github.com/barrust/count-min-sketch
 """
 
+import array
 import math
-import os
+from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from numbers import Number
 from pathlib import Path
-from struct import calcsize, pack, unpack
-from typing import Dict, Union
+from struct import Struct
+from typing import Dict, Tuple, Union
 
 from ..constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN
 from ..exceptions import CountMinSketchError, InitializationError, NotSupportedError
@@ -115,6 +116,9 @@ class CountMinSketch(object):
         else:
             self._hash_function = hash_function  # type: ignore
 
+    __FOOTER_STRUCT = Struct("IIq")
+    __BASIC_BIN_STRUCT = Struct("i")
+
     def __str__(self) -> str:
         """string representation of the count min sketch"""
         msg = (
@@ -142,6 +146,21 @@ class CountMinSketch(object):
         with BytesIO() as f:
             self.export(f)
             return f.getvalue()
+
+    @classmethod
+    def frombytes(cls, b: ByteString, hash_function: Union[HashFuncT, None] = None) -> "CountMinSketch":
+        """
+        Args:
+            b (ByteString): The bytes to load as a Count-Min Sketch
+            hash_function (function): Hashing strategy function to use `hf(key, number)`
+        Returns:
+            CountMinSketch: A count-min sketch object
+        """
+        offset = cls.__FOOTER_STRUCT.size
+        width, depth, _ = cls.__FOOTER_STRUCT.unpack_from(bytes(b[-offset:]))
+        cms = CountMinSketch(width=width, depth=depth, hash_function=hash_function)
+        cms._parse_bytes(b)
+        return cms
 
     @property
     def width(self) -> int:
@@ -334,9 +353,10 @@ class CountMinSketch(object):
                 self.export(filepointer)  # type: ignore
         else:
             # write out the bins
-            rep = "i" * len(self._bins)
-            file.write(pack(rep, *self._bins))
-            file.write(pack("IIq", self.width, self.depth, self.elements_added))
+            a = array.ArrayType("i")
+            a.extend([x for x in self._bins])
+            file.write(a.tobytes())
+            file.write(self.__FOOTER_STRUCT.pack(self.width, self.depth, self.elements_added))
 
     def join(self, second: "CountMinSketch") -> None:
         """ Join two count-min sketchs into a single count-min sketch; the
@@ -388,20 +408,28 @@ class CountMinSketch(object):
             with MMap(file) as filepointer:
                 self.__load(filepointer)
         else:
-            offset = calcsize("IIq")
-            file.seek(offset * -1, os.SEEK_END)
-            mybytes = unpack("IIq", file.read(offset))
-            self.__width = mybytes[0]
-            self.__depth = mybytes[1]
-            self.__elements_added = mybytes[2]
-            self.__confidence = 1 - (1 / math.pow(2, self.depth))
-            self.__error_rate = 2 / self.width
+            self._parse_bytes(file)  # type: ignore
 
-            file.seek(0, os.SEEK_SET)
-            length = self.width * self.depth
-            rep = "i" * length
-            offset = calcsize(rep)
-            self._bins = list(unpack(rep, file.read(offset)))
+    @classmethod
+    def _parse_footer(cls, file: ByteString) -> Tuple[int, int, int]:
+        """return width, depth and elements added, in that order"""
+        offset = cls.__FOOTER_STRUCT.size
+        width, depth, elements_added = cls.__FOOTER_STRUCT.unpack_from(bytes(file[-offset:]))
+        return width, depth, elements_added
+
+    def _parse_bytes(self, file: ByteString):
+        """parse bytes or a mapped file to setup the CountMin-Sketch"""
+        width, depth, els_added = self._parse_footer(file)
+        self.__width = width
+        self.__depth = depth
+        self.__elements_added = els_added
+        self.__confidence = 1 - (1 / math.pow(2, self.depth))
+        self.__error_rate = 2 / self.width
+
+        offset = self.__BASIC_BIN_STRUCT.size * self.width * self.depth
+        a = array.ArrayType("i")
+        a.frombytes(bytes(file[:offset]))
+        self._bins = list(a)
 
     def __get_values_sorted(self, hashes: HashResultsT) -> HashResultsT:
         """get the values sorted"""
@@ -566,6 +594,23 @@ class HeavyHitters(CountMinSketch):
         self.__num_hitters = num_hitters
         self.__smallest = 0
 
+    @classmethod
+    def frombytes(  # type: ignore
+        cls, b: ByteString, num_hitters: int = 100, hash_function: Union[HashFuncT, None] = None
+    ) -> "HeavyHitters":
+        """
+        Args:
+            b (ByteString): The bytes to load as a Expanding Bloom Filter
+            num_hitters (int): The maximum number of distinct elements to track
+            hash_function (function): Hashing strategy function to use `hf(key, number)`
+        Returns:
+            HeavyHitters: A Bloom Filter object
+        """
+        width, depth, _ = cls._parse_footer(b)
+        hh = HeavyHitters(width=width, depth=depth, num_hitters=num_hitters, hash_function=hash_function)
+        hh._parse_bytes(b)
+        return hh
+
     def __str__(self) -> str:
         """heavy hitters string rep"""
         msg = super(HeavyHitters, self).__str__()
@@ -670,7 +715,28 @@ class HeavyHitters(CountMinSketch):
 
 
 class StreamThreshold(CountMinSketch):
-    """keep track of those elements over a certain threshold"""
+    """ Find and track those elements that are above a certain threshold
+
+        Args:
+            threshold (int): The threshold above which an element will be tracked
+            width (int): The width of the count-min sketch
+            depth (int): The depth of the count-min sketch
+            confidence (float): The level of confidence desired
+            error_rate (float): The desired error rate
+            filepath (str): Path to file to load
+            hash_function (function): Hashing strategy function to use `hf(key, number)`
+        Returns:
+            StreamThreshold: A Count-Min Sketch object
+        Note:
+            Initialization order of operations:
+                1) From file
+                2) Width and depth
+                3) Confidence and error rate
+        Note:
+            Default query type is `min`
+        Note:
+            For width and depth, width may realistically be in the thousands \
+            while depth is in the single digit to teens  """
 
     __slots__ = ["__threshold", "__meets_threshold"]
 
@@ -687,6 +753,23 @@ class StreamThreshold(CountMinSketch):
         super(StreamThreshold, self).__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.__threshold = threshold
         self.__meets_threshold = dict()  # type: ignore
+
+    @classmethod
+    def frombytes(  # type: ignore
+        cls, b: ByteString, threshold: int = 100, hash_function: Union[HashFuncT, None] = None
+    ) -> "StreamThreshold":
+        """
+        Args:
+            b (ByteString): The bytes to load as a Expanding Bloom Filter
+            threshold (int): The threshold above which an element will be tracked
+            hash_function (function): Hashing strategy function to use `hf(key, number)`
+        Returns:
+            StreamThreshold: A Bloom Filter object
+        """
+        width, depth, _ = cls._parse_footer(b)
+        st = StreamThreshold(width=width, depth=depth, threshold=threshold, hash_function=hash_function)
+        st._parse_bytes(b)
+        return st
 
     def __str__(self) -> str:
         """stream threshold string rep"""

@@ -3,12 +3,13 @@
     Author: Tyler Barrus (barrust@gmail.com)
 """
 
-import os
+import array
 import random
+from collections.abc import ByteString
 from io import IOBase
 from mmap import mmap
 from pathlib import Path
-from struct import calcsize, pack, unpack
+from struct import Struct
 from typing import List, Union
 
 from ..exceptions import CuckooFilterFullError
@@ -67,6 +68,9 @@ class CountingCuckooFilter(CuckooFilter):
             hash_function,
         )
 
+    __FOOTER_STRUCT = Struct("II")
+    __BIN_STRUCT = Struct("II")
+
     @classmethod
     def init_error_rate(
         cls,
@@ -99,8 +103,7 @@ class CountingCuckooFilter(CuckooFilter):
             expansion_rate=expansion_rate,
             hash_function=hash_function,
         )
-        cku._error_rate = error_rate
-        cku._fingerprint_size = cku._calc_fingerprint_size()
+        cku._set_error_rate(error_rate)
         return cku
 
     @classmethod
@@ -118,8 +121,26 @@ class CountingCuckooFilter(CuckooFilter):
             CuckooFilter: A Cuckoo Filter object
         """
         cku = CountingCuckooFilter(filepath=filepath, hash_function=hash_function)
-        cku._error_rate = error_rate
-        cku._fingerprint_size = cku._calc_fingerprint_size()
+        cku._set_error_rate(error_rate)
+        return cku
+
+    @classmethod
+    def frombytes(
+        cls, b: ByteString, error_rate: Union[float, None] = None, hash_function: Union[SimpleHashT, None] = None
+    ) -> "CountingCuckooFilter":
+        """
+        Args:
+            b (ByteString): The bytes to load as a Expanding Bloom Filter
+            error_rate (float): The error rate of the cuckoo filter, if used to generate the original filter
+            hash_function (function): Hashing strategy function to use `hf(key, number)`
+        Returns:
+            CountingCuckooFilter: A Bloom Filter object
+        """
+        cku = CountingCuckooFilter(hash_function=hash_function)
+        cku._load(b)  # type: ignore
+
+        # if error rate is provided, use it
+        cku._set_error_rate(error_rate)
         return cku
 
     def __contains__(self, val: KeyT) -> bool:
@@ -217,15 +238,15 @@ class CountingCuckooFilter(CuckooFilter):
         else:
             filepointer = file  # type:ignore
             for bucket in self.buckets:
-                # do something for each...
-                rep = len(bucket) * "II"
-                wbyt = pack(rep, *[x for x in self.__bucket_decomposition(bucket)])
-                filepointer.write(wbyt)
+                a = array.ArrayType("I")
+                a.fromlist([x for x in self.__bucket_decomposition(bucket)])
+                filepointer.write(a.tobytes())
                 leftover = self.bucket_size - len(bucket)
-                rep = leftover * "II"
-                filepointer.write(pack(rep, *([0] * (leftover * 2))))
+                t = array.ArrayType("I")
+                t.fromlist([0 for _ in range(leftover * 2)])
+                filepointer.write(t.tobytes())
             # now put out the required information at the end
-            filepointer.write(pack("II", self.bucket_size, self.max_swaps))
+            filepointer.write(self.__FOOTER_STRUCT.pack(self.bucket_size, self.max_swaps))
 
     def _insert_fingerprint_alt(
         self, fingerprint: int, idx_1: int, idx_2: int, count: int = 1
@@ -272,34 +293,39 @@ class CountingCuckooFilter(CuckooFilter):
             return idx_2
         return None
 
-    def _load(self, file: Union[Path, str, IOBase, mmap]) -> None:
+    def _load(self, file: Union[Path, str, IOBase, mmap, bytes]) -> None:
         """load a cuckoo filter from file"""
-        if not isinstance(file, (IOBase, mmap)):
+        if not isinstance(file, (IOBase, mmap, bytes)):
             file = Path(file)
             with MMap(file) as filepointer:
                 self._load(filepointer)
         else:
-            offset = calcsize("II")
-            int_size = calcsize("II")
-            file.seek(offset * -1, os.SEEK_END)
-            list_size = file.tell()
-            mybytes = unpack("II", file.read(offset))
-            self._bucket_size = mybytes[0]
-            self.__max_cuckoo_swaps = mybytes[1]
-            self._cuckoo_capacity = list_size // int_size // self.bucket_size
+            self._parse_footer(file)  # type: ignore
             self._inserted_elements = 0
-            # now pull everything in!
-            file.seek(0, os.SEEK_SET)
-            self._buckets = list()
-            for i in range(self.capacity):
-                self.buckets.append(list())
-                for _ in range(self.bucket_size):
-                    finger, count = unpack("II", file.read(int_size))
-                    if finger > 0:
-                        ccb = CountingCuckooBin(finger, count)
-                        self.buckets[i].append(ccb)
-                        self._inserted_elements += count
-                        self.__unique_elements += 1
+            self._parse_buckets(file)  # type: ignore
+
+    def _parse_footer(self, d: ByteString) -> None:
+        bucket_size, max_swaps = self.__FOOTER_STRUCT.unpack(bytes(d[-self.__FOOTER_STRUCT.size :]))
+        self._bucket_size = int(bucket_size)
+        self.__max_cuckoo_swaps = int(max_swaps)
+
+    def _parse_buckets(self, d: ByteString) -> None:
+        bin_size = self.__BIN_STRUCT.size
+        self._cuckoo_capacity = (len(bytes(d)) - bin_size) // bin_size // self.bucket_size
+        start = 0
+        end = bin_size
+        self._buckets = list()
+        for i in range(self.capacity):
+            self.buckets.append(list())
+            for _ in range(self.bucket_size):
+                finger, count = self.__BIN_STRUCT.unpack(bytes(d[start:end]))
+                if finger > 0:
+                    ccb = CountingCuckooBin(finger, count)
+                    self.buckets[i].append(ccb)
+                    self._inserted_elements += count
+                    self.__unique_elements += 1
+                start = end
+                end += bin_size
 
     def _expand_logic(self, extra_fingerprint: "CountingCuckooBin") -> None:
         """the logic to acutally expand the cuckoo filter"""

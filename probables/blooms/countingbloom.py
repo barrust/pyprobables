@@ -4,7 +4,9 @@
     URL: https://github.com/barrust/counting_bloom
 """
 
+from collections.abc import ByteString
 from pathlib import Path
+from struct import Struct
 from typing import Union
 
 from ..constants import UINT32_T_MAX, UINT64_T_MAX
@@ -61,6 +63,27 @@ class CountingBloomFilter(BaseBloom):
             hex_string=hex_string,
             hash_function=hash_function,
         )
+
+    __HEADER_STRUCT_FORMAT = "QQf"
+    __HEADER_STRUCT = Struct(__HEADER_STRUCT_FORMAT)
+    # __HEADER_STRUCT_BE = Struct(">" + __HEADER_STRUCT_FORMAT)
+
+    @classmethod
+    def frombytes(cls, b: ByteString, hash_function: Union[HashFuncT, None] = None) -> "CountingBloomFilter":
+        """
+        Args:
+            b (ByteString): the bytes to load as a Counting Bloom Filter
+            hash_function (function): Hashing strategy function to use `hf(key, number)`
+        Returns:
+            CountingBloomFilter: A Counting Bloom Filter object
+        """
+        offset = cls.__HEADER_STRUCT.size
+        est_elms, _, fpr, _, _, _ = cls._parse_footer(cls.__HEADER_STRUCT, bytes(b[-offset:]))
+        blm = CountingBloomFilter(est_elements=est_elms, false_positive_rate=fpr, hash_function=hash_function)
+        blm._parse_footer_set(cls.__HEADER_STRUCT, bytes(b[-offset:]))
+        blm._set_bloom_length()
+        blm._parse_bloom_array(b)
+        return blm
 
     def __str__(self) -> str:
         """string representation of the counting bloom filter"""

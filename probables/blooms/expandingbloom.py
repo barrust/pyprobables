@@ -4,12 +4,13 @@
     URL: https://github.com/barrust/pyprobables
 """
 
-import os
+import array
+from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from pathlib import Path
-from struct import calcsize, pack, unpack
-from typing import Union
+from struct import Struct
+from typing import Tuple, Union
 
 from ..exceptions import RotatingBloomFilterError
 from ..hashes import HashFuncT, HashResultsT, KeyT
@@ -41,7 +42,7 @@ class ExpandingBloomFilter(object):
         "__fpr",
         "__est_elements",
         "__hash_func",
-        "__added_elements",
+        "_added_elements",
     ]
 
     def __init__(
@@ -56,13 +57,31 @@ class ExpandingBloomFilter(object):
         self.__fpr = false_positive_rate
         self.__est_elements = est_elements
         self.__hash_func = hash_function
-        self.__added_elements = 0  # total added...
+        self._added_elements = int(0)  # total added...
 
         if is_valid_file(filepath):
             self.__load(filepath)
         else:
             # add in the initial bloom filter!
             self.__add_bloom_filter()
+
+    __FOOTER_STRUCT = Struct("QQQf")
+    __S_INT64_STRUCT = Struct("Q")
+
+    @classmethod
+    def frombytes(cls, b: ByteString, hash_function: Union[HashFuncT, None] = None) -> "ExpandingBloomFilter":
+        """
+        Args:
+            b (ByteString): The bytes to load as a Expanding Bloom Filter
+            hash_function (function): Hashing strategy function to use `hf(key, number)`
+        Returns:
+            ExpandingBloomFilter: A Bloom Filter object
+        """
+        size, est_els, added_els, fpr = cls._parse_footer(b)
+        blm = ExpandingBloomFilter(est_elements=est_els, false_positive_rate=fpr, hash_function=hash_function)
+        blm._parse_blooms(b, size)
+        blm._added_elements = added_els
+        return blm
 
     def __contains__(self, key: KeyT) -> bool:
         """setup the `in` functionality"""
@@ -95,7 +114,7 @@ class ExpandingBloomFilter(object):
     @property
     def elements_added(self) -> int:
         """int: The total number of elements added"""
-        return self.__added_elements
+        return self._added_elements
 
     def push(self) -> None:
         """Push a new expansion onto the Bloom Filter"""
@@ -146,7 +165,7 @@ class ExpandingBloomFilter(object):
                               it likely has been inserted before \
                               `False` will only insert if not found in the \
                               Bloom Filter """
-        self.__added_elements += 1
+        self._added_elements += 1
         if force or not self.check_alt(hashes):
             self.__check_for_growth()
             self._blooms[-1].add_alt(hashes)
@@ -177,11 +196,12 @@ class ExpandingBloomFilter(object):
             filepointer = file  # type:ignore
             # add all the different Bloom bit arrays...
             for blm in self._blooms:
-                rep = "Q" + "B" * blm.bloom_length
-                filepointer.write(pack(rep, blm.elements_added, *blm.bloom))
+                filepointer.write(self.__S_INT64_STRUCT.pack(blm.elements_added))
+                a = array.ArrayType("B")
+                a.fromlist(blm.bloom)
+                a.tofile(filepointer)
             filepointer.write(
-                pack(
-                    "QQQf",
+                self.__FOOTER_STRUCT.pack(
                     len(self._blooms),
                     self.estimated_elements,
                     self.elements_added,
@@ -195,29 +215,41 @@ class ExpandingBloomFilter(object):
             with MMap(file) as filepointer:
                 self.__load(filepointer)
         else:
-            offset = calcsize("QQQf")
-            file.seek(offset * -1, os.SEEK_END)
-            size, est_els, els_added, fpr = unpack("QQQf", file.read(offset))
-
-            file.seek(0, os.SEEK_SET)
-            # set the basic defaults
+            size, est_els, els_added, fpr = self._parse_footer(file)  # type: ignore
             self._blooms = list()
-            self.__added_elements = els_added
+            self._added_elements = els_added
             self.__fpr = fpr
             self.__est_elements = est_els
-            for _ in range(size):
-                blm = BloomFilter(
-                    est_elements=self.__est_elements,
-                    false_positive_rate=self.__fpr,
-                    hash_function=self.__hash_func,
-                )
-                # now we need to read in the correct number of bytes...
-                offset = calcsize("Q") + calcsize("B") * blm.bloom_length
-                rep = "Q" + "B" * blm.bloom_length
-                unpacked = list(unpack(rep, file.read(offset)))
-                blm._bloom = unpacked[1:]
-                blm.elements_added = unpacked[0]
-                self._blooms.append(blm)
+            self._parse_blooms(file, size)  # type:ignore
+
+    @classmethod
+    def _parse_footer(cls, b: ByteString) -> Tuple[int, int, int, float]:
+        offset = cls.__FOOTER_STRUCT.size
+        size, est_els, els_added, fpr = cls.__FOOTER_STRUCT.unpack(bytes(b[-offset:]))
+        return int(size), int(est_els), int(els_added), float(fpr)
+
+    def _parse_blooms(self, b: ByteString, size: int) -> None:
+        # reset the bloom list
+        self._blooms = list()
+        c = Struct("B")
+        blm_size = 0
+        start = 0
+        end = 0
+        for _ in range(size):
+            blm = BloomFilter(
+                est_elements=self.__est_elements,
+                false_positive_rate=self.__fpr,
+                hash_function=self.__hash_func,
+            )
+            if blm_size == 0:
+                blm_size = c.size * blm.bloom_length
+            end = start + self.__S_INT64_STRUCT.size + blm_size
+            blm._els_added = int(self.__S_INT64_STRUCT.unpack(bytes(b[start : start + self.__S_INT64_STRUCT.size]))[0])
+            a = array.ArrayType("B")
+            a.frombytes(bytes(b[start + self.__S_INT64_STRUCT.size : end]))
+            blm._bloom = a.tolist()
+            self._blooms.append(blm)
+            start = end
 
 
 class RotatingBloomFilter(ExpandingBloomFilter):
@@ -247,7 +279,7 @@ class RotatingBloomFilter(ExpandingBloomFilter):
         "__fpr",
         "__est_elements",
         "__hash_func",
-        "__added_elements",
+        "_added_elements",
         "_queue_size",
     ]
 
@@ -267,10 +299,31 @@ class RotatingBloomFilter(ExpandingBloomFilter):
             hash_function=hash_function,
         )
         self._queue_size = max_queue_size
-        self.__added_elements = self.elements_added
+        self._added_elements = self.elements_added
         self.__est_elements = self.estimated_elements
         self.__fpr = self.false_positive_rate
         self.__hash_func = hash_function
+
+    @classmethod
+    def frombytes(  # type:ignore
+        cls, b: ByteString, max_queue_size: int, hash_function: Union[HashFuncT, None] = None
+    ) -> "RotatingBloomFilter":
+        """
+        Args:
+            b (ByteString): The bytes to load as a Expanding Bloom Filter
+            max_queue_size (int): This is the number is used to determine the maximum number \
+                of Bloom Filters. Total elements added is based on `max_queue_size * est_elements`
+            hash_function (function): Hashing strategy function to use `hf(key, number)`
+        Returns:
+            RotatingBloomFilter: A Bloom Filter object
+        """
+        size, est_els, added_els, fpr = cls._parse_footer(b)
+        blm = RotatingBloomFilter(
+            est_elements=est_els, false_positive_rate=fpr, max_queue_size=max_queue_size, hash_function=hash_function
+        )
+        blm._parse_blooms(b, size)
+        blm._added_elements = added_els
+        return blm
 
     @property
     def max_queue_size(self) -> int:
@@ -291,7 +344,7 @@ class RotatingBloomFilter(ExpandingBloomFilter):
                               it likely has been inserted before \
                               `False` will only insert if not found in the \
                               Bloom Filter """
-        self.__added_elements += 1
+        self._added_elements += 1
         if force or not self.check_alt(hashes):
             self.__rotate_bloom_filter()
             self._blooms[-1].add_alt(hashes)

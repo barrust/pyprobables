@@ -64,6 +64,7 @@ class TestCuckooFilter(unittest.TestCase):
         """test using a different hash function"""
 
         def my_hash(key):
+            """fake hash"""
             return int(hashlib.sha512(key.encode("utf-8")).hexdigest(), 16)
 
         cko = CuckooFilter(
@@ -264,6 +265,20 @@ class TestCuckooFilter(unittest.TestCase):
         md5_out = hashlib.md5(bytes(cko)).hexdigest()
         self.assertEqual(md5sum, md5_out)
 
+    def test_cuckoo_filter_frombytes(self):
+        """test initializing a cuckoo filter from bytes"""
+        cko = CuckooFilter()
+        for i in range(1000):
+            cko.add(str(i))
+        bytes_out = bytes(cko)
+
+        cko2 = CuckooFilter.frombytes(bytes_out)
+        self.assertEqual(bytes_out, bytes(cko2))
+
+        for i in range(1000):
+            self.assertTrue(cko2.check(str(i)))
+        self.assertFalse(cko2.check("9999"))
+
     def test_cuckoo_filter_load(self):
         """test loading a saved cuckoo filter"""
         md5sum = "1371760d4ee9ccbe83e0144919750140"
@@ -352,7 +367,7 @@ class TestCuckooFilter(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_invalid_buckets(self):
-        """test invalid capacity"""
+        """test invalid buckets"""
 
         def runner():
             """runner"""
@@ -368,7 +383,7 @@ class TestCuckooFilter(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_invalid_swaps(self):
-        """test invalid capacity"""
+        """test invalid swaps"""
 
         def runner():
             """runner"""
@@ -384,7 +399,7 @@ class TestCuckooFilter(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_invalid_capacity_2(self):
-        """test invalid capacity"""
+        """test invalid capacity (2)"""
 
         def runner():
             """runner"""
@@ -400,7 +415,7 @@ class TestCuckooFilter(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_invalid_buckets_2(self):
-        """test invalid capacity"""
+        """test invalid buckets (2)"""
 
         def runner():
             """runner"""
@@ -416,7 +431,7 @@ class TestCuckooFilter(unittest.TestCase):
             self.assertEqual(True, False)
 
     def test_invalid_swaps_2(self):
-        """test invalid capacity"""
+        """test invalid swaps (2)"""
 
         def runner():
             """runner"""
@@ -433,6 +448,8 @@ class TestCuckooFilter(unittest.TestCase):
 
 
 class TestCuckooFilterErrorRate(unittest.TestCase):
+    """Test Cuckoo Filter using Error Rate"""
+
     def test_cuckoo_filter_er_default(self):
         """test cuckoo filter default properties"""
         cko = CuckooFilter.init_error_rate(0.00001)
@@ -513,6 +530,20 @@ class TestCuckooFilterErrorRate(unittest.TestCase):
             cko.add(str(i))
         md5_out = hashlib.md5(bytes(cko)).hexdigest()
         self.assertEqual(md5sum, md5_out)
+
+    def test_cuckoo_filter_er_frombytes(self):
+        """test initializing a cuckoo filter frombytes"""
+        cko = CuckooFilter.init_error_rate(0.00001)
+        for i in range(1000):
+            cko.add(str(i))
+        bytes_out = bytes(cko)
+
+        cko2 = CuckooFilter.frombytes(bytes_out, error_rate=0.00001)
+        self.assertEqual(bytes_out, bytes(cko2))
+
+        for i in range(1000):
+            self.assertTrue(cko2.check(str(i)))
+        self.assertFalse(cko2.check("9999"))
 
 
 if __name__ == "__main__":
