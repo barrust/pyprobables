@@ -3,8 +3,8 @@
     Author: Tyler Barrus (barrust@gmail.com)
 """
 
-import array
 import random
+from array import array
 from collections.abc import ByteString
 from io import IOBase
 from mmap import mmap
@@ -238,9 +238,9 @@ class CountingCuckooFilter(CuckooFilter):
         else:
             filepointer = file  # type:ignore
             for bucket in self.buckets:
-                filepointer.write(array.ArrayType("I", [x for x in self.__bucket_decomposition(bucket)]).tobytes())
+                filepointer.write(array("I", [x for x in self.__bucket_decomposition(bucket)]).tobytes())
                 leftover = self.bucket_size - len(bucket)
-                filepointer.write(array.ArrayType("I", [0 for _ in range(leftover * 2)]).tobytes())
+                filepointer.write(array("I", [0 for _ in range(leftover * 2)]).tobytes())
             # now put out the required information at the end
             filepointer.write(self.__FOOTER_STRUCT.pack(self.bucket_size, self.max_swaps))
 

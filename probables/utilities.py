@@ -1,8 +1,8 @@
 """ some utility functions """
 
-import array
 import mmap
 import string
+from array import array
 from pathlib import Path
 from typing import Iterable, Union
 
@@ -30,11 +30,9 @@ def get_x_bits(num: int, max_bits: int, num_bits: int, right_bits: bool = True) 
     return int(bits[:num_bits], 2)
 
 
-def convert_to_typed(tp: str, arr: Iterable[int]) -> array.array:
+def convert_to_typed(tp: str, arr: Iterable[int]) -> array:
     """Converts a container of untyped ints into a typed array"""
-    t = array.ArrayType(tp)
-    t.fromlist(arr)  # type: ignore
-    return t
+    return array(tp, arr)
 
 
 class MMap(object):
