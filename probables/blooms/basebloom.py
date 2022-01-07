@@ -5,7 +5,6 @@
 
 import array
 import math
-import os
 from binascii import hexlify, unhexlify
 from collections.abc import ByteString
 from io import BytesIO, IOBase
@@ -241,11 +240,9 @@ class BaseBloom(object):
                 self.__load(blm_type, filepointer, hash_function)
         else:
             offset = self.__HEADER_STRUCT.size
-            file.seek(offset * -1, os.SEEK_END)
-            self._parse_footer_set(self.__HEADER_STRUCT, file.read(offset), hash_function)
+            self._parse_footer_set(self.__HEADER_STRUCT, file[-offset:], hash_function)  # type: ignore
             self._set_bloom_length()
             # now read in the bit array!
-            file.seek(0, os.SEEK_SET)
             self._parse_bloom_array(file)  # type: ignore
 
     @classmethod
