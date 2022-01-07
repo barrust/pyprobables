@@ -130,9 +130,7 @@ class BloomFilter(BaseBloom):
         offset = cls.__HEADER_STRUCT.size
         est_elms, _, fpr, _, _, _ = cls._parse_footer(cls.__HEADER_STRUCT, bytes(b[-offset:]))
         blm = BloomFilter(est_elements=est_elms, false_positive_rate=fpr, hash_function=hash_function)
-        blm._parse_footer_set(cls.__HEADER_STRUCT, bytes(b[-offset:]))
-        blm._set_bloom_length()
-        blm._parse_bloom_array(b)
+        blm._load(b, hash_function=blm.hash_function)
         return blm
 
     def __str__(self) -> str:
@@ -311,11 +309,11 @@ class BloomFilterOnDisk(BaseBloom):
                 array.ArrayType("B", [0] * self.bloom_length).tofile(filepointer)
                 filepointer.write(self.CNT_FOOTER_STUCT.pack(est_elements, 0, false_positive_rate))
                 filepointer.flush()
-            self.__load(filepath, hash_function)
+            self._load(filepath, hash_function)
         elif is_hex_string(hex_string):
             self._load_hex(hex_string, hash_function)
         elif is_valid_file(filepath):
-            self.__load(filepath, hash_function)
+            self._load(filepath, hash_function)
         else:
             msg = "Insufecient parameters to set up the On Disk Bloom Filter"
             raise InitializationError(msg)
@@ -348,7 +346,7 @@ class BloomFilterOnDisk(BaseBloom):
             self.__file_pointer.close()
             self.__file_pointer = None
 
-    def __load(self, filepath: Union[str, Path], hash_function: Union[HashFuncT, None] = None):
+    def _load(self, filepath: Union[str, Path], hash_function: Union[HashFuncT, None] = None):
         """load the Bloom Filter on disk"""
         # read the file, set the optimal params
         # mmap everything
