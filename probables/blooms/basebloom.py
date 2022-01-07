@@ -48,7 +48,7 @@ class BaseBloom(object):
         hash_function: Union[HashFuncT, None] = None,
     ) -> None:
         """setup the basic values needed"""
-        self._bloom = None
+        self._bloom = []
         self.__num_bits = 0  # number of bits
         self.__est_elements = est_elements
         self.__fpr = 0.0
@@ -270,9 +270,7 @@ class BaseBloom(object):
 
     def _parse_bloom_array(self, b: ByteString):
         offset = self.__impt_struct.size * self.bloom_length
-        a = array.ArrayType(self.__impt_type)
-        a.frombytes(bytes(b[:offset]))
-        self._bloom = a.tolist()
+        self._bloom = array.ArrayType(self.__impt_type, bytes(b[:offset])).tolist()
 
     def _set_bloom_length(self) -> None:
         """House setting the bloom length based on the bloom filter itself"""
@@ -287,9 +285,7 @@ class BaseBloom(object):
         self._parse_footer_set(self.__HEADER_STRUCT_BE, unhexlify(hex_string[-offset:]), hash_function)
         self._set_bloom_length()
         tmp_bloom = unhexlify(hex_string[:-offset])
-        a = array.ArrayType(self.__impt_type)
-        a.frombytes(tmp_bloom)
-        self._bloom = a.tolist()
+        self._bloom = array.ArrayType(self.__impt_type, tmp_bloom).tolist()
 
     def export_hex(self) -> str:
         """Export the Bloom Filter as a hex string
@@ -304,9 +300,7 @@ class BaseBloom(object):
         if self.__blm_type in ["regular", "reg-ondisk"]:
             bytes_string = hexlify(bytearray(self.bloom[: self.bloom_length])) + hexlify(mybytes)
         else:
-            a = array.ArrayType(self.__impt_type)
-            a.fromlist(self.bloom)
-            bytes_string = hexlify(a.tobytes()) + hexlify(mybytes)
+            bytes_string = hexlify(array.ArrayType(self.__impt_type, self.bloom).tobytes()) + hexlify(mybytes)
         return str(bytes_string, "utf-8")
 
     def export(self, file: Union[Path, str, IOBase, mmap]) -> None:
@@ -320,9 +314,7 @@ class BaseBloom(object):
             with open(file, "wb") as filepointer:
                 self.export(filepointer)  # type:ignore
         else:
-            a = array.ArrayType(self.__impt_type)
-            a.fromlist((self.bloom))
-            file.write(a.tobytes())
+            file.write(array.ArrayType(self.__impt_type, self.bloom).tobytes())
             file.write(
                 self.__HEADER_STRUCT.pack(
                     self.estimated_elements,

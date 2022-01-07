@@ -308,9 +308,7 @@ class BloomFilterOnDisk(BaseBloom):
             )
             # do the on disk things
             with open(filepath, "wb") as filepointer:
-                a = array.ArrayType("B")
-                a.extend([0 for _ in range(self.bloom_length)])
-                a.tofile(filepointer)
+                array.ArrayType("B", [0] * self.bloom_length).tofile(filepointer)
                 filepointer.write(self.CNT_FOOTER_STUCT.pack(est_elements, 0, false_positive_rate))
                 filepointer.flush()
             self.__load(filepath, hash_function)

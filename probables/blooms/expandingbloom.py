@@ -197,9 +197,7 @@ class ExpandingBloomFilter(object):
             # add all the different Bloom bit arrays...
             for blm in self._blooms:
                 filepointer.write(self.__S_INT64_STRUCT.pack(blm.elements_added))
-                a = array.ArrayType("B")
-                a.fromlist(blm.bloom)
-                a.tofile(filepointer)
+                array.ArrayType("B", blm.bloom).tofile(filepointer)
             filepointer.write(
                 self.__FOOTER_STRUCT.pack(
                     len(self._blooms),
@@ -245,9 +243,7 @@ class ExpandingBloomFilter(object):
                 blm_size = c.size * blm.bloom_length
             end = start + self.__S_INT64_STRUCT.size + blm_size
             blm._els_added = int(self.__S_INT64_STRUCT.unpack(bytes(b[start : start + self.__S_INT64_STRUCT.size]))[0])
-            a = array.ArrayType("B")
-            a.frombytes(bytes(b[start + self.__S_INT64_STRUCT.size : end]))
-            blm._bloom = a.tolist()
+            blm._bloom = array.ArrayType("B", bytes(b[start + self.__S_INT64_STRUCT.size : end])).tolist()
             self._blooms.append(blm)
             start = end
 

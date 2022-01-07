@@ -353,9 +353,7 @@ class CountMinSketch(object):
                 self.export(filepointer)  # type: ignore
         else:
             # write out the bins
-            a = array.ArrayType("i")
-            a.extend([x for x in self._bins])
-            file.write(a.tobytes())
+            file.write(array.ArrayType("i", [x for x in self._bins]).tobytes())
             file.write(self.__FOOTER_STRUCT.pack(self.width, self.depth, self.elements_added))
 
     def join(self, second: "CountMinSketch") -> None:
@@ -427,9 +425,7 @@ class CountMinSketch(object):
         self.__error_rate = 2 / self.width
 
         offset = self.__BASIC_BIN_STRUCT.size * self.width * self.depth
-        a = array.ArrayType("i")
-        a.frombytes(bytes(file[:offset]))
-        self._bins = list(a)
+        self._bins = array.ArrayType("i", bytes(file[:offset])).tolist()
 
     def __get_values_sorted(self, hashes: HashResultsT) -> HashResultsT:
         """get the values sorted"""
