@@ -78,38 +78,42 @@ class CountMinSketch(object):
 
         if is_valid_file(filepath):
             self.__load(filepath)
-        elif width is not None and depth is not None:
-            valid_prms = isinstance(width, Number) and width > 0 and isinstance(depth, Number) and depth > 0
-            if not valid_prms:
-                msg = "CountMinSketch: width and depth must be greater than 0"
-                raise InitializationError(msg)
-            self.__width = int(width)
-            self.__depth = int(depth)
-            self.__confidence = 1 - (1 / math.pow(2, self.depth))
-            self.__error_rate = 2 / self.width
-            self._bins = [0] * (self.width * self.depth)
-        elif confidence is not None and error_rate is not None:
-            valid_prms = (
-                isinstance(confidence, Number) and confidence > 0 and isinstance(error_rate, Number) and error_rate > 0
-            )
-            if not valid_prms:
-                msg = "CountMinSketch: width and depth must be greater than 0"
-                raise InitializationError(msg)
-            self.__confidence = confidence
-            self.__error_rate = error_rate
-            self.__width = math.ceil(2 / error_rate)
-            numerator = -1 * math.log(1 - confidence)
-            self.__depth = math.ceil(numerator / 0.6931471805599453)
-            self._bins = [0] * int(self.width * self.depth)
         else:
-            msg = (
-                "Must provide one of the following to initialize the "
-                "Count-Min Sketch:\n"
-                "    A file to load,\n"
-                "    The width and depth,\n"
-                "    OR confidence and error rate"
-            )
-            raise InitializationError(msg)
+            if width is not None and depth is not None:
+                valid_prms = isinstance(width, Number) and width > 0 and isinstance(depth, Number) and depth > 0
+                if not valid_prms:
+                    msg = "CountMinSketch: width and depth must be greater than 0"
+                    raise InitializationError(msg)
+                self.__width = int(width)
+                self.__depth = int(depth)
+                self.__confidence = 1 - (1 / math.pow(2, self.depth))
+                self.__error_rate = 2 / self.width
+            elif confidence is not None and error_rate is not None:
+                valid_prms = (
+                    isinstance(confidence, Number)
+                    and confidence > 0
+                    and isinstance(error_rate, Number)
+                    and error_rate > 0
+                )
+                if not valid_prms:
+                    msg = "CountMinSketch: width and depth must be greater than 0"
+                    raise InitializationError(msg)
+                self.__confidence = confidence
+                self.__error_rate = error_rate
+                self.__width = math.ceil(2 / error_rate)
+                numerator = -1 * math.log(1 - confidence)
+                self.__depth = math.ceil(numerator / 0.6931471805599453)
+
+            else:
+                msg = (
+                    "Must provide one of the following to initialize the "
+                    "Count-Min Sketch:\n"
+                    "    A file to load,\n"
+                    "    The width and depth,\n"
+                    "    OR confidence and error rate"
+                )
+                raise InitializationError(msg)
+            self._bins = array.ArrayType("i", [0 for _ in range(self.width * self.depth)])
 
         if hash_function is None:
             self._hash_function = default_fnv_1a
@@ -277,9 +281,12 @@ class CountMinSketch(object):
         res = list()
         for i, val in enumerate(hashes):
             t_bin = (val % self.width) + (i * self.width)
-            self._bins[t_bin] += num_els
-            if self._bins[t_bin] > INT32_T_MAX:
+            tmp_els = self._bins[t_bin] + num_els
+
+            if tmp_els > INT32_T_MAX:
                 self._bins[t_bin] = INT32_T_MAX
+            else:
+                self._bins[t_bin] = tmp_els
             res.append(self._bins[t_bin])
         self.__elements_added += num_els
 
@@ -311,9 +318,11 @@ class CountMinSketch(object):
         res = list()
         for i, val in enumerate(hashes):
             t_bin = (val % self.width) + (i * self.width)
-            self._bins[t_bin] -= num_els
-            if self._bins[t_bin] < INT32_T_MIN:
+            tmp_els = self._bins[t_bin] - num_els
+            if tmp_els < INT32_T_MIN:
                 self._bins[t_bin] = INT32_T_MIN
+            else:
+                self._bins[t_bin] = tmp_els
             res.append(self._bins[t_bin])
         self.__elements_added -= num_els
         if self.elements_added < INT64_T_MIN:
@@ -353,7 +362,7 @@ class CountMinSketch(object):
                 self.export(filepointer)  # type: ignore
         else:
             # write out the bins
-            file.write(array.ArrayType("i", [x for x in self._bins]).tobytes())
+            file.write(self._bins.tobytes())
             file.write(self.__FOOTER_STRUCT.pack(self.width, self.depth, self.elements_added))
 
     def join(self, second: "CountMinSketch") -> None:
@@ -385,11 +394,14 @@ class CountMinSketch(object):
         for i in range(size):
             if self._bins[i] == INT32_T_MIN or self._bins[i] == INT32_T_MAX:
                 continue
-            self._bins[i] += second._bins[i]
-            if self._bins[i] > INT32_T_MAX:
+            tmp_els = self._bins[i] + second._bins[i]
+
+            if tmp_els > INT32_T_MAX:
                 self._bins[i] = INT32_T_MAX
-            elif self._bins[i] < INT32_T_MIN:
+            elif tmp_els < INT32_T_MIN:
                 self._bins[i] = INT32_T_MIN
+            else:
+                self._bins[i] = tmp_els
 
         # handle adding and removing elements added including handling overflow
         self.__elements_added += self.elements_added
@@ -425,7 +437,7 @@ class CountMinSketch(object):
         self.__error_rate = 2 / self.width
 
         offset = self.__BASIC_BIN_STRUCT.size * self.width * self.depth
-        self._bins = array.ArrayType("i", bytes(file[:offset])).tolist()
+        self._bins = array.ArrayType("i", bytes(file[:offset]))
 
     def __get_values_sorted(self, hashes: HashResultsT) -> HashResultsT:
         """get the values sorted"""
