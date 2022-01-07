@@ -3,9 +3,9 @@
     Author: Tyler Barrus (barrust@gmail.com)
     URL: https://github.com/barrust/bloom
 """
-import array
 import mmap
 import os
+from array import array
 from collections.abc import ByteString
 from pathlib import Path
 from shutil import copyfile
@@ -308,7 +308,7 @@ class BloomFilterOnDisk(BaseBloom):
             )
             # do the on disk things
             with open(filepath, "wb") as filepointer:
-                array.ArrayType("B", [0] * self.bloom_length).tofile(filepointer)
+                (array("B", [0]) * self.bloom_length).tofile(filepointer)
                 filepointer.write(self.CNT_FOOTER_STUCT.pack(est_elements, 0, false_positive_rate))
                 filepointer.flush()
             self.__load(filepath, hash_function)

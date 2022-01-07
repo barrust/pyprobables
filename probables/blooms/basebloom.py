@@ -3,8 +3,8 @@
     Author: Tyler Barrus (barrust@gmail.com)
 """
 
-import array
 import math
+from array import array
 from binascii import hexlify, unhexlify
 from collections.abc import ByteString
 from io import BytesIO, IOBase
@@ -48,7 +48,6 @@ class BaseBloom(object):
         hash_function: Union[HashFuncT, None] = None,
     ) -> None:
         """setup the basic values needed"""
-        self._bloom = []
         self.__num_bits = 0  # number of bits
         self.__est_elements = est_elements
         self.__fpr = 0.0
@@ -71,25 +70,26 @@ class BaseBloom(object):
         if is_valid_file(filepath):
             assert filepath is not None
             self.__load(blm_type, filepath, hash_function)
-        elif is_hex_string(hex_string):
-            assert hex_string is not None
-            self._load_hex(hex_string, hash_function)
-        elif est_elements is not None and false_positive_rate is not None:
-            h_func, fpr, n_hashes, n_bits = self._set_optimized_params(
-                est_elements, float(false_positive_rate), hash_function
-            )
-            self.__hash_func = h_func  # type: ignore
-            self.__fpr = fpr
-            self.__number_hashes = n_hashes
-            self.__num_bits = n_bits
-            if blm_type in ["regular", "reg-ondisk"]:
-                self.__bloom_length = int(math.ceil(self.__num_bits / 8.0))
-            else:
-                self.__bloom_length = self.number_bits
-            if blm_type not in ["reg-ondisk"]:
-                self._bloom = [0] * self.bloom_length
         else:
-            raise InitializationError(msg)
+            if is_hex_string(hex_string):
+                assert hex_string is not None
+                self._load_hex(hex_string, hash_function)
+            elif est_elements is not None and false_positive_rate is not None:
+                h_func, fpr, n_hashes, n_bits = self._set_optimized_params(
+                    est_elements, float(false_positive_rate), hash_function
+                )
+                self.__hash_func = h_func  # type: ignore
+                self.__fpr = fpr
+                self.__number_hashes = n_hashes
+                self.__num_bits = n_bits
+                if blm_type in ["regular", "reg-ondisk"]:
+                    self.__bloom_length = int(math.ceil(self.__num_bits / 8.0))
+                else:
+                    self.__bloom_length = self.number_bits
+                if blm_type not in ["reg-ondisk"]:
+                    self._bloom = array(self.__impt_type, [0]) * self.bloom_length
+            else:
+                raise InitializationError(msg)
 
     def __contains__(self, key: KeyT) -> Union[int, bool]:
         """setup the `in` keyword"""
@@ -165,9 +165,9 @@ class BaseBloom(object):
         return self.__bloom_length
 
     @property
-    def bloom(self) -> List[int]:
+    def bloom(self) -> array:
         """list(int): The bit/int array"""
-        return self._bloom  # type: ignore
+        return self._bloom
 
     @property
     def hash_function(self) -> HashFuncT:
@@ -270,7 +270,7 @@ class BaseBloom(object):
 
     def _parse_bloom_array(self, b: ByteString):
         offset = self.__impt_struct.size * self.bloom_length
-        self._bloom = array.ArrayType(self.__impt_type, bytes(b[:offset])).tolist()
+        self._bloom = array(self.__impt_type, bytes(b[:offset]))
 
     def _set_bloom_length(self) -> None:
         """House setting the bloom length based on the bloom filter itself"""
@@ -285,7 +285,7 @@ class BaseBloom(object):
         self._parse_footer_set(self.__HEADER_STRUCT_BE, unhexlify(hex_string[-offset:]), hash_function)
         self._set_bloom_length()
         tmp_bloom = unhexlify(hex_string[:-offset])
-        self._bloom = array.ArrayType(self.__impt_type, tmp_bloom).tolist()
+        self._bloom = array(self.__impt_type, tmp_bloom)
 
     def export_hex(self) -> str:
         """Export the Bloom Filter as a hex string
@@ -300,7 +300,7 @@ class BaseBloom(object):
         if self.__blm_type in ["regular", "reg-ondisk"]:
             bytes_string = hexlify(bytearray(self.bloom[: self.bloom_length])) + hexlify(mybytes)
         else:
-            bytes_string = hexlify(array.ArrayType(self.__impt_type, self.bloom).tobytes()) + hexlify(mybytes)
+            bytes_string = hexlify(array(self.__impt_type, self.bloom).tobytes()) + hexlify(mybytes)
         return str(bytes_string, "utf-8")
 
     def export(self, file: Union[Path, str, IOBase, mmap]) -> None:
@@ -314,7 +314,7 @@ class BaseBloom(object):
             with open(file, "wb") as filepointer:
                 self.export(filepointer)  # type:ignore
         else:
-            file.write(array.ArrayType(self.__impt_type, self.bloom).tobytes())
+            file.write(array(self.__impt_type, self.bloom).tobytes())
             file.write(
                 self.__HEADER_STRUCT.pack(
                     self.estimated_elements,
