@@ -69,7 +69,7 @@ class BaseBloom(object):
 
         if is_valid_file(filepath):
             assert filepath is not None
-            self.__load(blm_type, filepath, hash_function)
+            self._load(filepath, hash_function)
         else:
             if is_hex_string(hex_string):
                 assert hex_string is not None
@@ -227,17 +227,16 @@ class BaseBloom(object):
     __HEADER_STRUCT_BE = Struct(">" + __HEADER_STRUCT_FORMAT)
     __FPR_STRUCT = Struct("f")
 
-    def __load(
+    def _load(
         self,
-        blm_type: str,
-        file: Union[Path, str, IOBase, mmap],
+        file: Union[Path, str, IOBase, mmap, ByteString],
         hash_function: Union[HashFuncT, None] = None,
     ) -> None:
         """load the Bloom Filter from file"""
-        if not isinstance(file, (IOBase, mmap)):
+        if not isinstance(file, (IOBase, mmap, ByteString)):
             file = Path(file)
             with MMap(file) as filepointer:
-                self.__load(blm_type, filepointer, hash_function)
+                self._load(filepointer, hash_function)
         else:
             offset = self.__HEADER_STRUCT.size
             self._parse_footer_set(self.__HEADER_STRUCT, file[-offset:], hash_function)  # type: ignore
