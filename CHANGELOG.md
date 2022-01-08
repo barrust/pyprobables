@@ -1,8 +1,9 @@
 # PyProbables Changelog
 
-### Future Version
+### Version 0.5.4
 * All Probablistic Data Structures:
     * Added ability to load each `frombytes()`
+    * Updated underlying data structures of number based lists to be more space and time efficient; see [Issue #60](https://github.com/barrust/pyprobables/issues/60)
 * Cuckoo Filters:
     * Added `fingerprint_size_bits` property
     * Added `error_rate` property
