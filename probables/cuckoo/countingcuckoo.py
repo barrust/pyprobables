@@ -345,10 +345,10 @@ class CountingCuckooFilter(CuckooFilter):
 
     @staticmethod
     def __bucket_decomposition(bucket: List["CountingCuckooBin"]):
-        tmp = array("I")
+        arr = array("I")
         for buck in bucket:
-            tmp.extend(buck.get_array())
-        return tmp
+            arr.extend(buck.get_array())
+        return arr
 
 
 class CountingCuckooBin(object):

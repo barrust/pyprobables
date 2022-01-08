@@ -16,7 +16,7 @@ from typing import List, Tuple, Union
 
 from ..exceptions import CuckooFilterFullError, InitializationError
 from ..hashes import KeyT, SimpleHashT, fnv_1a
-from ..utilities import MMap, convert_to_typed, get_x_bits, is_valid_file
+from ..utilities import MMap, get_x_bits, is_valid_file
 
 
 class CuckooFilter(object):
@@ -431,7 +431,7 @@ class CuckooFilter(object):
 
     def _parse_bucket(self, d: ByteString) -> array:
         bucket = array(self.__class__.SINGLE_INT_C, bytes(d))
-        bucket = convert_to_typed(self.__class__.SINGLE_INT_C, [el for el in bucket if el])
+        bucket = array(self.__class__.SINGLE_INT_C, [el for el in bucket if el])
         self._inserted_elements += len(bucket)
         return bucket
 

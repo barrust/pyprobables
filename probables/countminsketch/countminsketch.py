@@ -362,7 +362,7 @@ class CountMinSketch(object):
                 self.export(filepointer)  # type: ignore
         else:
             # write out the bins
-            file.write(self._bins.tobytes())
+            self._bins.tofile(file)  # type: ignore
             file.write(self.__FOOTER_STRUCT.pack(self.width, self.depth, self.elements_added))
 
     def join(self, second: "CountMinSketch") -> None:

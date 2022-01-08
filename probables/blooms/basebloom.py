@@ -299,7 +299,7 @@ class BaseBloom(object):
         if self.__blm_type in ["regular", "reg-ondisk"]:
             bytes_string = hexlify(bytearray(self.bloom[: self.bloom_length])) + hexlify(mybytes)
         else:
-            bytes_string = hexlify(array(self.__impt_type, self.bloom).tobytes()) + hexlify(mybytes)
+            bytes_string = hexlify(self.bloom.tobytes()) + hexlify(mybytes)
         return str(bytes_string, "utf-8")
 
     def export(self, file: Union[Path, str, IOBase, mmap]) -> None:
@@ -313,7 +313,7 @@ class BaseBloom(object):
             with open(file, "wb") as filepointer:
                 self.export(filepointer)  # type:ignore
         else:
-            file.write(array(self.__impt_type, self.bloom).tobytes())
+            self.bloom.tofile(file)  # type: ignore
             file.write(
                 self.__HEADER_STRUCT.pack(
                     self.estimated_elements,
