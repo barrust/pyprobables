@@ -30,11 +30,6 @@ def get_x_bits(num: int, max_bits: int, num_bits: int, right_bits: bool = True) 
     return int(bits[:num_bits], 2)
 
 
-def convert_to_typed(tp: str, arr: Iterable[int]) -> array:
-    """Converts a container of untyped ints into a typed array"""
-    return array(tp, arr)
-
-
 class MMap(object):
     """Simplified mmap.mmap class"""
 
