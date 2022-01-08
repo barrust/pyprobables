@@ -13,7 +13,7 @@ from numbers import Number
 from pathlib import Path
 from struct import Struct
 from textwrap import wrap
-from typing import List, Tuple, Union
+from typing import Tuple, Union
 
 from ..exceptions import InitializationError
 from ..hashes import HashFuncT, HashResultsT, KeyT, default_fnv_1a

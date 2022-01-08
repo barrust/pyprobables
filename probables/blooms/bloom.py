@@ -346,7 +346,7 @@ class BloomFilterOnDisk(BaseBloom):
             self.__file_pointer.close()
             self.__file_pointer = None
 
-    def _load(self, filepath: Union[str, Path], hash_function: Union[HashFuncT, None] = None):
+    def _load(self, filepath: Union[str, Path], hash_function: Union[HashFuncT, None] = None):  # type: ignore
         """load the Bloom Filter on disk"""
         # read the file, set the optimal params
         # mmap everything

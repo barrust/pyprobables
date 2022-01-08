@@ -349,17 +349,10 @@ class CuckooFilter(object):
                 self.export(filepointer)  # type:ignore
         else:
             filepointer = file  # type:ignore
-
             for i in range(len(self.buckets)):
-                bucket = self.buckets[i]
-                # do something for each...
-                if isinstance(bucket, list):
-                    a = convert_to_typed(self.SINGLE_INT_C, bucket)
-                    self.buckets[i] = a.tolist()
-                    bucket = a  # type: ignore
-                filepointer.write(bucket.tobytes())  # type: ignore
-                leftover = self.bucket_size - len(bucket)
-                convert_to_typed(self.SINGLE_INT_C, [0 for _ in range(leftover)]).tofile(filepointer)
+                bucket = array(self.SINGLE_INT_C, self.buckets[i])
+                bucket.extend([0] * (self.bucket_size - len(bucket)))
+                bucket.tofile(filepointer)
             # now put out the required information at the end
             filepointer.write(self.HEADER_STRUCT.pack(self.bucket_size, self.max_swaps))
 

@@ -240,7 +240,7 @@ class CountingCuckooFilter(CuckooFilter):
             for bucket in self.buckets:
                 self.__bucket_decomposition(bucket).tofile(filepointer)
                 leftover = self.bucket_size - len(bucket)
-                filepointer.write(array("I", [0 for _ in range(leftover * 2)]).tobytes())
+                array("I", [0 for _ in range(leftover * 2)]).tofile(filepointer)
             # now put out the required information at the end
             filepointer.write(self.__FOOTER_STRUCT.pack(self.bucket_size, self.max_swaps))
 
