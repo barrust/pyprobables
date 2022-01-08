@@ -3,9 +3,9 @@
     Author: Tyler Barrus (barrust@gmail.com)
 """
 
-import array
 import math
 import random
+from array import array
 from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
@@ -349,17 +349,10 @@ class CuckooFilter(object):
                 self.export(filepointer)  # type:ignore
         else:
             filepointer = file  # type:ignore
-
             for i in range(len(self.buckets)):
-                bucket = self.buckets[i]
-                # do something for each...
-                if isinstance(bucket, list):
-                    a = convert_to_typed(self.SINGLE_INT_C, bucket)
-                    self.buckets[i] = a.tolist()
-                    bucket = a  # type: ignore
-                filepointer.write(bucket.tobytes())  # type: ignore
-                leftover = self.bucket_size - len(bucket)
-                convert_to_typed(self.SINGLE_INT_C, [0 for _ in range(leftover)]).tofile(filepointer)
+                bucket = array(self.SINGLE_INT_C, self.buckets[i])
+                bucket.extend([0] * (self.bucket_size - len(bucket)))
+                bucket.tofile(filepointer)
             # now put out the required information at the end
             filepointer.write(self.HEADER_STRUCT.pack(self.bucket_size, self.max_swaps))
 
@@ -436,9 +429,8 @@ class CuckooFilter(object):
             self.buckets.append(self._parse_bucket(d[offs:next_offs]))  # type: ignore
             offs = next_offs
 
-    def _parse_bucket(self, d: ByteString) -> array.array:
-        bucket = array.ArrayType(self.__class__.SINGLE_INT_C)
-        bucket.frombytes(bytes(d))
+    def _parse_bucket(self, d: ByteString) -> array:
+        bucket = array(self.__class__.SINGLE_INT_C, bytes(d))
         bucket = convert_to_typed(self.__class__.SINGLE_INT_C, [el for el in bucket if el])
         self._inserted_elements += len(bucket)
         return bucket

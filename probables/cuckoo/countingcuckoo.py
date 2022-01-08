@@ -3,8 +3,8 @@
     Author: Tyler Barrus (barrust@gmail.com)
 """
 
-import array
 import random
+from array import array
 from collections.abc import ByteString
 from io import IOBase
 from mmap import mmap
@@ -53,7 +53,7 @@ class CountingCuckooFilter(CuckooFilter):
         auto_expand: bool = True,
         finger_size: int = 4,
         filepath: Union[str, Path, None] = None,
-        hash_function: Union[SimpleHashT, None] = None,  # this is INCORRECT!
+        hash_function: Union[SimpleHashT, None] = None,
     ) -> None:
         """setup the data structure"""
         self.__unique_elements = 0
@@ -137,7 +137,7 @@ class CountingCuckooFilter(CuckooFilter):
             CountingCuckooFilter: A Bloom Filter object
         """
         cku = CountingCuckooFilter(hash_function=hash_function)
-        cku._load(b)  # type: ignore
+        cku._load(b)
 
         # if error rate is provided, use it
         cku._set_error_rate(error_rate)
@@ -238,9 +238,9 @@ class CountingCuckooFilter(CuckooFilter):
         else:
             filepointer = file  # type:ignore
             for bucket in self.buckets:
-                filepointer.write(array.ArrayType("I", [x for x in self.__bucket_decomposition(bucket)]).tobytes())
+                self.__bucket_decomposition(bucket).tofile(filepointer)
                 leftover = self.bucket_size - len(bucket)
-                filepointer.write(array.ArrayType("I", [0 for _ in range(leftover * 2)]).tobytes())
+                array("I", [0 for _ in range(leftover * 2)]).tofile(filepointer)
             # now put out the required information at the end
             filepointer.write(self.__FOOTER_STRUCT.pack(self.bucket_size, self.max_swaps))
 
@@ -289,9 +289,9 @@ class CountingCuckooFilter(CuckooFilter):
             return idx_2
         return None
 
-    def _load(self, file: Union[Path, str, IOBase, mmap, bytes]) -> None:
+    def _load(self, file: Union[Path, str, IOBase, mmap, bytes, ByteString]) -> None:
         """load a cuckoo filter from file"""
-        if not isinstance(file, (IOBase, mmap, bytes)):
+        if not isinstance(file, (IOBase, mmap, bytes, ByteString)):
             file = Path(file)
             with MMap(file) as filepointer:
                 self._load(filepointer)
@@ -344,36 +344,40 @@ class CountingCuckooFilter(CuckooFilter):
         return False
 
     @staticmethod
-    def __bucket_decomposition(bucket):
+    def __bucket_decomposition(bucket: List["CountingCuckooBin"]):
+        tmp = array("I")
         for buck in bucket:
-            yield buck.finger
-            yield buck.count
+            tmp.extend(buck.get_array())
+        return tmp
 
 
 class CountingCuckooBin(object):
     """A container class for the counting cuckoo filter"""
 
     # keep it lightweight
-    __slots__ = ["__fingerprint", "__count"]
+    __slots__ = ["__bin"]
 
     def __init__(self, fingerprint: int, count: int) -> None:
         """init"""
-        self.__fingerprint = fingerprint
-        self.__count = count
+        self.__bin = array("I", [fingerprint, count])
 
     def __contains__(self, val: int) -> bool:
         """setup the `in` construct"""
-        return self.__fingerprint == val
+        return self.__bin[0] == val
+
+    def get_array(self):
+        """return the array implementation"""
+        return self.__bin
 
     @property
     def finger(self) -> int:
         """fingerprint property"""
-        return self.__fingerprint
+        return self.__bin[0]
 
     @property
     def count(self) -> int:
         """count property"""
-        return self.__count
+        return self.__bin[1]
 
     def __repr__(self) -> str:
         """how do we represent this?"""
@@ -381,14 +385,14 @@ class CountingCuckooBin(object):
 
     def __str__(self) -> str:
         """convert it into a string"""
-        return "(fingerprint:{} count:{})".format(self.__fingerprint, self.__count)
+        return "(fingerprint:{} count:{})".format(self.__bin[0], self.__bin[1])
 
     def increment(self) -> int:
         """increment"""
-        self.__count += 1
-        return self.__count
+        self.__bin[1] += 1
+        return self.__bin[1]
 
     def decrement(self) -> int:
         """decrement"""
-        self.__count -= 1
-        return self.__count
+        self.__bin[1] -= 1
+        return self.__bin[1]

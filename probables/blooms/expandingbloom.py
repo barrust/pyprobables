@@ -4,7 +4,7 @@
     URL: https://github.com/barrust/pyprobables
 """
 
-import array
+from array import array
 from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
@@ -197,7 +197,7 @@ class ExpandingBloomFilter(object):
             # add all the different Bloom bit arrays...
             for blm in self._blooms:
                 filepointer.write(self.__S_INT64_STRUCT.pack(blm.elements_added))
-                array.ArrayType("B", blm.bloom).tofile(filepointer)
+                blm.bloom.tofile(filepointer)
             filepointer.write(
                 self.__FOOTER_STRUCT.pack(
                     len(self._blooms),
@@ -243,7 +243,7 @@ class ExpandingBloomFilter(object):
                 blm_size = c.size * blm.bloom_length
             end = start + self.__S_INT64_STRUCT.size + blm_size
             blm._els_added = int(self.__S_INT64_STRUCT.unpack(bytes(b[start : start + self.__S_INT64_STRUCT.size]))[0])
-            blm._bloom = array.ArrayType("B", bytes(b[start + self.__S_INT64_STRUCT.size : end])).tolist()
+            blm._bloom = array("B", bytes(b[start + self.__S_INT64_STRUCT.size : end]))
             self._blooms.append(blm)
             start = end
 
