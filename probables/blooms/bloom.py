@@ -354,7 +354,7 @@ class BloomFilterOnDisk(BaseBloom):
             offset = self.CNT_FOOTER_STUCT.size
             filepointer.seek(offset * -1, os.SEEK_END)
             est_els, _, fpr = self.CNT_FOOTER_STUCT.unpack_from(filepointer.read(offset))
-            hash_func, fpr, _, _ = self.__class__._set_optimized_params(est_els, fpr, hash_function)
+            hash_func, fpr, _, _ = self._set_optimized_params(est_els, fpr, hash_function)
         super(BloomFilterOnDisk, self).__init__(
             "reg-ondisk",
             est_elements=est_els,

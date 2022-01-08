@@ -416,13 +416,13 @@ class CuckooFilter(object):
     HEADER_STRUCT = Struct("II")
 
     def _parse_footer(self, d: ByteString) -> None:
-        list_size = len(d) - self.__class__.HEADER_STRUCT.size
-        self._bucket_size, self.__max_cuckoo_swaps = self.__class__.HEADER_STRUCT.unpack(d[list_size:])  # type:ignore
-        self._cuckoo_capacity = list_size // self.__class__.SINGLE_INT_SIZE // self.bucket_size
+        list_size = len(d) - self.HEADER_STRUCT.size
+        self._bucket_size, self.__max_cuckoo_swaps = self.HEADER_STRUCT.unpack(d[list_size:])  # type:ignore
+        self._cuckoo_capacity = list_size // self.SINGLE_INT_SIZE // self.bucket_size
 
     def _parse_buckets(self, d: ByteString) -> None:
         self._buckets = list()
-        bucket_byte_size = self.bucket_size * self.__class__.SINGLE_INT_SIZE
+        bucket_byte_size = self.bucket_size * self.SINGLE_INT_SIZE
         offs = 0
         for _ in range(self.capacity):
             next_offs = offs + bucket_byte_size
@@ -430,8 +430,8 @@ class CuckooFilter(object):
             offs = next_offs
 
     def _parse_bucket(self, d: ByteString) -> array:
-        bucket = array(self.__class__.SINGLE_INT_C, bytes(d))
-        bucket = array(self.__class__.SINGLE_INT_C, [el for el in bucket if el])
+        bucket = array(self.SINGLE_INT_C, bytes(d))
+        bucket = array(self.SINGLE_INT_C, [el for el in bucket if el])
         self._inserted_elements += len(bucket)
         return bucket
 
