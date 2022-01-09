@@ -16,7 +16,6 @@ from ..constants import UINT32_T_MAX, UINT64_T_MAX
 from ..exceptions import InitializationError
 from ..hashes import HashFuncT, HashResultsT, KeyT
 from ..utilities import MMap, is_hex_string, is_valid_file
-from .basebloom import BaseBloom
 from .newbloom import NewBloomFilter
 
 MISMATCH_MSG = "The parameter second must be of type CountingBloomFilter"
