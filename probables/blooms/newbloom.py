@@ -562,6 +562,8 @@ class NewBloomFilterOnDisk(NewBloomFilter):
         self._filepath = Path(filepath)
         self.__file_pointer = None
         self._type = "regular-on-disk"
+        self._bits_per_elm = 8.0
+        self._on_disk = True
 
         if is_hex_string(hex_string):
             msg = "Loading from hex_string is currently not supported by the on disk Bloom Filter"
