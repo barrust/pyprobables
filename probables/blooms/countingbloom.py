@@ -3,15 +3,21 @@
     Author: Tyler Barrus (barrust@gmail.com)
     URL: https://github.com/barrust/counting_bloom
 """
-
+from array import array
+from binascii import unhexlify
 from collections.abc import ByteString
+from io import IOBase
+from mmap import mmap
 from pathlib import Path
 from struct import Struct
 from typing import Union
 
 from ..constants import UINT32_T_MAX, UINT64_T_MAX
+from ..exceptions import InitializationError
 from ..hashes import HashFuncT, HashResultsT, KeyT
+from ..utilities import MMap, is_hex_string, is_valid_file
 from .basebloom import BaseBloom
+from .newbloom import NewBloomFilter
 
 MISMATCH_MSG = "The parameter second must be of type CountingBloomFilter"
 
@@ -23,7 +29,7 @@ def _verify_not_type_mismatch(second: "CountingBloomFilter") -> bool:
     return True
 
 
-class CountingBloomFilter(BaseBloom):
+class CountingBloomFilter(NewBloomFilter):
     """ Simple Counting Bloom Filter implementation for use in python;
         It can read and write the same format as the c version
         (https://github.com/barrust/counting_bloom)
@@ -44,7 +50,7 @@ class CountingBloomFilter(BaseBloom):
                 2) From Hex String
                 3) From params """
 
-    __slots__ = BaseBloom.__slots__
+    # __slots__ = BaseBloom.__slots__
 
     def __init__(
         self,
@@ -55,18 +61,26 @@ class CountingBloomFilter(BaseBloom):
         hash_function: Union[HashFuncT, None] = None,
     ) -> None:
         """setup the basic values needed"""
-        super(CountingBloomFilter, self).__init__(
-            "counting",
-            est_elements=est_elements,
-            false_positive_rate=false_positive_rate,
-            filepath=filepath,
-            hex_string=hex_string,
-            hash_function=hash_function,
-        )
+        self._bits_per_elm = 1.0
+        self._on_disk = False
+        self._type = "counting"
+        if is_valid_file(filepath):
+            self._load(filepath, "I", hash_function)
+        elif is_hex_string(hex_string):
+            self._load_hex(hex_string, hash_function)
+        else:
+            if est_elements is None or false_positive_rate is None:
+                raise InitializationError("Insufecient parameters to set up the Counting Bloom Filter")
+            # calc values
+            fpr, n_hashes, n_bits = self._get_optimized_params(est_elements, false_positive_rate)
+            self._set_values(est_elements, fpr, n_hashes, n_bits, hash_function)
+            self._bloom_length = n_bits
+            self._bloom = array("I", [0]) * self._bloom_length
 
-    __HEADER_STRUCT_FORMAT = "QQf"
-    __HEADER_STRUCT = Struct(__HEADER_STRUCT_FORMAT)
-    # __HEADER_STRUCT_BE = Struct(">" + __HEADER_STRUCT_FORMAT)
+    _IMPT_STRUCT = Struct("I")
+    _HEADER_STRUCT_FORMAT = "QQf"
+    _HEADER_STRUCT = Struct(_HEADER_STRUCT_FORMAT)
+    _HEADER_STRUCT_BE = Struct(">" + _HEADER_STRUCT_FORMAT)
 
     @classmethod
     def frombytes(cls, b: ByteString, hash_function: Union[HashFuncT, None] = None) -> "CountingBloomFilter":
@@ -77,12 +91,12 @@ class CountingBloomFilter(BaseBloom):
         Returns:
             CountingBloomFilter: A Counting Bloom Filter object
         """
-        offset = cls.__HEADER_STRUCT.size
-        est_elms, _, fpr, _, _, _ = cls._parse_footer(cls.__HEADER_STRUCT, bytes(b[-offset:]))
-        blm = CountingBloomFilter(est_elements=est_elms, false_positive_rate=fpr, hash_function=hash_function)
-        blm._parse_footer_set(cls.__HEADER_STRUCT, bytes(b[-offset:]))
-        blm._set_bloom_length()
-        blm._parse_bloom_array(b)
+        offset = cls._HEADER_STRUCT.size
+        est_els, els_added, fpr, n_hashes, n_bits = cls._parse_footer(cls._HEADER_STRUCT, bytes(b[-offset:]))  # type: ignore
+        blm = CountingBloomFilter(est_elements=est_els, false_positive_rate=fpr, hash_function=hash_function)
+        blm._set_values(est_els, fpr, n_hashes, n_bits, hash_function)
+        blm._els_added = els_added
+        blm._parse_bloom_array(b, "I", cls._IMPT_STRUCT.size * blm.bloom_length)
         return blm
 
     def __str__(self) -> str:
@@ -190,7 +204,7 @@ class CountingBloomFilter(BaseBloom):
         res = UINT32_T_MAX
         for i in list(range(0, self.number_hashes)):
             k = int(hashes[i]) % self.number_bits
-            tmp = self._get_element(k)
+            tmp = self._bloom[k]
             if tmp < res:
                 res = tmp
         return res
@@ -255,7 +269,7 @@ class CountingBloomFilter(BaseBloom):
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
-        if super(CountingBloomFilter, self)._verify_bloom_similarity(second) is False:
+        if self._verify_bloom_similarity(second) is False:
             return None
         res = CountingBloomFilter(
             est_elements=self.estimated_elements,
@@ -270,7 +284,7 @@ class CountingBloomFilter(BaseBloom):
         res.elements_added = res.estimate_elements()
         return res
 
-    def jaccard_index(self, second: "CountingBloomFilter") -> Union[float, None]:
+    def jaccard_index(self, second: "CountingBloomFilter") -> Union[float, None]:  # type:ignore
         """ Take the Jaccard Index of two Counting Bloom Filters
 
             Args:
@@ -290,7 +304,7 @@ class CountingBloomFilter(BaseBloom):
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
-        if super(CountingBloomFilter, self)._verify_bloom_similarity(second) is False:
+        if self._verify_bloom_similarity(second) is False:
             return None
 
         count_union = 0
@@ -304,7 +318,7 @@ class CountingBloomFilter(BaseBloom):
             return 1.0
         return count_inter / count_union
 
-    def union(self, second: "CountingBloomFilter") -> Union["CountingBloomFilter", None]:
+    def union(self, second: "CountingBloomFilter") -> Union["CountingBloomFilter", None]:  # type:ignore
         """ Return a new Countiong Bloom Filter that contains the union of
             the two
 
@@ -326,7 +340,7 @@ class CountingBloomFilter(BaseBloom):
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
-        if super(CountingBloomFilter, self)._verify_bloom_similarity(second) is False:
+        if self._verify_bloom_similarity(second) is False:
             return None
         res = CountingBloomFilter(
             est_elements=self.estimated_elements,
@@ -346,3 +360,38 @@ class CountingBloomFilter(BaseBloom):
             if self._get_element(i) > 0:
                 cnt += 1
         return cnt
+
+    def _load_hex(self, hex_string: str, hash_function: Union[HashFuncT, None] = None) -> None:
+        """placeholder for loading from hex string"""
+        offset = self._HEADER_STRUCT_BE.size * 2
+        est_els, els_added, fpr, n_hashes, n_bits = self._parse_footer(
+            self._HEADER_STRUCT_BE, unhexlify(hex_string[-offset:])
+        )
+
+        self._set_values(est_els, fpr, n_hashes, n_bits, hash_function)
+        self._bloom = array("I", unhexlify(hex_string[:-offset]))
+        self._els_added = els_added
+
+    # in theory, this doesn't need to be in here
+    def _load(
+        self,
+        file: Union[Path, str, IOBase, mmap, ByteString],
+        typecode: str,
+        hash_function: Union[HashFuncT, None] = None,
+    ) -> None:
+        """load the Bloom Filter from file"""
+        if not isinstance(file, (IOBase, mmap, ByteString)):
+            file = Path(file)
+            with MMap(file) as filepointer:
+                self._load(filepointer, typecode, hash_function)
+        else:
+            offset = self._HEADER_STRUCT.size
+            est_els, els_added, fpr, n_hashes, n_bits = self._parse_footer(
+                self._HEADER_STRUCT, file[-offset:]  # type: ignore
+            )
+            # print(self._parse_footer(self._HEADER_STRUCT, file[-offset:]))  # type: ignore
+            self._set_values(est_els, fpr, n_hashes, n_bits, hash_function)
+            # now read in the bit array!
+            self._parse_bloom_array(file, typecode, self._IMPT_STRUCT.size * self.bloom_length)  # type: ignore
+            self._els_added = els_added
+            self._bloom_length = n_bits
