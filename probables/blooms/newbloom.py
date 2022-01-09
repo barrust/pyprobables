@@ -21,7 +21,7 @@ MISMATCH_MSG = "The parameter second must be of type NewBloomFilter or a NewBloo
 SimpleBloomT = Union["NewBloomFilter", "NewBloomFilterOnDisk"]
 
 
-def _verify_not_type_mismatch(second) -> bool:
+def _verify_not_type_mismatch(second: Union["NewBloomFilter", "NewBloomFilterOnDisk"]) -> bool:
     """verify that there is not a type mismatch"""
     if not isinstance(second, (NewBloomFilter, NewBloomFilterOnDisk)):
         return False
@@ -41,10 +41,11 @@ class NewBloomFilter(object):
 
         self._on_disk = False
         self._type = "regular"
+        self._typecode = "B"
         self._bits_per_elm = 8.0
 
         if is_valid_file(filepath):
-            self._load(filepath, "B", hash_function)
+            self._load(filepath, hash_function)
         elif is_hex_string(hex_string):
             self._load_hex(hex_string, hash_function)
         else:
@@ -53,7 +54,7 @@ class NewBloomFilter(object):
             # calc values
             fpr, n_hashes, n_bits = self._get_optimized_params(est_elements, false_positive_rate)
             self._set_values(est_elements, fpr, n_hashes, n_bits, hash_function)
-            self._bloom = array("B", [0]) * self._bloom_length
+            self._bloom = array(self._typecode, [0]) * self._bloom_length
 
     # NOTE: these should be "FOOTERS" and not headers
     _HEADER_STRUCT_FORMAT = "QQf"
@@ -220,7 +221,7 @@ class NewBloomFilter(object):
             self._bloom[idx] = tmp_bit  # type: ignore
         self._els_added += 1
 
-    def check(self, key: KeyT) -> Union[bool, int]:
+    def check(self, key: KeyT) -> bool:
         """Check if the key is likely in the Bloom Filter
 
         Args:
@@ -230,7 +231,7 @@ class NewBloomFilter(object):
         hashes = self.hashes(key)
         return self.check_alt(hashes)
 
-    def check_alt(self, hashes: HashResultsT) -> Union[bool, int]:
+    def check_alt(self, hashes: HashResultsT) -> bool:
         """ Check if the element represented by hashes is in the Bloom Filter
 
             Args:
@@ -314,7 +315,7 @@ class NewBloomFilter(object):
         offset = cls._HEADER_STRUCT.size
         est_els, els_added, fpr, n_hashes, n_bits = cls._parse_footer(cls._HEADER_STRUCT, bytes(b[-offset:]))
         blm = NewBloomFilter(est_elements=est_els, false_positive_rate=fpr, hash_function=hash_function)
-        blm._load(b, "B", hash_function=blm.hash_function)
+        blm._load(b, hash_function=blm.hash_function)
         blm._els_added = els_added
         return blm
 
@@ -448,7 +449,7 @@ class NewBloomFilter(object):
 
     # More private functions
     @classmethod
-    def _get_optimized_params(cls, estimated_elements: int, false_positive_rate: float, el_size: float = 8.0):
+    def _get_optimized_params(cls, estimated_elements: int, false_positive_rate: float) -> Tuple[float, int, int]:
         valid_prms = isinstance(estimated_elements, Number) and estimated_elements > 0
         if not valid_prms:
             msg = "Bloom: estimated elements must be greater than 0"
@@ -469,7 +470,9 @@ class NewBloomFilter(object):
 
         return t_fpr, number_hashes, int(m_bt)
 
-    def _set_values(self, est_els, fpr, n_hashes, n_bits, hash_func: Union[HashFuncT, None]):
+    def _set_values(
+        self, est_els: int, fpr: float, n_hashes: int, n_bits: int, hash_func: Union[HashFuncT, None]
+    ) -> None:
         self._est_elements = int(est_els)
         self._fpr = float(fpr)
         self._bloom_length = int(math.ceil(n_bits / self._bits_per_elm))
@@ -486,22 +489,20 @@ class NewBloomFilter(object):
         est_els, els_added, fpr, n_hashes, n_bits = self._parse_footer(
             self._HEADER_STRUCT_BE, unhexlify(hex_string[-offset:])
         )
-
         self._set_values(est_els, fpr, n_hashes, n_bits, hash_function)
-        self._bloom = array("B", unhexlify(hex_string[:-offset]))
+        self._bloom = array(self._typecode, unhexlify(hex_string[:-offset]))
         self._els_added = els_added
 
     def _load(
         self,
         file: Union[Path, str, IOBase, mmap, ByteString],
-        typecode: str,
         hash_function: Union[HashFuncT, None] = None,
     ) -> None:
-        """load the Bloom Filter from file"""
+        """load the Bloom Filter from file or bytes"""
         if not isinstance(file, (IOBase, mmap, ByteString)):
             file = Path(file)
             with MMap(file) as filepointer:
-                self._load(filepointer, typecode, hash_function)
+                self._load(filepointer, hash_function)
         else:
             offset = self._HEADER_STRUCT.size
             est_els, els_added, fpr, n_hashes, n_bits = self._parse_footer(
@@ -509,7 +510,7 @@ class NewBloomFilter(object):
             )
             self._set_values(est_els, fpr, n_hashes, n_bits, hash_function)
             # now read in the bit array!
-            self._parse_bloom_array(file, typecode, self._IMPT_STRUCT.size * self.bloom_length)  # type: ignore
+            self._parse_bloom_array(file, self._IMPT_STRUCT.size * self.bloom_length)  # type: ignore
             self._els_added = els_added
 
     @classmethod
@@ -525,8 +526,9 @@ class NewBloomFilter(object):
 
         return int(est_elements), int(els_added), float(fpr), int(n_hashes), int(n_bits)
 
-    def _parse_bloom_array(self, b: ByteString, typecode, offset: int):
-        self._bloom = array(typecode, bytes(b[:offset]))
+    def _parse_bloom_array(self, b: ByteString, offset: int) -> None:
+        """parse bytes into the bloom array"""
+        self._bloom = array(self._typecode, bytes(b[:offset]))
 
     def _cnt_number_bits_set(self) -> int:
         """calculate the total number of set bits in the bloom"""
@@ -537,13 +539,13 @@ class NewBloomFilter(object):
 
     def _get_element(self, idx: int) -> int:
         """wrappper for getting an element from the Bloom Filter!"""
-        return self._bloom[idx]  # type: ignore
+        return self._bloom[idx]
 
-    def _verify_bloom_similarity(first, second) -> bool:
+    def _verify_bloom_similarity(self, second: Union["NewBloomFilter", "NewBloomFilterOnDisk"]) -> bool:
         """can the blooms be used in intersection, union, or jaccard index"""
-        hash_match = first.number_hashes != second.number_hashes
-        same_bits = first.number_bits != second.number_bits
-        next_hash = first.hashes("test") != second.hashes("test")
+        hash_match = self.number_hashes != second.number_hashes
+        same_bits = self.number_bits != second.number_bits
+        next_hash = self.hashes("test") != second.hashes("test")
         if hash_match or same_bits or next_hash:
             return False
         return True
@@ -562,6 +564,7 @@ class NewBloomFilterOnDisk(NewBloomFilter):
         self._filepath = Path(filepath)
         self.__file_pointer = None
         self._type = "regular-on-disk"
+        self._typecode = "B"
         self._bits_per_elm = 8.0
         self._on_disk = True
 
@@ -573,12 +576,12 @@ class NewBloomFilterOnDisk(NewBloomFilter):
             self._set_values(est_elements, fpr, n_hashes, n_bits, hash_function)
 
             with open(filepath, "wb") as filepointer:
-                (array("B", [0]) * self.bloom_length).tofile(filepointer)
+                (array(self._typecode, [0]) * self.bloom_length).tofile(filepointer)
                 filepointer.write(self.CNT_FOOTER_STUCT.pack(est_elements, 0, false_positive_rate))
                 filepointer.flush()
             self._load(filepath, hash_function)
         elif is_valid_file(self._filepath):
-            self._load(self._filepath.name)  # need .name for python 3.5
+            self._load(self._filepath.name, hash_function)  # need .name for python 3.5
         else:
             raise InitializationError("Insufecient parameters to set up the On Disk Bloom Filter")
 
@@ -591,10 +594,10 @@ class NewBloomFilterOnDisk(NewBloomFilter):
 
     def close(self) -> None:
         """Clean up the BloomFilterOnDisk object"""
-        if self.__file_pointer is not None:
+        if self.__file_pointer is not None and not self.__file_pointer.closed:
             self.__update()
-            self._bloom.close()  # type: ignore
-            self.__file_pointer.close()  # type: ignore
+            self._bloom.close()
+            self.__file_pointer.close()
             self.__file_pointer = None
 
     def export(self, filename: Union[str, Path]) -> None:  # type: ignore
@@ -606,10 +609,7 @@ class NewBloomFilterOnDisk(NewBloomFilter):
             Note:
                 Only exported if the filename is not the original filename """
         self.__update()
-        if filename and Path(filename).exists():
-            filename = Path(filename).name
-        if filename != self._filepath:
-            # setup the new bloom filter
+        if filename and Path(filename) != self._filepath:
             copyfile(self._filepath.name, str(filename))
         # otherwise, nothing to do!
 
@@ -658,10 +658,3 @@ class NewBloomFilterOnDisk(NewBloomFilter):
         self.__file_pointer.seek(-self.CNT_EXPORT_OFFSET.size, os.SEEK_END)
         self.__file_pointer.write(self.CNT_EXP_ELM_STRUCT.pack(self.elements_added))
         self.__file_pointer.flush()
-
-    def _cnt_number_bits_set(self) -> int:
-        """calculate the total number of set bits in the bloom"""
-        setbits = 0
-        for i in list(range(0, self.bloom_length)):
-            setbits += bin(self._get_element(i)).count("1")
-        return setbits

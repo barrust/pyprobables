@@ -63,8 +63,9 @@ class CountingBloomFilter(NewBloomFilter):
         self._bits_per_elm = 1.0
         self._on_disk = False
         self._type = "counting"
+        self._typecode = "I"
         if is_valid_file(filepath):
-            self._load(filepath, "I", hash_function)
+            self._load(filepath, hash_function)
         elif is_hex_string(hex_string):
             self._load_hex(hex_string, hash_function)
         else:
@@ -74,7 +75,7 @@ class CountingBloomFilter(NewBloomFilter):
             fpr, n_hashes, n_bits = self._get_optimized_params(est_elements, false_positive_rate)
             self._set_values(est_elements, fpr, n_hashes, n_bits, hash_function)
             self._bloom_length = n_bits
-            self._bloom = array("I", [0]) * self._bloom_length
+            self._bloom = array(self._typecode, [0]) * self._bloom_length
 
     _IMPT_STRUCT = Struct("I")
     _HEADER_STRUCT_FORMAT = "QQf"
@@ -95,7 +96,7 @@ class CountingBloomFilter(NewBloomFilter):
         blm = CountingBloomFilter(est_elements=est_els, false_positive_rate=fpr, hash_function=hash_function)
         blm._set_values(est_els, fpr, n_hashes, n_bits, hash_function)
         blm._els_added = els_added
-        blm._parse_bloom_array(b, "I", cls._IMPT_STRUCT.size * blm.bloom_length)
+        blm._parse_bloom_array(b, cls._IMPT_STRUCT.size * blm.bloom_length)
         return blm
 
     def __str__(self) -> str:
@@ -181,7 +182,7 @@ class CountingBloomFilter(NewBloomFilter):
             self.elements_added = UINT64_T_MAX
         return res
 
-    def check(self, key: KeyT) -> int:
+    def check(self, key: KeyT) -> int:  # type: ignore
         """Check if the key is likely in the Counting Bloom Filter
 
         Args:
@@ -191,7 +192,7 @@ class CountingBloomFilter(NewBloomFilter):
         hashes = self.hashes(key)
         return self.check_alt(hashes)
 
-    def check_alt(self, hashes: HashResultsT) -> int:
+    def check_alt(self, hashes: HashResultsT) -> int:  # type: ignore
         """ Check if the element represented by hashes is in the Counting
             Bloom Filter
 
@@ -359,38 +360,3 @@ class CountingBloomFilter(NewBloomFilter):
             if self._get_element(i) > 0:
                 cnt += 1
         return cnt
-
-    def _load_hex(self, hex_string: str, hash_function: Union[HashFuncT, None] = None) -> None:
-        """placeholder for loading from hex string"""
-        offset = self._HEADER_STRUCT_BE.size * 2
-        est_els, els_added, fpr, n_hashes, n_bits = self._parse_footer(
-            self._HEADER_STRUCT_BE, unhexlify(hex_string[-offset:])
-        )
-
-        self._set_values(est_els, fpr, n_hashes, n_bits, hash_function)
-        self._bloom = array("I", unhexlify(hex_string[:-offset]))
-        self._els_added = els_added
-
-    # in theory, this doesn't need to be in here
-    def _load(
-        self,
-        file: Union[Path, str, IOBase, mmap, ByteString],
-        typecode: str,
-        hash_function: Union[HashFuncT, None] = None,
-    ) -> None:
-        """load the Bloom Filter from file"""
-        if not isinstance(file, (IOBase, mmap, ByteString)):
-            file = Path(file)
-            with MMap(file) as filepointer:
-                self._load(filepointer, typecode, hash_function)
-        else:
-            offset = self._HEADER_STRUCT.size
-            est_els, els_added, fpr, n_hashes, n_bits = self._parse_footer(
-                self._HEADER_STRUCT, file[-offset:]  # type: ignore
-            )
-            # print(self._parse_footer(self._HEADER_STRUCT, file[-offset:]))  # type: ignore
-            self._set_values(est_els, fpr, n_hashes, n_bits, hash_function)
-            # now read in the bit array!
-            self._parse_bloom_array(file, typecode, self._IMPT_STRUCT.size * self.bloom_length)  # type: ignore
-            self._els_added = els_added
-            self._bloom_length = n_bits
