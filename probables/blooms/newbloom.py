@@ -578,7 +578,7 @@ class NewBloomFilterOnDisk(NewBloomFilter):
                 filepointer.flush()
             self._load(filepath, hash_function)
         elif is_valid_file(self._filepath):
-            self._load(self._filepath)  # but this wouldn't be on disk...
+            self._load(self._filepath.name)  # need .name for python 3.5
         else:
             raise InitializationError("Insufecient parameters to set up the On Disk Bloom Filter")
 
