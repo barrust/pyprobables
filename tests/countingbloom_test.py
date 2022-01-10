@@ -437,10 +437,14 @@ class TestCountingBloomFilter(unittest.TestCase):
     def test_cbf_very_large_add(self):
         """test adding a very large number of elements"""
         large = 2 ** 32
+        very_large = 2 ** 64
         blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
         self.assertEqual(blm.elements_added, 0)
         res = blm.add("this is a test 0", large)
         self.assertEqual(blm.elements_added, large)
+        self.assertEqual(res, large - 1)
+        res = blm.add("this is a test 0", very_large)
+        self.assertEqual(blm.elements_added, very_large - 1)
         self.assertEqual(res, large - 1)
 
     def test_cbf_remove_from_large(self):
