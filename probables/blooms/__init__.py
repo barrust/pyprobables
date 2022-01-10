@@ -3,7 +3,6 @@
 from .bloom import BloomFilter, BloomFilterOnDisk
 from .countingbloom import CountingBloomFilter
 from .expandingbloom import ExpandingBloomFilter, RotatingBloomFilter
-from .newbloom import NewBloomFilter, NewBloomFilterOnDisk
 
 __all__ = [
     "BloomFilter",
@@ -11,6 +10,4 @@ __all__ = [
     "CountingBloomFilter",
     "ExpandingBloomFilter",
     "RotatingBloomFilter",
-    "NewBloomFilter",
-    "NewBloomFilterOnDisk",
 ]

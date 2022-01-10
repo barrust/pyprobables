@@ -4,10 +4,7 @@
     URL: https://github.com/barrust/counting_bloom
 """
 from array import array
-from binascii import unhexlify
 from collections.abc import ByteString
-from io import IOBase
-from mmap import mmap
 from pathlib import Path
 from struct import Struct
 from typing import Union
@@ -15,8 +12,8 @@ from typing import Union
 from ..constants import UINT32_T_MAX, UINT64_T_MAX
 from ..exceptions import InitializationError
 from ..hashes import HashFuncT, HashResultsT, KeyT
-from ..utilities import MMap, is_hex_string, is_valid_file
-from .newbloom import NewBloomFilter
+from ..utilities import is_hex_string, is_valid_file
+from .bloom import BloomFilter
 
 MISMATCH_MSG = "The parameter second must be of type CountingBloomFilter"
 
@@ -28,7 +25,7 @@ def _verify_not_type_mismatch(second: "CountingBloomFilter") -> bool:
     return True
 
 
-class CountingBloomFilter(NewBloomFilter):
+class CountingBloomFilter(BloomFilter):
     """ Simple Counting Bloom Filter implementation for use in python;
         It can read and write the same format as the c version
         (https://github.com/barrust/counting_bloom)
