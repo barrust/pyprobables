@@ -22,7 +22,7 @@ MISMATCH_MSG = "The parameter second must be of type BloomFilter or a BloomFilte
 SimpleBloomT = Union["BloomFilter", "BloomFilterOnDisk"]
 
 
-def _verify_not_type_mismatch(second: Union["BloomFilter", "BloomFilterOnDisk"]) -> bool:
+def _verify_not_type_mismatch(second: SimpleBloomT) -> bool:
     """verify that there is not a type mismatch"""
     if not isinstance(second, (BloomFilter, BloomFilterOnDisk)):
         return False
@@ -30,6 +30,39 @@ def _verify_not_type_mismatch(second: Union["BloomFilter", "BloomFilterOnDisk"])
 
 
 class BloomFilter(object):
+    """Simple Bloom Filter implementation for use in python; It can read and write the
+    same format as the c version (https://github.com/barrust/bloom)
+
+    Args:
+        est_elements (int): The number of estimated elements to be added
+        false_positive_rate (float): The desired false positive rate
+        filepath (str): Path to file to load
+        hex_string (str): Hex based representation to be loaded
+        hash_function (function): Hashing strategy function to use `hf(key, number)`
+    Returns:
+        BloomFilter: A Bloom Filter object
+    Note:
+        Initialization order of operations:
+            1) From file
+            2) From Hex String
+            3) From params
+    """
+
+    __slots__ = [
+        "_on_disk",
+        "_type",
+        "_typecode",
+        "_bits_per_elm",
+        "_bloom",
+        "_est_elements",
+        "_fpr",
+        "_bloom_length",
+        "_hash_func",
+        "_els_added",
+        "_number_hashes",
+        "_num_bits",
+    ]
+
     def __init__(
         self,
         est_elements: Union[int, None] = None,
@@ -540,7 +573,7 @@ class BloomFilter(object):
         """wrappper for getting an element from the Bloom Filter!"""
         return self._bloom[idx]
 
-    def _verify_bloom_similarity(self, second: Union["BloomFilter", "BloomFilterOnDisk"]) -> bool:
+    def _verify_bloom_similarity(self, second: SimpleBloomT) -> bool:
         """can the blooms be used in intersection, union, or jaccard index"""
         hash_match = self.number_hashes != second.number_hashes
         same_bits = self.number_bits != second.number_bits
@@ -551,6 +584,29 @@ class BloomFilter(object):
 
 
 class BloomFilterOnDisk(BloomFilter):
+    """Simple Bloom Filter implementation directly on disk for use in python;
+    It can read and write the same format as the c version (https://github.com/barrust/bloom)
+
+    Args:
+        filepath (str): Path to file to load
+        est_elements (int): The number of estimated elements to be added
+        false_positive_rate (float): The desired false positive rate
+        hex_string (str): Hex based representation to be loaded
+        hash_function (function): Hashing strategy function to use \
+        `hf(key, number)`
+    Returns:
+        BloomFilterOnDisk: A Bloom Filter object
+    Raises:
+        NotSupportedError: Loading using a hex string is not supported
+    Note:
+        Initialization order of operations:
+            1) Esimated elements and false positive rate
+            2) From Hex String
+            3) Only filepath provided
+    """
+
+    __slots__ = ["_filepath", "__file_pointer"]
+
     def __init__(
         self,
         filepath: Union[str, Path],
@@ -627,7 +683,6 @@ class BloomFilterOnDisk(BloomFilter):
         self.__file_pointer = open(filepath, "r+b")  # type: ignore
         self._bloom = mmap(self.__file_pointer.fileno(), 0)  # type: ignore
         self._on_disk = True
-        self.__filename = Path(filepath)
 
     def add_alt(self, hashes: HashResultsT) -> None:
         super(BloomFilterOnDisk, self).add_alt(hashes)

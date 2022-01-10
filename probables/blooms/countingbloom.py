@@ -46,7 +46,7 @@ class CountingBloomFilter(BloomFilter):
                 2) From Hex String
                 3) From params """
 
-    # __slots__ = BaseBloom.__slots__
+    __slots__ = BloomFilter.__slots__
 
     def __init__(
         self,
