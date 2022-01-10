@@ -141,22 +141,19 @@ class CountingBloomFilter(BloomFilter):
         return self.add_alt(self.hashes(key), num_els)
 
     def add_alt(self, hashes: HashResultsT, num_els: int = 1) -> int:  # type: ignore
-        """ Add the element represented by hashes into the Counting Bloom
-            Filter
+        """Add the element represented by hashes into the Counting Bloom Filter
 
-            Args:
-                hashes (list): A list of integers representing the key to \
-                insert
-                num_els (int): Number of times to insert the element
-            Returns:
-                int: Maximum number of insertions """
+        Args:
+            hashes (list): A list of integers representing the key to insert
+            num_els (int): Number of times to insert the element
+        Returns:
+            int: Maximum number of insertions"""
         res = UINT32_T_MAX
         for i in range(0, self.number_hashes):
             k = hashes[i] % self.number_bits
-            j = self._bloom[k]
-            tmp = j + num_els
+            tmp = self._bloom[k] + num_els
             if tmp <= UINT32_T_MAX:
-                self._bloom[k] = j + num_els
+                self._bloom[k] = tmp
             else:
                 self._bloom[k] = UINT32_T_MAX
             if self._bloom[k] < res:
@@ -207,7 +204,7 @@ class CountingBloomFilter(BloomFilter):
             Returns:
                 int: Maximum number of insertions after the removal """
 
-        indices = [hashes[i] % self.number_bits for i in range(self._number_hashes)]
+        indices = [hashes[i] % self._bloom_length for i in range(self._number_hashes)]
         vals = [self._bloom[k] for k in indices]
         min_val = min(vals)
         if min_val == UINT32_T_MAX:  # cannot remove if we have hit the max
