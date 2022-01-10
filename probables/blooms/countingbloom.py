@@ -20,9 +20,7 @@ MISMATCH_MSG = "The parameter second must be of type CountingBloomFilter"
 
 def _verify_not_type_mismatch(second: "CountingBloomFilter") -> bool:
     """verify that there is not a type mismatch"""
-    if not isinstance(second, (CountingBloomFilter)):
-        return False
-    return True
+    return isinstance(second, (CountingBloomFilter))
 
 
 class CountingBloomFilter(BloomFilter):
@@ -159,11 +157,11 @@ class CountingBloomFilter(BloomFilter):
             j = self._bloom[k]
             tmp = j + num_els
             if tmp <= UINT32_T_MAX:
-                self.bloom[k] = j + num_els
+                self._bloom[k] = j + num_els
             else:
-                self.bloom[k] = UINT32_T_MAX
-            if self.bloom[k] < res:
-                res = self.bloom[k]
+                self._bloom[k] = UINT32_T_MAX
+            if self._bloom[k] < res:
+                res = self._bloom[k]
         self.elements_added += num_els
         if self.elements_added > UINT64_T_MAX:
             self.elements_added = UINT64_T_MAX
@@ -222,7 +220,7 @@ class CountingBloomFilter(BloomFilter):
             t_num_els = num_els
         for i in list(range(self.number_hashes)):
             k = int(hashes[i]) % self.number_bits
-            self.bloom[k] -= t_num_els
+            self._bloom[k] -= t_num_els
         self.elements_added -= t_num_els
         return tmp - t_num_els
 
@@ -256,8 +254,8 @@ class CountingBloomFilter(BloomFilter):
         )
 
         for i in list(range(self.bloom_length)):
-            if self._get_element(i) > 0 and second._get_element(i) > 0:
-                tmp = self._get_element(i) + second._get_element(i)
+            if self._bloom[i] > 0 and second._bloom[i] > 0:
+                tmp = self._bloom[i] + second._bloom[i]
                 res.bloom[i] = tmp
         res.elements_added = res.estimate_elements()
         return res
@@ -288,9 +286,9 @@ class CountingBloomFilter(BloomFilter):
         count_union = 0
         count_inter = 0
         for i in list(range(self.bloom_length)):
-            if self._get_element(i) > 0 or second._get_element(i) > 0:
+            if self._bloom[i] > 0 or second._bloom[i] > 0:
                 count_union += 1
-            if self._get_element(i) > 0 and second._get_element(i) > 0:
+            if self._bloom[i] > 0 and second._bloom[i] > 0:
                 count_inter += 1
         if count_union == 0:
             return 1.0
@@ -326,8 +324,8 @@ class CountingBloomFilter(BloomFilter):
             hash_function=self.hash_function,
         )
         for i in list(range(self.bloom_length)):
-            tmp = self._get_element(i) + second._get_element(i)
-            res.bloom[i] = tmp
+            tmp = self._bloom[i] + second._bloom[i]
+            res._bloom[i] = tmp
         res.elements_added = res.estimate_elements()
         return res
 

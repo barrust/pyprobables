@@ -24,9 +24,7 @@ SimpleBloomT = Union["BloomFilter", "BloomFilterOnDisk"]
 
 def _verify_not_type_mismatch(second: SimpleBloomT) -> bool:
     """verify that there is not a type mismatch"""
-    if not isinstance(second, (BloomFilter, BloomFilterOnDisk)):
-        return False
-    return True
+    return isinstance(second, (BloomFilter, BloomFilterOnDisk))
 
 
 class BloomFilter(object):
@@ -71,7 +69,6 @@ class BloomFilter(object):
         hex_string: Union[str, None] = None,
         hash_function: Union[HashFuncT, None] = None,
     ):
-        """test a new BloomFilter implementation"""
 
         self._on_disk = False
         self._type = "regular"
@@ -286,7 +283,7 @@ class BloomFilter(object):
             self.elements_added,
             self.false_positive_rate,
         )
-        bytes_string = hexlify(bytearray(self.bloom[: self.bloom_length])) + hexlify(footer_bytes)
+        bytes_string = hexlify(bytearray(self._bloom[: self.bloom_length])) + hexlify(footer_bytes)
         return str(bytes_string, "utf-8")
 
     def export(self, file: Union[Path, str, IOBase, mmap]) -> None:
@@ -300,7 +297,7 @@ class BloomFilter(object):
             with open(file, "wb") as filepointer:
                 self.export(filepointer)  # type: ignore
         else:
-            self.bloom.tofile(file)  # type: ignore
+            self._bloom.tofile(file)  # type: ignore
             file.write(
                 self._FOOTER_STRUCT.pack(
                     self.estimated_elements,
@@ -440,7 +437,7 @@ class BloomFilter(object):
         )
 
         for i in list(range(self.bloom_length)):
-            res.bloom[i] = self._get_element(i) | second._get_element(i)
+            res._bloom[i] = self._get_element(i) | second._get_element(i)
         res.elements_added = res.estimate_elements()
         return res
 
@@ -470,8 +467,10 @@ class BloomFilter(object):
 
         count_int = 0
         for i in list(range(0, self.bloom_length)):
-            t_union = self._get_element(i) | second._get_element(i)
-            t_intersection = self._get_element(i) & second._get_element(i)
+            el1 = self._get_element(i)
+            el2 = second._get_element(i)
+            t_union = el1 | el2
+            t_intersection = el1 & el2
             count_union += bin(t_union).count("1")
             count_int += bin(t_intersection).count("1")
         if count_union == 0:
@@ -704,8 +703,7 @@ class BloomFilterOnDisk(BloomFilter):
         return int(self._IMPT_STRUCT.unpack(bytes([self._bloom[idx]]))[0])
 
     def __update(self):
-        """update the on disk Bloom Filter and ensure everything is out
-        to disk"""
+        """update the on disk Bloom Filter and ensure everything is out to disk"""
         self._bloom.flush()
         self.__file_pointer.seek(-self._UPDATE_OFFSET.size, os.SEEK_END)
         self.__file_pointer.write(self._EXPECTED_ELM_STRUCT.pack(self.elements_added))
