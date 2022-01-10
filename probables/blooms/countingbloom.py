@@ -138,8 +138,7 @@ class CountingBloomFilter(BloomFilter):
             num_els (int): Number of times to insert the element
         Returns:
             int: Maximum number of insertions"""
-        hashes = self.hashes(key)
-        return self.add_alt(hashes, num_els)
+        return self.add_alt(self.hashes(key), num_els)
 
     def add_alt(self, hashes: HashResultsT, num_els: int = 1) -> int:  # type: ignore
         """ Add the element represented by hashes into the Counting Bloom
@@ -152,7 +151,7 @@ class CountingBloomFilter(BloomFilter):
             Returns:
                 int: Maximum number of insertions """
         res = UINT32_T_MAX
-        for i in list(range(0, self.number_hashes)):
+        for i in range(0, self.number_hashes):
             k = hashes[i] % self.number_bits
             j = self._bloom[k]
             tmp = j + num_els
@@ -207,22 +206,22 @@ class CountingBloomFilter(BloomFilter):
                 num_els (int): Number of times to remove the element
             Returns:
                 int: Maximum number of insertions after the removal """
-        tmp = self.check_alt(hashes)
-        if tmp == UINT32_T_MAX:  # cannot remove if we have hit the max
+
+        indices = [hashes[i] % self.number_bits for i in range(self._number_hashes)]
+        vals = [self._bloom[k] for k in indices]
+        min_val = min(vals)
+        if min_val == UINT32_T_MAX:  # cannot remove if we have hit the max
             return UINT32_T_MAX
-        elif tmp == 0:
+        elif min_val == 0:
             return 0
 
-        # determine how many we can actually remove
-        if tmp - num_els < 0:
-            t_num_els = tmp
-        else:
-            t_num_els = num_els
-        for i in list(range(self.number_hashes)):
-            k = int(hashes[i]) % self.number_bits
-            self._bloom[k] -= t_num_els
-        self.elements_added -= t_num_els
-        return tmp - t_num_els
+        to_remove = num_els if min_val > num_els else min_val
+        for k in indices:
+            if self._bloom[k] == UINT32_T_MAX:
+                continue
+            self._bloom[k] -= to_remove
+        self.elements_added -= to_remove
+        return min_val - to_remove
 
     def intersection(self, second: "CountingBloomFilter") -> "CountingBloomFilter":
         """ Take the intersection of two Counting Bloom Filters
@@ -253,7 +252,7 @@ class CountingBloomFilter(BloomFilter):
             hash_function=self.hash_function,
         )
 
-        for i in list(range(self.bloom_length)):
+        for i in range(self.bloom_length):
             if self._bloom[i] > 0 and second._bloom[i] > 0:
                 tmp = self._bloom[i] + second._bloom[i]
                 res.bloom[i] = tmp
@@ -285,7 +284,7 @@ class CountingBloomFilter(BloomFilter):
 
         count_union = 0
         count_inter = 0
-        for i in list(range(self.bloom_length)):
+        for i in range(self.bloom_length):
             if self._bloom[i] > 0 or second._bloom[i] > 0:
                 count_union += 1
             if self._bloom[i] > 0 and second._bloom[i] > 0:
@@ -323,7 +322,7 @@ class CountingBloomFilter(BloomFilter):
             false_positive_rate=self.false_positive_rate,
             hash_function=self.hash_function,
         )
-        for i in list(range(self.bloom_length)):
+        for i in range(self.bloom_length):
             tmp = self._bloom[i] + second._bloom[i]
             res._bloom[i] = tmp
         res.elements_added = res.estimate_elements()

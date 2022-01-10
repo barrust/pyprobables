@@ -246,7 +246,7 @@ class BloomFilter(object):
             Args:
                 hashes (list): A list of integers representing the key to \
                 insert """
-        for i in list(range(0, self._number_hashes)):
+        for i in range(0, self._number_hashes):
             k = int(hashes[i]) % self._num_bits
             idx = k // 8
             j = self._bloom[idx]
@@ -271,7 +271,7 @@ class BloomFilter(object):
                 check
             Returns:
                 bool: True if likely encountered, False if definately not """
-        for i in list(range(0, self._number_hashes)):
+        for i in range(0, self._number_hashes):
             k = int(hashes[i]) % self._num_bits
             if (int(self._bloom[k // 8]) & int((1 << (k % 8)))) == 0:
                 return False
@@ -407,7 +407,7 @@ class BloomFilter(object):
             hash_function=self.hash_function,
         )
 
-        for i in list(range(0, res.bloom_length)):
+        for i in range(0, res.bloom_length):
             res._bloom[i] = self._get_element(i) & second._get_element(i)
         res.elements_added = res.estimate_elements()
         return res
@@ -440,7 +440,7 @@ class BloomFilter(object):
             hash_function=self.hash_function,
         )
 
-        for i in list(range(self.bloom_length)):
+        for i in range(self.bloom_length):
             res._bloom[i] = self._get_element(i) | second._get_element(i)
         res.elements_added = res.estimate_elements()
         return res
@@ -470,7 +470,7 @@ class BloomFilter(object):
         count_union = 0
 
         count_int = 0
-        for i in list(range(0, self.bloom_length)):
+        for i in range(0, self.bloom_length):
             el1 = self._get_element(i)
             el2 = second._get_element(i)
             t_union = el1 | el2
@@ -568,7 +568,7 @@ class BloomFilter(object):
     def _cnt_number_bits_set(self) -> int:
         """calculate the total number of set bits in the bloom"""
         setbits = 0
-        for i in list(range(0, self.bloom_length)):
+        for i in range(0, self.bloom_length):
             setbits += bin(self._bloom[i]).count("1")
         return setbits
 
