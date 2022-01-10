@@ -1,4 +1,8 @@
-"""A simpler BloomFilter Implementation"""
+""" BloomFilter, python implementation
+    License: MIT
+    Author: Tyler Barrus (barrust@gmail.com)
+    URL: https://github.com/barrust/bloom
+"""
 import math
 import os
 from array import array
