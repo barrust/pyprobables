@@ -150,20 +150,19 @@ class CountingBloomFilter(BloomFilter):
             int: Maximum number of insertions"""
         # NOTE: this will increment indices each time it is viewed. Not sure if that is "correct"
         #       if not then we will need to update this and the C version
-        res = UINT32_T_MAX
-        for i in range(0, self.number_hashes):
-            k = hashes[i] % self.number_bits
-            tmp = self._bloom[k] + num_els
-            if tmp <= UINT32_T_MAX:
-                self._bloom[k] = tmp
-            else:
+        indices = [hashes[i] % self._bloom_length for i in range(self._number_hashes)]
+        vals = [self._bloom[k] + num_els for k in indices]
+        for i, v in enumerate(vals):
+            k = indices[i]
+            if v > UINT32_T_MAX:
                 self._bloom[k] = UINT32_T_MAX
-            if self._bloom[k] < res:
-                res = self._bloom[k]
+                vals[i] = UINT32_T_MAX
+            else:
+                self._bloom[k] += num_els  # This keeps the original methodology
         self.elements_added += num_els
         if self.elements_added > UINT64_T_MAX:
             self.elements_added = UINT64_T_MAX
-        return res
+        return min(vals)
 
     def check(self, key: KeyT) -> int:  # type: ignore
         """Check if the key is likely in the Counting Bloom Filter
