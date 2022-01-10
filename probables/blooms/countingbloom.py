@@ -78,9 +78,6 @@ class CountingBloomFilter(NewBloomFilter):
             self._bloom = array(self._typecode, [0]) * self._bloom_length
 
     _IMPT_STRUCT = Struct("I")
-    _HEADER_STRUCT_FORMAT = "QQf"
-    _HEADER_STRUCT = Struct(_HEADER_STRUCT_FORMAT)
-    _HEADER_STRUCT_BE = Struct(">" + _HEADER_STRUCT_FORMAT)
 
     @classmethod
     def frombytes(cls, b: ByteString, hash_function: Union[HashFuncT, None] = None) -> "CountingBloomFilter":
@@ -103,17 +100,10 @@ class CountingBloomFilter(NewBloomFilter):
         """string representation of the counting bloom filter"""
         on_disk = "no" if self.is_on_disk is False else "yes"
 
-        cnt = 0
-        total = 0
-        largest = 0
-        largest_idx = 0
-        for i, val in enumerate(self._bloom):
-            total += val
-            if val > 0:
-                cnt += val
-            if val > largest:
-                largest = val
-                largest_idx = i
+        cnt = sum([x for x in self._bloom if x > 0])
+        total = sum(self._bloom)
+        largest = max(self._bloom)
+        largest_idx = (self._bloom).index(largest)
         fullness = cnt / self.number_bits
         els_added = total // self.number_hashes
 
@@ -168,8 +158,8 @@ class CountingBloomFilter(NewBloomFilter):
                 int: Maximum number of insertions """
         res = UINT32_T_MAX
         for i in list(range(0, self.number_hashes)):
-            k = int(hashes[i]) % self.number_bits
-            j = self._get_element(k)
+            k = hashes[i] % self.number_bits
+            j = self._bloom[k]
             tmp = j + num_els
             if tmp <= UINT32_T_MAX:
                 self.bloom[k] = j + num_els
@@ -201,13 +191,7 @@ class CountingBloomFilter(NewBloomFilter):
                 check
             Returns:
                 int: Maximum number of insertions """
-        res = UINT32_T_MAX
-        for i in list(range(0, self.number_hashes)):
-            k = int(hashes[i]) % self.number_bits
-            tmp = self._bloom[k]
-            if tmp < res:
-                res = tmp
-        return res
+        return min([self._bloom[x % self.number_bits] for x in hashes])
 
     def remove(self, key: KeyT, num_els: int = 1) -> int:
         """Remove the element from the counting bloom
@@ -243,8 +227,7 @@ class CountingBloomFilter(NewBloomFilter):
             t_num_els = num_els
         for i in list(range(self.number_hashes)):
             k = int(hashes[i]) % self.number_bits
-            j = self._get_element(k)
-            self.bloom[k] = j - t_num_els
+            self.bloom[k] -= t_num_els
         self.elements_added -= t_num_els
         return tmp - t_num_els
 
@@ -355,8 +338,4 @@ class CountingBloomFilter(NewBloomFilter):
 
     def _cnt_number_bits_set(self) -> int:
         """calculate the total number of set bits in the bloom"""
-        cnt = 0
-        for i in list(range(self.bloom_length)):
-            if self._get_element(i) > 0:
-                cnt += 1
-        return cnt
+        return sum([1 for x in self._bloom if x > 0])

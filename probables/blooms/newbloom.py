@@ -57,9 +57,8 @@ class NewBloomFilter(object):
             self._bloom = array(self._typecode, [0]) * self._bloom_length
 
     # NOTE: these should be "FOOTERS" and not headers
-    _HEADER_STRUCT_FORMAT = "QQf"
-    _HEADER_STRUCT = Struct(_HEADER_STRUCT_FORMAT)
-    _HEADER_STRUCT_BE = Struct(">" + _HEADER_STRUCT_FORMAT)
+    _HEADER_STRUCT = Struct("QQf")
+    _HEADER_STRUCT_BE = Struct(">QQf")
     _FPR_STRUCT = Struct("f")
     _IMPT_STRUCT = Struct("B")
 
