@@ -345,7 +345,7 @@ class BloomFilter(object):
             BloomFilter: A Bloom Filter object
         """
         offset = cls._FOOTER_STRUCT.size
-        est_els, els_added, fpr, n_hashes, n_bits = cls._parse_footer(cls._FOOTER_STRUCT, bytes(b[-offset:]))
+        est_els, els_added, fpr, _, _ = cls._parse_footer(cls._FOOTER_STRUCT, bytes(b[-offset:]))
         blm = BloomFilter(est_elements=est_els, false_positive_rate=fpr, hash_function=hash_function)
         blm._load(b, hash_function=blm.hash_function)
         blm._els_added = els_added
