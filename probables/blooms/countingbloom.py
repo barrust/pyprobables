@@ -215,9 +215,8 @@ class CountingBloomFilter(BloomFilter):
 
         to_remove = num_els if min_val > num_els else min_val
         for k in indices:
-            if self._bloom[k] == UINT32_T_MAX:
-                continue
-            self._bloom[k] -= to_remove
+            if self._bloom[k] < UINT32_T_MAX:  # only remove if less than UINT32_T_MAX
+                self._bloom[k] -= to_remove
         self.elements_added -= to_remove
         return min_val - to_remove
 
