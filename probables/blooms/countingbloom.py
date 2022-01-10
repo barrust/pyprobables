@@ -148,6 +148,8 @@ class CountingBloomFilter(BloomFilter):
             num_els (int): Number of times to insert the element
         Returns:
             int: Maximum number of insertions"""
+        # NOTE: this will increment indices each time it is viewed. Not sure if that is "correct"
+        #       if not then we will need to update this and the C version
         res = UINT32_T_MAX
         for i in range(0, self.number_hashes):
             k = hashes[i] % self.number_bits
