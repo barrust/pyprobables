@@ -57,8 +57,8 @@ class NewBloomFilter(object):
             self._bloom = array(self._typecode, [0]) * self._bloom_length
 
     # NOTE: these should be "FOOTERS" and not headers
-    _HEADER_STRUCT = Struct("QQf")
-    _HEADER_STRUCT_BE = Struct(">QQf")
+    _FOOTER_STRUCT = Struct("QQf")
+    _FOOTER_STRUCT_BE = Struct(">QQf")
     _FPR_STRUCT = Struct("f")
     _IMPT_STRUCT = Struct("B")
 
@@ -203,8 +203,7 @@ class NewBloomFilter(object):
 
         Args:
             key (str): The element to be inserted"""
-        hashes = self.hashes(key)
-        self.add_alt(hashes)
+        self.add_alt(self.hashes(key))
 
     def add_alt(self, hashes: HashResultsT) -> None:
         """ Add the element represented by hashes into the Bloom Filter
@@ -217,7 +216,7 @@ class NewBloomFilter(object):
             idx = k // 8
             j = self._bloom[idx]
             tmp_bit = int(j) | int((1 << (k % 8)))
-            self._bloom[idx] = tmp_bit  # type: ignore
+            self._bloom[idx] = tmp_bit
         self._els_added += 1
 
     def check(self, key: KeyT) -> bool:
@@ -227,8 +226,7 @@ class NewBloomFilter(object):
             key (str): The element to be checked
         Returns:
             bool: True if likely encountered, False if definately not"""
-        hashes = self.hashes(key)
-        return self.check_alt(hashes)
+        return self.check_alt(self.hashes(key))
 
     def check_alt(self, hashes: HashResultsT) -> bool:
         """ Check if the element represented by hashes is in the Bloom Filter
@@ -249,7 +247,7 @@ class NewBloomFilter(object):
 
         Return:
             str: Hex representation of the Bloom Filter"""
-        footer_bytes = self._HEADER_STRUCT_BE.pack(
+        footer_bytes = self._FOOTER_STRUCT_BE.pack(
             self.estimated_elements,
             self.elements_added,
             self.false_positive_rate,
@@ -266,11 +264,11 @@ class NewBloomFilter(object):
 
         if not isinstance(file, (IOBase, mmap)):
             with open(file, "wb") as filepointer:
-                self.export(filepointer)  # type:ignore
+                self.export(filepointer)  # type: ignore
         else:
             self.bloom.tofile(file)  # type: ignore
             file.write(
-                self._HEADER_STRUCT.pack(
+                self._FOOTER_STRUCT.pack(
                     self.estimated_elements,
                     self.elements_added,
                     self.false_positive_rate,
@@ -311,8 +309,8 @@ class NewBloomFilter(object):
         Returns:
             BloomFilter: A Bloom Filter object
         """
-        offset = cls._HEADER_STRUCT.size
-        est_els, els_added, fpr, n_hashes, n_bits = cls._parse_footer(cls._HEADER_STRUCT, bytes(b[-offset:]))
+        offset = cls._FOOTER_STRUCT.size
+        est_els, els_added, fpr, n_hashes, n_bits = cls._parse_footer(cls._FOOTER_STRUCT, bytes(b[-offset:]))
         blm = NewBloomFilter(est_elements=est_els, false_positive_rate=fpr, hash_function=hash_function)
         blm._load(b, hash_function=blm.hash_function)
         blm._els_added = els_added
@@ -333,7 +331,7 @@ class NewBloomFilter(object):
 
         Returns:
             int: Size of the Bloom Filter when exported to disk"""
-        return (self.bloom_length * self._IMPT_STRUCT.size) + self._HEADER_STRUCT.size
+        return (self.bloom_length * self._IMPT_STRUCT.size) + self._FOOTER_STRUCT.size
 
     def current_false_positive_rate(self) -> float:
         """Calculate the current false positive rate based on elements added
@@ -475,18 +473,19 @@ class NewBloomFilter(object):
         self._est_elements = int(est_els)
         self._fpr = float(fpr)
         self._bloom_length = int(math.ceil(n_bits / self._bits_per_elm))
-        self._hash_func = default_fnv_1a
         if hash_func is not None:
-            self._hash_func = hash_func  # type: ignore
+            self._hash_func = hash_func
+        else:
+            self._hash_func = default_fnv_1a
         self._els_added = 0
         self._number_hashes = int(n_hashes)
         self._num_bits = int(n_bits)
 
     def _load_hex(self, hex_string: str, hash_function: Union[HashFuncT, None] = None) -> None:
         """placeholder for loading from hex string"""
-        offset = self._HEADER_STRUCT_BE.size * 2
+        offset = self._FOOTER_STRUCT_BE.size * 2
         est_els, els_added, fpr, n_hashes, n_bits = self._parse_footer(
-            self._HEADER_STRUCT_BE, unhexlify(hex_string[-offset:])
+            self._FOOTER_STRUCT_BE, unhexlify(hex_string[-offset:])
         )
         self._set_values(est_els, fpr, n_hashes, n_bits, hash_function)
         self._bloom = array(self._typecode, unhexlify(hex_string[:-offset]))
@@ -503,9 +502,9 @@ class NewBloomFilter(object):
             with MMap(file) as filepointer:
                 self._load(filepointer, hash_function)
         else:
-            offset = self._HEADER_STRUCT.size
+            offset = self._FOOTER_STRUCT.size
             est_els, els_added, fpr, n_hashes, n_bits = self._parse_footer(
-                self._HEADER_STRUCT, file[-offset:]  # type: ignore
+                self._FOOTER_STRUCT, file[-offset:]  # type: ignore
             )
             self._set_values(est_els, fpr, n_hashes, n_bits, hash_function)
             # now read in the bit array!
@@ -576,7 +575,7 @@ class NewBloomFilterOnDisk(NewBloomFilter):
 
             with open(filepath, "wb") as filepointer:
                 (array(self._typecode, [0]) * self.bloom_length).tofile(filepointer)
-                filepointer.write(self.CNT_FOOTER_STUCT.pack(est_elements, 0, false_positive_rate))
+                filepointer.write(self._FOOTER_STRUCT.pack(est_elements, 0, false_positive_rate))
                 filepointer.flush()
             self._load(filepath, hash_function)
         elif is_valid_file(self._filepath):
@@ -617,9 +616,9 @@ class NewBloomFilterOnDisk(NewBloomFilter):
         # read the file, set the optimal params
         # mmap everything
         with open(filepath, "r+b") as filepointer:
-            offset = self.CNT_FOOTER_STUCT.size
+            offset = self._FOOTER_STRUCT.size
             filepointer.seek(offset * -1, os.SEEK_END)
-            est_els, _, fpr = self.CNT_FOOTER_STUCT.unpack_from(filepointer.read(offset))
+            est_els, _, fpr = self._FOOTER_STRUCT.unpack_from(filepointer.read(offset))
 
             fpr, n_hashes, n_bits = self._get_optimized_params(est_els, fpr)
             self._set_values(est_els, fpr, n_hashes, n_bits, hash_function)
@@ -641,19 +640,18 @@ class NewBloomFilterOnDisk(NewBloomFilter):
         msg = "Loading from bytes is currently not supported by the on disk Bloom Filter"
         raise NotSupportedError(msg)
 
-    CNT_ELM_STRUCT = Struct("B")
-    CNT_EXP_ELM_STRUCT = Struct("Q")
-    CNT_FOOTER_STUCT = Struct("QQf")
-    CNT_EXPORT_OFFSET = Struct("Qf")
+    _EXPECTED_ELM_STRUCT = Struct("Q")
+    _FOOTER_STRUCT = Struct("QQf")
+    _UPDATE_OFFSET = Struct("Qf")
 
     def _get_element(self, idx: int) -> int:
         """wrappper to use similar functions always!"""
-        return int(self.CNT_ELM_STRUCT.unpack(bytes([self._bloom[idx]]))[0])
+        return int(self._IMPT_STRUCT.unpack(bytes([self._bloom[idx]]))[0])
 
     def __update(self):
         """update the on disk Bloom Filter and ensure everything is out
         to disk"""
         self._bloom.flush()
-        self.__file_pointer.seek(-self.CNT_EXPORT_OFFSET.size, os.SEEK_END)
-        self.__file_pointer.write(self.CNT_EXP_ELM_STRUCT.pack(self.elements_added))
+        self.__file_pointer.seek(-self._UPDATE_OFFSET.size, os.SEEK_END)
+        self.__file_pointer.write(self._EXPECTED_ELM_STRUCT.pack(self.elements_added))
         self.__file_pointer.flush()

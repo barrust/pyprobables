@@ -88,8 +88,8 @@ class CountingBloomFilter(NewBloomFilter):
         Returns:
             CountingBloomFilter: A Counting Bloom Filter object
         """
-        offset = cls._HEADER_STRUCT.size
-        est_els, els_added, fpr, n_hashes, n_bits = cls._parse_footer(cls._HEADER_STRUCT, bytes(b[-offset:]))  # type: ignore
+        offset = cls._FOOTER_STRUCT.size
+        est_els, els_added, fpr, n_hashes, n_bits = cls._parse_footer(cls._FOOTER_STRUCT, bytes(b[-offset:]))
         blm = CountingBloomFilter(est_elements=est_els, false_positive_rate=fpr, hash_function=hash_function)
         blm._set_values(est_els, fpr, n_hashes, n_bits, hash_function)
         blm._els_added = els_added
@@ -179,8 +179,7 @@ class CountingBloomFilter(NewBloomFilter):
             key (str): The element to be checked
         Returns:
             int: Maximum number of insertions"""
-        hashes = self.hashes(key)
-        return self.check_alt(hashes)
+        return self.check_alt(self.hashes(key))
 
     def check_alt(self, hashes: HashResultsT) -> int:  # type: ignore
         """ Check if the element represented by hashes is in the Counting
@@ -201,8 +200,7 @@ class CountingBloomFilter(NewBloomFilter):
             num_els (int): Number of times to remove the element
         Returns:
             int: Maximum number of insertions after the removal"""
-        hashes = self.hashes(key)
-        return self.remove_alt(hashes, num_els)
+        return self.remove_alt(self.hashes(key), num_els)
 
     def remove_alt(self, hashes: HashResultsT, num_els: int = 1) -> int:
         """ Remvoe the element represented by hashes from the Counting Bloom \
