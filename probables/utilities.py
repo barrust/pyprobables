@@ -2,9 +2,8 @@
 
 import mmap
 import string
-from array import array
 from pathlib import Path
-from typing import Iterable, Union
+from typing import Union
 
 
 def is_hex_string(hex_string: Union[str, None]) -> bool:

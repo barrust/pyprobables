@@ -6,13 +6,12 @@
 
 import math
 from array import array
-from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from numbers import Number
 from pathlib import Path
 from struct import Struct
-from typing import Dict, Tuple, Union
+from typing import ByteString, Dict, Tuple, Union
 
 from ..constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN
 from ..exceptions import CountMinSketchError, InitializationError, NotSupportedError

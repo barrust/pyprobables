@@ -6,13 +6,12 @@
 import math
 import random
 from array import array
-from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from numbers import Number
 from pathlib import Path
 from struct import Struct
-from typing import List, Tuple, Union
+from typing import ByteString, List, Tuple, Union
 
 from ..exceptions import CuckooFilterFullError, InitializationError
 from ..hashes import KeyT, SimpleHashT, fnv_1a

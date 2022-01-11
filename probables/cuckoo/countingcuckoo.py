@@ -5,12 +5,11 @@
 
 import random
 from array import array
-from collections.abc import ByteString
 from io import IOBase
 from mmap import mmap
 from pathlib import Path
 from struct import Struct
-from typing import List, Union
+from typing import ByteString, List, Union
 
 from ..exceptions import CuckooFilterFullError
 from ..hashes import KeyT, SimpleHashT
