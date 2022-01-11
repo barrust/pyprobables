@@ -45,7 +45,7 @@ class MMap(object):
         return self.map
 
     def __exit__(self, *args, **kwargs) -> None:
-        if not self.map.closed:
+        if self.m and not self.map.closed:
             self.map.close()
         if self.__f:
             self.__f.close()

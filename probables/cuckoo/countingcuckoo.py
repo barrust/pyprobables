@@ -233,13 +233,9 @@ class CountingCuckooFilter(CuckooFilter):
             with open(file, "wb") as filepointer:
                 self.export(filepointer)  # type:ignore
         else:
-            filepointer = file  # type:ignore
-            for bucket in self.buckets:
-                self.__bucket_decomposition(bucket).tofile(filepointer)
-                leftover = self.bucket_size - len(bucket)
-                array("I", [0 for _ in range(leftover * 2)]).tofile(filepointer)
+            self.__bucket_decomposition(self.buckets, self.bucket_size).tofile(file)
             # now put out the required information at the end
-            filepointer.write(self.__COUNTING_CUCKOO_FOOTER_STRUCT.pack(self.bucket_size, self.max_swaps))
+            file.write(self.__COUNTING_CUCKOO_FOOTER_STRUCT.pack(self.bucket_size, self.max_swaps))
 
     def _insert_fingerprint_alt(
         self, fingerprint: int, idx_1: int, idx_2: int, count: int = 1
@@ -345,11 +341,14 @@ class CountingCuckooFilter(CuckooFilter):
         return False
 
     @staticmethod
-    def __bucket_decomposition(bucket: List["CountingCuckooBin"]):
+    def __bucket_decomposition(buckets, bucket_size: int):
         """convert a list of buckets into a single array for export"""
         arr = array("I")
-        for buck in bucket:
-            arr.extend(buck.get_array())
+        for bucket in buckets:
+            for buck in bucket:
+                arr.extend(buck.get_array())
+            leftover = bucket_size - len(bucket)
+            arr.fromlist([0 for _ in range(leftover * 2)])
         return arr
 
 
