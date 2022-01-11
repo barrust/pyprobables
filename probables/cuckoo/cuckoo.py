@@ -350,7 +350,7 @@ class CuckooFilter(object):
                 bucket.extend([0] * (self.bucket_size - len(bucket)))
                 bucket.tofile(filepointer)
             # now put out the required information at the end
-            filepointer.write(self._CUCKOO_HEADER_STRUCT.pack(self.bucket_size, self.max_swaps))
+            filepointer.write(self._CUCKOO_FOOTER_STRUCT.pack(self.bucket_size, self.max_swaps))
 
     def __bytes__(self) -> bytes:
         """Export cuckoo filter to `bytes`"""
@@ -409,12 +409,12 @@ class CuckooFilter(object):
 
     _CUCKOO_SINGLE_INT_C = "I"
     _CUCKOO_SINGLE_INT_SIZE = Struct(_CUCKOO_SINGLE_INT_C).size
-    _CUCKOO_HEADER_STRUCT = Struct("II")
+    _CUCKOO_FOOTER_STRUCT = Struct("II")
 
     def _parse_footer(self, d: ByteString) -> None:
         """parse bytes and set footer information"""
-        list_size = len(d) - self._CUCKOO_HEADER_STRUCT.size
-        self._bucket_size, self.__max_cuckoo_swaps = self._CUCKOO_HEADER_STRUCT.unpack(d[list_size:])  # type:ignore
+        list_size = len(d) - self._CUCKOO_FOOTER_STRUCT.size
+        self._bucket_size, self.__max_cuckoo_swaps = self._CUCKOO_FOOTER_STRUCT.unpack(d[list_size:])  # type:ignore
         self._cuckoo_capacity = list_size // self._CUCKOO_SINGLE_INT_SIZE // self.bucket_size
 
     def _parse_buckets(self, d: ByteString) -> None:
