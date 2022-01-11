@@ -274,13 +274,13 @@ class CountMinSketch(object):
         bins = [(v % self.width) + (i * self.width) for i, v in enumerate(hashes)]
         vals = [self._bins[x] + num_els for x in bins]
 
-        for i, v in enumerate(vals):
+        for i, val in enumerate(vals):
             idx = bins[i]
-            if v > INT32_T_MAX:
+            if val > INT32_T_MAX:
                 self._bins[idx] = INT32_T_MAX
                 vals[i] = INT32_T_MAX
             else:
-                self._bins[idx] = v
+                self._bins[idx] = val
         self.__elements_added += num_els
         if self.elements_added > INT64_T_MAX:
             self.__elements_added = INT64_T_MAX
@@ -358,7 +358,8 @@ class CountMinSketch(object):
         Args:
             second (CountMinSketch): The count-min sketch to merge
         Raises:
-            TypeError: When second is not either a :class:`CountMinSketch`,:class:`CountMeanSketch` or :class:`CountMeanMinSketch`
+            TypeError: When second is not either a :class:`CountMinSketch`,:class:`CountMeanSketch` \
+                or :class:`CountMeanMinSketch`
             CountMinSketchError: Raised when the count-min sketches are not of the same dimensions
         Note:
             The calling count-min sketch will contain the combined data
