@@ -24,25 +24,24 @@ def _verify_not_type_mismatch(second: "CountingBloomFilter") -> bool:
 
 
 class CountingBloomFilter(BloomFilter):
-    """ Simple Counting Bloom Filter implementation for use in python;
-        It can read and write the same format as the c version
-        (https://github.com/barrust/counting_bloom)
+    """Simple Counting Bloom Filter implementation for use in python;
+    It can read and write the same format as the c version
+    (https://github.com/barrust/counting_bloom)
 
-        Args:
-            est_elements (int): The number of estimated elements to be added
-            false_positive_rate (float): The desired false positive rate
-            filepath (str): Path to file to load
-            hex_string (str): Hex based representation to be loaded
-            hash_function (function): Hashing strategy function to use \
-            `hf(key, number)`
-        Returns:
-            CountingBloomFilter: A Counting Bloom Filter object
+    Args:
+        est_elements (int): The number of estimated elements to be added
+        false_positive_rate (float): The desired false positive rate
+        filepath (str): Path to file to load
+        hex_string (str): Hex based representation to be loaded
+        hash_function (function): Hashing strategy function to use `hf(key, number)`
+    Returns:
+        CountingBloomFilter: A Counting Bloom Filter object
 
-        Note:
-            Initialization order of operations:
-                1) From file
-                2) From Hex String
-                3) From params """
+    Note:
+        Initialization order of operations:
+            1) From file
+            2) From Hex String
+            3) From params"""
 
     __slots__ = BloomFilter.__slots__
 
@@ -174,14 +173,13 @@ class CountingBloomFilter(BloomFilter):
         return self.check_alt(self.hashes(key))
 
     def check_alt(self, hashes: HashResultsT) -> int:  # type: ignore
-        """ Check if the element represented by hashes is in the Counting
-            Bloom Filter
+        """Check if the element represented by hashes is in the Counting
+        Bloom Filter
 
-            Args:
-                hashes (list): A list of integers representing the key to \
-                check
-            Returns:
-                int: Maximum number of insertions """
+        Args:
+            hashes (list): A list of integers representing the key to check
+        Returns:
+            int: Maximum number of insertions"""
         return min([self._bloom[x % self.number_bits] for x in hashes])
 
     def remove(self, key: KeyT, num_els: int = 1) -> int:
@@ -195,15 +193,13 @@ class CountingBloomFilter(BloomFilter):
         return self.remove_alt(self.hashes(key), num_els)
 
     def remove_alt(self, hashes: HashResultsT, num_els: int = 1) -> int:
-        """ Remvoe the element represented by hashes from the Counting Bloom \
-            Filter
+        """Remvoe the element represented by hashes from the Counting Bloom Filter
 
-            Args:
-                hashes (list): A list of integers representing the key to \
-                remove
-                num_els (int): Number of times to remove the element
-            Returns:
-                int: Maximum number of insertions after the removal """
+        Args:
+            hashes (list): A list of integers representing the key to remove
+            num_els (int): Number of times to remove the element
+        Returns:
+            int: Maximum number of insertions after the removal"""
 
         indices = [hashes[i] % self._bloom_length for i in range(self._number_hashes)]
         vals = [self._bloom[k] for k in indices]
@@ -221,23 +217,20 @@ class CountingBloomFilter(BloomFilter):
         return min_val - to_remove
 
     def intersection(self, second: "CountingBloomFilter") -> "CountingBloomFilter":
-        """ Take the intersection of two Counting Bloom Filters
+        """Take the intersection of two Counting Bloom Filters
 
-            Args:
-                second (CountingBloomFilter): The Bloom Filter with which to \
-                take the intersection
-            Returns:
-                CountingBloomFilter: The new Counting Bloom Filter containing \
-                the union
-            Raises:
-                TypeError: When second is not a :class:`CountingBloomFilter`
-            Note:
-                The elements_added property will be set to the estimated \
-                number of unique elements added as found in \
-                estimate_elements()
-            Note:
-                If `second` is not of the same size (false_positive_rate and \
-                est_elements) then this will return `None` """
+        Args:
+            second (CountingBloomFilter): The Bloom Filter with which to take the intersection
+        Returns:
+            CountingBloomFilter: The new Counting Bloom Filter containing the union
+        Raises:
+            TypeError: When second is not a :class:`CountingBloomFilter`
+        Note:
+            The elements_added property will be set to the estimated number of unique elements \
+                added as found in estimate_elements()
+        Note:
+            If `second` is not of the same size (false_positive_rate and est_elements) then \
+                this will return `None`"""
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
@@ -257,22 +250,18 @@ class CountingBloomFilter(BloomFilter):
         return res
 
     def jaccard_index(self, second: "CountingBloomFilter") -> Union[float, None]:  # type:ignore
-        """ Take the Jaccard Index of two Counting Bloom Filters
+        """Take the Jaccard Index of two Counting Bloom Filters
 
-            Args:
-                second (CountingBloomFilter): The Bloom Filter with which to \
-                take the jaccard index
-            Returns:
-                float: A numeric value between 0 and 1 where 1 is identical \
-                and 0 means completely different
-            Raises:
-                TypeError: When second is not a :class:`CountingBloomFilter`
-            Note:
-                The Jaccard Index is based on the unique set of elements \
-                added and not the number of each element added
-            Note:
-                If `second` is not of the same size (false_positive_rate and \
-                est_elements) then this will return `None` """
+        Args:
+            second (CountingBloomFilter): The Bloom Filter with which to take the jaccard index
+        Returns:
+            float: A numeric value between 0 and 1 where 1 is identical and 0 means completely different
+        Raises:
+            TypeError: When second is not a :class:`CountingBloomFilter`
+        Note:
+            The Jaccard Index is based on the unique set of elements added and not the number of each element added
+        Note:
+            If `second` is not of the same size (false_positive_rate and est_elements) then this will return `None`"""
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
@@ -291,24 +280,20 @@ class CountingBloomFilter(BloomFilter):
         return count_inter / count_union
 
     def union(self, second: "CountingBloomFilter") -> Union["CountingBloomFilter", None]:  # type:ignore
-        """ Return a new Countiong Bloom Filter that contains the union of
-            the two
+        """Return a new Countiong Bloom Filter that contains the union of
+        the two
 
-            Args:
-                second (CountingBloomFilter): The Counting Bloom Filter with \
-                which to calculate the union
-            Returns:
-                CountingBloomFilter: The new Counting Bloom Filter containing \
-                the union
-            Raises:
-                TypeError: When second is not a :class:`CountingBloomFilter`
-            Note:
-                The elements_added property will be set to the estimated \
-                number of unique elements added as found in \
-                estimate_elements()
-            Note:
-                If `second` is not of the same size (false_positive_rate and \
-                est_elements) then this will return `None` """
+        Args:
+            second (CountingBloomFilter): The Counting Bloom Filter with which to calculate the union
+        Returns:
+            CountingBloomFilter: The new Counting Bloom Filter containing the union
+        Raises:
+            TypeError: When second is not a :class:`CountingBloomFilter`
+        Note:
+            The elements_added property will be set to the estimated number of unique elements added as \
+                found in estimate_elements()
+        Note:
+            If `second` is not of the same size (false_positive_rate and est_elements) then this will return `None`"""
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 

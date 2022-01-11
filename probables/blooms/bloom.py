@@ -157,8 +157,7 @@ class BloomFilter(object):
 
     @property
     def number_hashes(self) -> int:
-        """int: The number of hashes required for the Bloom Filter hashing
-        strategy
+        """int: The number of hashes required for the Bloom Filter hashing strategy
 
         Note:
             Not settable"""
@@ -174,11 +173,10 @@ class BloomFilter(object):
 
     @property
     def elements_added(self) -> int:
-        """ int: Number of elements added to the Bloom Filter
+        """int: Number of elements added to the Bloom Filter
 
         Note:
-            Changing this can cause the current false positive rate to \
-            be reported incorrectly """
+            Changing this can cause the current false positive rate to be reported incorrectly"""
         return self._els_added
 
     @elements_added.setter
@@ -241,11 +239,10 @@ class BloomFilter(object):
         self.add_alt(self.hashes(key))
 
     def add_alt(self, hashes: HashResultsT) -> None:
-        """ Add the element represented by hashes into the Bloom Filter
+        """Add the element represented by hashes into the Bloom Filter
 
-            Args:
-                hashes (list): A list of integers representing the key to \
-                insert """
+        Args:
+            hashes (list): A list of integers representing the key to insert"""
         for i in range(0, self._number_hashes):
             k = int(hashes[i]) % self._num_bits
             idx = k // 8
@@ -264,13 +261,12 @@ class BloomFilter(object):
         return self.check_alt(self.hashes(key))
 
     def check_alt(self, hashes: HashResultsT) -> bool:
-        """ Check if the element represented by hashes is in the Bloom Filter
+        """Check if the element represented by hashes is in the Bloom Filter
 
-            Args:
-                hashes (list): A list of integers representing the key to \
-                check
-            Returns:
-                bool: True if likely encountered, False if definately not """
+        Args:
+            hashes (list): A list of integers representing the key to check
+        Returns:
+            bool: True if likely encountered, False if definately not"""
         for i in range(0, self._number_hashes):
             k = int(hashes[i]) % self._num_bits
             if (int(self._bloom[k // 8]) & int((1 << (k % 8)))) == 0:
@@ -291,12 +287,10 @@ class BloomFilter(object):
         return str(bytes_string, "utf-8")
 
     def export(self, file: Union[Path, str, IOBase, mmap]) -> None:
-        """ Export the Bloom Filter to disk
+        """Export the Bloom Filter to disk
 
-            Args:
-                filename (str): The filename to which the Bloom Filter will \
-                be written. """
-
+        Args:
+            filename (str): The filename to which the Bloom Filter will be written."""
         if not isinstance(file, (IOBase, mmap)):
             with open(file, "wb") as filepointer:
                 self.export(filepointer)  # type: ignore
@@ -311,11 +305,10 @@ class BloomFilter(object):
             )
 
     def export_c_header(self, filename: Union[str, Path]) -> None:
-        """ Export the Bloom Filter to disk as a C header file.
+        """Export the Bloom Filter to disk as a C header file.
 
-            Args:
-                filename (str): The filename to which the Bloom Filter will \
-                be written. """
+        Args:
+            filename (str): The filename to which the Bloom Filter will be written."""
         data = (
             "  " + line
             for line in wrap(", ".join(("0x{:02x}".format(e) for e in bytearray.fromhex(self.export_hex()))), 80)
@@ -379,22 +372,19 @@ class BloomFilter(object):
         return math.pow((1 - exp), self.number_hashes)
 
     def intersection(self, second) -> Union["BloomFilter", None]:
-        """ Return a new Bloom Filter that contains the intersection of the
-            two
+        """Return a new Bloom Filter that contains the intersection of the
+        two
 
-            Args:
-                second (BloomFilter): The Bloom Filter with which to take \
-                the intersection
-            Returns:
-                BloomFilter: The new Bloom Filter containing the intersection
-            Raises:
-                TypeError: When second is not either a :class:`BloomFilter` \
-                or :class:`BloomFilterOnDisk`
-            Note:
-                `second` may be a BloomFilterOnDisk object
-            Note:
-                If `second` is not of the same size (false_positive_rate and \
-                est_elements) then this will return `None` """
+        Args:
+            second (BloomFilter): The Bloom Filter with which to take the intersection
+        Returns:
+            BloomFilter: The new Bloom Filter containing the intersection
+        Raises:
+            TypeError: When second is not either a :class:`BloomFilter` or :class:`BloomFilterOnDisk`
+        Note:
+            `second` may be a BloomFilterOnDisk object
+        Note:
+            If `second` is not of the same size (false_positive_rate and est_elements) then this will return `None`"""
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
@@ -413,21 +403,18 @@ class BloomFilter(object):
         return res
 
     def union(self, second: SimpleBloomT) -> Union["BloomFilter", None]:
-        """ Return a new Bloom Filter that contains the union of the two
+        """Return a new Bloom Filter that contains the union of the two
 
-            Args:
-                second (BloomFilter): The Bloom Filter with which to \
-                calculate the union
-            Returns:
-                BloomFilter: The new Bloom Filter containing the union
-            Raises:
-                TypeError: When second is not either a :class:`BloomFilter` \
-                or :class:`BloomFilterOnDisk`
-            Note:
-                `second` may be a BloomFilterOnDisk object
-            Note:
-                If `second` is not of the same size (false_positive_rate and \
-                est_elements) then this will return `None` """
+        Args:
+            second (BloomFilter): The Bloom Filter with which to calculate the union
+        Returns:
+            BloomFilter: The new Bloom Filter containing the union
+        Raises:
+            TypeError: When second is not either a :class:`BloomFilter` or :class:`BloomFilterOnDisk`
+        Note:
+            `second` may be a BloomFilterOnDisk object
+        Note:
+            If `second` is not of the same size (false_positive_rate and est_elements) then this will return `None`"""
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
@@ -446,21 +433,18 @@ class BloomFilter(object):
         return res
 
     def jaccard_index(self, second: SimpleBloomT) -> Union[float, None]:
-        """ Calculate the jaccard similarity score between two Bloom Filters
+        """Calculate the jaccard similarity score between two Bloom Filters
 
-            Args:
-                second (BloomFilter): The Bloom Filter to compare with
-            Returns:
-                float: A numeric value between 0 and 1 where 1 is identical \
-                and 0 means completely different
-            Raises:
-                TypeError: When second is not either a :class:`BloomFilter` \
-                or :class:`BloomFilterOnDisk`
-            Note:
-                `second` may be a BloomFilterOnDisk object
-            Note:
-                If `second` is not of the same size (false_positive_rate and \
-                est_elements) then this will return `None` """
+        Args:
+            second (BloomFilter): The Bloom Filter to compare with
+        Returns:
+            float: A numeric value between 0 and 1 where 1 is identical and 0 means completely different
+        Raises:
+            TypeError: When second is not either a :class:`BloomFilter` or :class:`BloomFilterOnDisk`
+        Note:
+            `second` may be a BloomFilterOnDisk object
+        Note:
+            If `second` is not of the same size (false_positive_rate and est_elements) then this will return `None`"""
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
@@ -659,13 +643,12 @@ class BloomFilterOnDisk(BloomFilter):
             self.__file_pointer = None
 
     def export(self, filename: Union[str, Path]) -> None:  # type: ignore
-        """ Export to disk if a different location
+        """Export to disk if a different location
 
-            Args:
-                filename (str): The filename to which the Bloom Filter will \
-                be exported
-            Note:
-                Only exported if the filename is not the original filename """
+        Args:
+            filename (str): The filename to which the Bloom Filter will be exported
+        Note:
+            Only exported if the filename is not the original filename"""
         self.__update()
         if filename and Path(filename) != self._filepath:
             copyfile(self._filepath.name, str(filename))
