@@ -215,7 +215,7 @@ class CountMinSketch(object):
                 * 'mean-min'"""
         if self.__query_method == self.__mean_query:
             return "mean"
-        elif self.__query_method == self.__mean_min_query:
+        if self.__query_method == self.__mean_min_query:
             return "mean-min"
         return "min"
 
@@ -487,7 +487,7 @@ class CountMeanSketch(CountMinSketch):
         filepath: Union[str, Path, None] = None,
         hash_function: Union[HashFuncT, None] = None,
     ) -> None:
-        super(CountMeanSketch, self).__init__(width, depth, confidence, error_rate, filepath, hash_function)
+        super().__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.query_type = "mean"
 
 
@@ -527,7 +527,7 @@ class CountMeanMinSketch(CountMinSketch):
         filepath: Union[str, Path, None] = None,
         hash_function: Union[HashFuncT, None] = None,
     ) -> None:
-        super(CountMeanMinSketch, self).__init__(width, depth, confidence, error_rate, filepath, hash_function)
+        super().__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.query_type = "mean-min"
 
 
@@ -569,7 +569,7 @@ class HeavyHitters(CountMinSketch):
         hash_function: Union[HashFuncT, None] = None,
     ) -> None:
 
-        super(HeavyHitters, self).__init__(width, depth, confidence, error_rate, filepath, hash_function)
+        super().__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.__top_x = dict()  # type: ignore
         self.__top_x_size = 0
         self.__num_hitters = num_hitters
@@ -594,7 +594,7 @@ class HeavyHitters(CountMinSketch):
 
     def __str__(self) -> str:
         """heavy hitters string rep"""
-        msg = super(HeavyHitters, self).__str__()
+        msg = super().__str__()
         tmp = "Heavy Hitters {0}\n\tNumber Hitters: {1}\n\tNumber Recorded: {2}"
         return tmp.format(msg, self.number_heavy_hitters, self.__top_x_size)
 
@@ -640,7 +640,7 @@ class HeavyHitters(CountMinSketch):
             Different key signature than the normal :class:`CountMinSketch`
         Note:
             Override function"""
-        res = super(HeavyHitters, self).add_alt(hashes, num_els)
+        res = super().add_alt(hashes, num_els)
 
         # update the heavy hitters list as necessary
         if self.__top_x_size < self.__num_hitters:  # still have room in top x
@@ -677,7 +677,7 @@ class HeavyHitters(CountMinSketch):
 
     def clear(self) -> None:
         """Clear out the heavy hitters!"""
-        super(HeavyHitters, self).clear()
+        super().clear()
         self.__top_x = dict()
         self.__top_x_size = 0
         self.__smallest = 0
@@ -727,7 +727,7 @@ class StreamThreshold(CountMinSketch):
         filepath: Union[str, Path, None] = None,
         hash_function: Union[HashFuncT, None] = None,
     ) -> None:
-        super(StreamThreshold, self).__init__(width, depth, confidence, error_rate, filepath, hash_function)
+        super().__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.__threshold = threshold
         self.__meets_threshold = dict()  # type: ignore
 
@@ -750,7 +750,7 @@ class StreamThreshold(CountMinSketch):
 
     def __str__(self) -> str:
         """stream threshold string rep"""
-        msg = super(StreamThreshold, self).__str__()
+        msg = super().__str__()
         tmp = "Stream Threshold {0}\n\tThreshold: {1}\n\tNumber Meeting Threshold: {2}"
         return tmp.format(msg, self.threshold, len(self.__meets_threshold))
 
@@ -766,7 +766,7 @@ class StreamThreshold(CountMinSketch):
 
     def clear(self) -> None:
         """Clear out the stream threshold!"""
-        super(StreamThreshold, self).clear()
+        super().clear()
         self.__meets_threshold = dict()
 
     def add(self, key: str, num_els: int = 1) -> int:  # type: ignore
@@ -794,7 +794,7 @@ class StreamThreshold(CountMinSketch):
             Different key signature than the normal :class:`CountMinSketch`
         Note:
             Override function"""
-        res = super(StreamThreshold, self).add_alt(hashes, num_els)
+        res = super().add_alt(hashes, num_els)
         if res >= self.__threshold:
             self.__meets_threshold[key] = res
         return res
@@ -824,7 +824,7 @@ class StreamThreshold(CountMinSketch):
             Different key signature than the normal :class:`CountMinSketch`
         Note:
             Override function"""
-        res = super(StreamThreshold, self).remove_alt(hashes, num_els)
+        res = super().remove_alt(hashes, num_els)
         if res < self.__threshold:
             self.__meets_threshold.pop(key, None)
         else:

@@ -56,7 +56,7 @@ class CountingCuckooFilter(CuckooFilter):
     ) -> None:
         """setup the data structure"""
         self.__unique_elements = 0
-        super(CountingCuckooFilter, self).__init__(
+        super().__init__(
             capacity,
             bucket_size,
             max_swaps,
