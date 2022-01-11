@@ -7,7 +7,6 @@ import math
 import os
 from array import array
 from binascii import hexlify, unhexlify
-from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from numbers import Number
@@ -15,7 +14,7 @@ from pathlib import Path
 from shutil import copyfile
 from struct import Struct
 from textwrap import wrap
-from typing import Tuple, Union
+from typing import ByteString, Tuple, Union
 
 from ..exceptions import InitializationError, NotSupportedError
 from ..hashes import HashFuncT, HashResultsT, KeyT, default_fnv_1a
@@ -73,7 +72,7 @@ class BloomFilter(object):
         hex_string: Union[str, None] = None,
         hash_function: Union[HashFuncT, None] = None,
     ):
-
+        # set some things up
         self._on_disk = False
         self._type = "regular"
         self._typecode = "B"
@@ -246,9 +245,7 @@ class BloomFilter(object):
         for i in range(0, self._number_hashes):
             k = int(hashes[i]) % self._num_bits
             idx = k // 8
-            j = self._bloom[idx]
-            tmp_bit = int(j) | int((1 << (k % 8)))
-            self._bloom[idx] = tmp_bit
+            self._bloom[idx] = int(self._bloom[idx]) | int((1 << (k % 8)))
         self._els_added += 1
 
     def check(self, key: KeyT) -> bool:
@@ -267,9 +264,9 @@ class BloomFilter(object):
             hashes (list): A list of integers representing the key to check
         Returns:
             bool: True if likely encountered, False if definately not"""
-        for i in range(0, self._number_hashes):
-            k = int(hashes[i]) % self._num_bits
-            if (int(self._bloom[k // 8]) & int((1 << (k % 8)))) == 0:
+        for i in range(self._number_hashes):
+            k = hashes[i] % self._num_bits
+            if (self._bloom[k // 8] & (1 << (k % 8))) == 0:
                 return False
         return True
 
@@ -602,7 +599,7 @@ class BloomFilterOnDisk(BloomFilter):
         hex_string: Union[str, None] = None,
         hash_function: Union[HashFuncT, None] = None,
     ) -> None:
-        # set somethings up
+        # set some things up
         self._filepath = Path(filepath)
         self.__file_pointer = None
         self._type = "regular-on-disk"

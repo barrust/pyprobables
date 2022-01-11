@@ -5,12 +5,11 @@
 """
 
 from array import array
-from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from pathlib import Path
 from struct import Struct
-from typing import Tuple, Union
+from typing import ByteString, Tuple, Union
 
 from ..exceptions import RotatingBloomFilterError
 from ..hashes import HashFuncT, HashResultsT, KeyT
@@ -66,6 +65,7 @@ class ExpandingBloomFilter(object):
 
     __FOOTER_STRUCT = Struct("QQQf")
     __S_INT64_STRUCT = Struct("Q")
+    _BLOOM_ELEMENT_SIZE = Struct("B").size
 
     @classmethod
     def frombytes(cls, b: ByteString, hash_function: Union[HashFuncT, None] = None) -> "ExpandingBloomFilter":
@@ -220,7 +220,6 @@ class ExpandingBloomFilter(object):
     def _parse_blooms(self, b: ByteString, size: int) -> None:
         # reset the bloom list
         self._blooms = list()
-        c = Struct("B")
         blm_size = 0
         start = 0
         end = 0
@@ -231,7 +230,7 @@ class ExpandingBloomFilter(object):
                 hash_function=self.__hash_func,
             )
             if blm_size == 0:
-                blm_size = c.size * blm.bloom_length
+                blm_size = self._BLOOM_ELEMENT_SIZE * blm.bloom_length
             end = start + self.__S_INT64_STRUCT.size + blm_size
             blm._els_added = int(self.__S_INT64_STRUCT.unpack(bytes(b[start : start + self.__S_INT64_STRUCT.size]))[0])
             blm._bloom = array("B", bytes(b[start + self.__S_INT64_STRUCT.size : end]))

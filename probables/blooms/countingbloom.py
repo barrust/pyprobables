@@ -4,10 +4,9 @@
     URL: https://github.com/barrust/counting_bloom
 """
 from array import array
-from collections.abc import ByteString
 from pathlib import Path
 from struct import Struct
-from typing import Union
+from typing import ByteString, Union
 
 from ..constants import UINT32_T_MAX, UINT64_T_MAX
 from ..exceptions import InitializationError
