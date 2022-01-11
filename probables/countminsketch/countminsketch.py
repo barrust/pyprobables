@@ -271,7 +271,7 @@ class CountMinSketch(object):
             num_els (int): The number of times to insert the element
         Returns:
             int: The number of times the element was likely inserted after the insertion"""
-        bins = [(v % self.width) + (i * self.width) for i, v in enumerate(hashes)]
+        bins = [(val % self.width) + (i * self.width) for i, val in enumerate(hashes)]
         vals = [self._bins[x] + num_els for x in bins]
 
         for i, val in enumerate(vals):
@@ -306,10 +306,10 @@ class CountMinSketch(object):
             int: The number of times the element was likely inserted after the removal"""
         bins = [(v % self.width) + (i * self.width) for i, v in enumerate(hashes)]
         vals = [self._bins[x] - num_els for x in bins]
-        for i, v in enumerate(vals):
+        for i, val in enumerate(vals):
             idx = bins[i]
-            if v > INT32_T_MIN:
-                self._bins[idx] = v
+            if val > INT32_T_MIN:
+                self._bins[idx] = val
             else:
                 self._bins[idx] = INT32_T_MIN
                 vals[i] = INT32_T_MIN
