@@ -3,27 +3,27 @@
     Author: Tyler Barrus (barrust@gmail.com)
     URL: https://github.com/barrust/counting_bloom
 """
-
+from array import array
 from collections.abc import ByteString
 from pathlib import Path
 from struct import Struct
 from typing import Union
 
 from ..constants import UINT32_T_MAX, UINT64_T_MAX
+from ..exceptions import InitializationError
 from ..hashes import HashFuncT, HashResultsT, KeyT
-from .basebloom import BaseBloom
+from ..utilities import is_hex_string, is_valid_file
+from .bloom import BloomFilter
 
 MISMATCH_MSG = "The parameter second must be of type CountingBloomFilter"
 
 
 def _verify_not_type_mismatch(second: "CountingBloomFilter") -> bool:
     """verify that there is not a type mismatch"""
-    if not isinstance(second, (CountingBloomFilter)):
-        return False
-    return True
+    return isinstance(second, (CountingBloomFilter))
 
 
-class CountingBloomFilter(BaseBloom):
+class CountingBloomFilter(BloomFilter):
     """ Simple Counting Bloom Filter implementation for use in python;
         It can read and write the same format as the c version
         (https://github.com/barrust/counting_bloom)
@@ -44,7 +44,7 @@ class CountingBloomFilter(BaseBloom):
                 2) From Hex String
                 3) From params """
 
-    __slots__ = BaseBloom.__slots__
+    __slots__ = BloomFilter.__slots__
 
     def __init__(
         self,
@@ -55,18 +55,24 @@ class CountingBloomFilter(BaseBloom):
         hash_function: Union[HashFuncT, None] = None,
     ) -> None:
         """setup the basic values needed"""
-        super(CountingBloomFilter, self).__init__(
-            "counting",
-            est_elements=est_elements,
-            false_positive_rate=false_positive_rate,
-            filepath=filepath,
-            hex_string=hex_string,
-            hash_function=hash_function,
-        )
+        self._bits_per_elm = 1.0
+        self._on_disk = False
+        self._type = "counting"
+        self._typecode = "I"
+        if is_valid_file(filepath):
+            self._load(filepath, hash_function)
+        elif is_hex_string(hex_string):
+            self._load_hex(hex_string, hash_function)
+        else:
+            if est_elements is None or false_positive_rate is None:
+                raise InitializationError("Insufecient parameters to set up the Counting Bloom Filter")
+            # calc values
+            fpr, n_hashes, n_bits = self._get_optimized_params(est_elements, false_positive_rate)
+            self._set_values(est_elements, fpr, n_hashes, n_bits, hash_function)
+            self._bloom_length = n_bits
+            self._bloom = array(self._typecode, [0]) * self._bloom_length
 
-    __HEADER_STRUCT_FORMAT = "QQf"
-    __HEADER_STRUCT = Struct(__HEADER_STRUCT_FORMAT)
-    # __HEADER_STRUCT_BE = Struct(">" + __HEADER_STRUCT_FORMAT)
+    _IMPT_STRUCT = Struct("I")
 
     @classmethod
     def frombytes(cls, b: ByteString, hash_function: Union[HashFuncT, None] = None) -> "CountingBloomFilter":
@@ -77,29 +83,22 @@ class CountingBloomFilter(BaseBloom):
         Returns:
             CountingBloomFilter: A Counting Bloom Filter object
         """
-        offset = cls.__HEADER_STRUCT.size
-        est_elms, _, fpr, _, _, _ = cls._parse_footer(cls.__HEADER_STRUCT, bytes(b[-offset:]))
-        blm = CountingBloomFilter(est_elements=est_elms, false_positive_rate=fpr, hash_function=hash_function)
-        blm._parse_footer_set(cls.__HEADER_STRUCT, bytes(b[-offset:]))
-        blm._set_bloom_length()
-        blm._parse_bloom_array(b)
+        offset = cls._FOOTER_STRUCT.size
+        est_els, els_added, fpr, n_hashes, n_bits = cls._parse_footer(cls._FOOTER_STRUCT, bytes(b[-offset:]))
+        blm = CountingBloomFilter(est_elements=est_els, false_positive_rate=fpr, hash_function=hash_function)
+        blm._set_values(est_els, fpr, n_hashes, n_bits, hash_function)
+        blm._els_added = els_added
+        blm._parse_bloom_array(b, cls._IMPT_STRUCT.size * blm.bloom_length)
         return blm
 
     def __str__(self) -> str:
         """string representation of the counting bloom filter"""
         on_disk = "no" if self.is_on_disk is False else "yes"
 
-        cnt = 0
-        total = 0
-        largest = 0
-        largest_idx = 0
-        for i, val in enumerate(self._bloom):
-            total += val
-            if val > 0:
-                cnt += val
-            if val > largest:
-                largest = val
-                largest_idx = i
+        cnt = sum([x for x in self._bloom if x > 0])
+        total = sum(self._bloom)
+        largest = max(self._bloom)
+        largest_idx = (self._bloom).index(largest)
         fullness = cnt / self.number_bits
         els_added = total // self.number_hashes
 
@@ -139,46 +138,42 @@ class CountingBloomFilter(BaseBloom):
             num_els (int): Number of times to insert the element
         Returns:
             int: Maximum number of insertions"""
-        hashes = self.hashes(key)
-        return self.add_alt(hashes, num_els)
+        return self.add_alt(self.hashes(key), num_els)
 
     def add_alt(self, hashes: HashResultsT, num_els: int = 1) -> int:  # type: ignore
-        """ Add the element represented by hashes into the Counting Bloom
-            Filter
+        """Add the element represented by hashes into the Counting Bloom Filter
 
-            Args:
-                hashes (list): A list of integers representing the key to \
-                insert
-                num_els (int): Number of times to insert the element
-            Returns:
-                int: Maximum number of insertions """
-        res = UINT32_T_MAX
-        for i in list(range(0, self.number_hashes)):
-            k = int(hashes[i]) % self.number_bits
-            j = self._get_element(k)
-            tmp = j + num_els
-            if tmp <= UINT32_T_MAX:
-                self.bloom[k] = j + num_els
+        Args:
+            hashes (list): A list of integers representing the key to insert
+            num_els (int): Number of times to insert the element
+        Returns:
+            int: Maximum number of insertions"""
+        # NOTE: this will increment indices each time it is viewed. Not sure if that is "correct"
+        #       if not then we will need to update this and the C version
+        indices = [hashes[i] % self._bloom_length for i in range(self._number_hashes)]
+        vals = [self._bloom[k] + num_els for k in indices]
+        for i, v in enumerate(vals):
+            k = indices[i]
+            if v > UINT32_T_MAX:
+                self._bloom[k] = UINT32_T_MAX
+                vals[i] = UINT32_T_MAX
             else:
-                self.bloom[k] = UINT32_T_MAX
-            if self.bloom[k] < res:
-                res = self.bloom[k]
+                self._bloom[k] += num_els  # This keeps the original methodology
         self.elements_added += num_els
         if self.elements_added > UINT64_T_MAX:
             self.elements_added = UINT64_T_MAX
-        return res
+        return min(vals)
 
-    def check(self, key: KeyT) -> int:
+    def check(self, key: KeyT) -> int:  # type: ignore
         """Check if the key is likely in the Counting Bloom Filter
 
         Args:
             key (str): The element to be checked
         Returns:
             int: Maximum number of insertions"""
-        hashes = self.hashes(key)
-        return self.check_alt(hashes)
+        return self.check_alt(self.hashes(key))
 
-    def check_alt(self, hashes: HashResultsT) -> int:
+    def check_alt(self, hashes: HashResultsT) -> int:  # type: ignore
         """ Check if the element represented by hashes is in the Counting
             Bloom Filter
 
@@ -187,13 +182,7 @@ class CountingBloomFilter(BaseBloom):
                 check
             Returns:
                 int: Maximum number of insertions """
-        res = UINT32_T_MAX
-        for i in list(range(0, self.number_hashes)):
-            k = int(hashes[i]) % self.number_bits
-            tmp = self._get_element(k)
-            if tmp < res:
-                res = tmp
-        return res
+        return min([self._bloom[x % self.number_bits] for x in hashes])
 
     def remove(self, key: KeyT, num_els: int = 1) -> int:
         """Remove the element from the counting bloom
@@ -203,8 +192,7 @@ class CountingBloomFilter(BaseBloom):
             num_els (int): Number of times to remove the element
         Returns:
             int: Maximum number of insertions after the removal"""
-        hashes = self.hashes(key)
-        return self.remove_alt(hashes, num_els)
+        return self.remove_alt(self.hashes(key), num_els)
 
     def remove_alt(self, hashes: HashResultsT, num_els: int = 1) -> int:
         """ Remvoe the element represented by hashes from the Counting Bloom \
@@ -216,23 +204,21 @@ class CountingBloomFilter(BaseBloom):
                 num_els (int): Number of times to remove the element
             Returns:
                 int: Maximum number of insertions after the removal """
-        tmp = self.check_alt(hashes)
-        if tmp == UINT32_T_MAX:  # cannot remove if we have hit the max
+
+        indices = [hashes[i] % self._bloom_length for i in range(self._number_hashes)]
+        vals = [self._bloom[k] for k in indices]
+        min_val = min(vals)
+        if min_val == UINT32_T_MAX:  # cannot remove if we have hit the max
             return UINT32_T_MAX
-        elif tmp == 0:
+        elif min_val == 0:
             return 0
 
-        # determine how many we can actually remove
-        if tmp - num_els < 0:
-            t_num_els = tmp
-        else:
-            t_num_els = num_els
-        for i in list(range(self.number_hashes)):
-            k = int(hashes[i]) % self.number_bits
-            j = self._get_element(k)
-            self.bloom[k] = j - t_num_els
-        self.elements_added -= t_num_els
-        return tmp - t_num_els
+        to_remove = num_els if min_val > num_els else min_val
+        for k in indices:
+            if self._bloom[k] < UINT32_T_MAX:  # only remove if less than UINT32_T_MAX
+                self._bloom[k] -= to_remove
+        self.elements_added -= to_remove
+        return min_val - to_remove
 
     def intersection(self, second: "CountingBloomFilter") -> "CountingBloomFilter":
         """ Take the intersection of two Counting Bloom Filters
@@ -255,7 +241,7 @@ class CountingBloomFilter(BaseBloom):
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
-        if super(CountingBloomFilter, self)._verify_bloom_similarity(second) is False:
+        if self._verify_bloom_similarity(second) is False:
             return None
         res = CountingBloomFilter(
             est_elements=self.estimated_elements,
@@ -263,14 +249,14 @@ class CountingBloomFilter(BaseBloom):
             hash_function=self.hash_function,
         )
 
-        for i in list(range(self.bloom_length)):
-            if self._get_element(i) > 0 and second._get_element(i) > 0:
-                tmp = self._get_element(i) + second._get_element(i)
+        for i in range(self.bloom_length):
+            if self._bloom[i] > 0 and second._bloom[i] > 0:
+                tmp = self._bloom[i] + second._bloom[i]
                 res.bloom[i] = tmp
         res.elements_added = res.estimate_elements()
         return res
 
-    def jaccard_index(self, second: "CountingBloomFilter") -> Union[float, None]:
+    def jaccard_index(self, second: "CountingBloomFilter") -> Union[float, None]:  # type:ignore
         """ Take the Jaccard Index of two Counting Bloom Filters
 
             Args:
@@ -290,21 +276,21 @@ class CountingBloomFilter(BaseBloom):
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
-        if super(CountingBloomFilter, self)._verify_bloom_similarity(second) is False:
+        if self._verify_bloom_similarity(second) is False:
             return None
 
         count_union = 0
         count_inter = 0
-        for i in list(range(self.bloom_length)):
-            if self._get_element(i) > 0 or second._get_element(i) > 0:
+        for i in range(self.bloom_length):
+            if self._bloom[i] > 0 or second._bloom[i] > 0:
                 count_union += 1
-            if self._get_element(i) > 0 and second._get_element(i) > 0:
+            if self._bloom[i] > 0 and second._bloom[i] > 0:
                 count_inter += 1
         if count_union == 0:
             return 1.0
         return count_inter / count_union
 
-    def union(self, second: "CountingBloomFilter") -> Union["CountingBloomFilter", None]:
+    def union(self, second: "CountingBloomFilter") -> Union["CountingBloomFilter", None]:  # type:ignore
         """ Return a new Countiong Bloom Filter that contains the union of
             the two
 
@@ -326,23 +312,19 @@ class CountingBloomFilter(BaseBloom):
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
-        if super(CountingBloomFilter, self)._verify_bloom_similarity(second) is False:
+        if self._verify_bloom_similarity(second) is False:
             return None
         res = CountingBloomFilter(
             est_elements=self.estimated_elements,
             false_positive_rate=self.false_positive_rate,
             hash_function=self.hash_function,
         )
-        for i in list(range(self.bloom_length)):
-            tmp = self._get_element(i) + second._get_element(i)
-            res.bloom[i] = tmp
+        for i in range(self.bloom_length):
+            tmp = self._bloom[i] + second._bloom[i]
+            res._bloom[i] = tmp
         res.elements_added = res.estimate_elements()
         return res
 
     def _cnt_number_bits_set(self) -> int:
         """calculate the total number of set bits in the bloom"""
-        cnt = 0
-        for i in list(range(self.bloom_length)):
-            if self._get_element(i) > 0:
-                cnt += 1
-        return cnt
+        return sum([1 for x in self._bloom if x > 0])
