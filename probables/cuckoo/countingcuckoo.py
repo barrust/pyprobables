@@ -19,20 +19,20 @@ from .cuckoo import CuckooFilter
 
 
 class CountingCuckooFilter(CuckooFilter):
-    """ Simple Counting Cuckoo Filter implementation
+    """Simple Counting Cuckoo Filter implementation
 
-        Args:
-            capacity (int): The number of bins
-            bucket_size (int): The number of buckets per bin
-            max_swaps (int): The number of cuckoo swaps before stopping
-            expansion_rate (int): The rate at which to expand
-            auto_expand (bool): If the filter should automatically expand
-            finger_size (int): The size of the fingerprint to use in bytes \
-            (between 1 and 4); exported as 4 bytes; up to the user to reset \
-            the size correctly on import
-            filename (str): The path to the file to load or None if no file
-        Returns:
-            CountingCuckooFilter: A Cuckoo Filter object """
+    Args:
+        capacity (int): The number of bins
+        bucket_size (int): The number of buckets per bin
+        max_swaps (int): The number of cuckoo swaps before stopping
+        expansion_rate (int): The rate at which to expand
+        auto_expand (bool): If the filter should automatically expand
+        finger_size (int): The size of the fingerprint to use in bytes \
+            (between 1 and 4); exported as 4 bytes; up to the user to \
+            reset the size correctly on import
+        filename (str): The path to the file to load or None if no file
+    Returns:
+        CountingCuckooFilter: A Cuckoo Filter object"""
 
     __slots__ = [
         "__unique_elements",
@@ -68,7 +68,7 @@ class CountingCuckooFilter(CuckooFilter):
             hash_function,
         )
 
-    __FOOTER_STRUCT = Struct("II")
+    __COUNTING_CUCKOO_FOOTER_STRUCT = Struct("II")
     __BIN_STRUCT = Struct("II")
 
     @classmethod
@@ -91,8 +91,7 @@ class CountingCuckooFilter(CuckooFilter):
             max_swaps (int): The number of cuckoo swaps before stopping
             expansion_rate (int): The rate at which to expand
             auto_expand (bool): If the filter should automatically expand
-            hash_function (function): Hashing strategy function to use \
-            `hf(key)`
+            hash_function (function): Hashing strategy function to use `hf(key)`
         Returns:
             CuckooFilter: A Cuckoo Filter object"""
         cku = CountingCuckooFilter(
@@ -134,8 +133,7 @@ class CountingCuckooFilter(CuckooFilter):
             error_rate (float): The error rate of the cuckoo filter, if used to generate the original filter
             hash_function (function): Hashing strategy function to use `hf(key, number)`
         Returns:
-            CountingCuckooFilter: A Bloom Filter object
-        """
+            CountingCuckooFilter: A Bloom Filter object"""
         cku = CountingCuckooFilter(hash_function=hash_function)
         cku._load(b)
 
@@ -167,13 +165,12 @@ class CountingCuckooFilter(CuckooFilter):
         return self.unique_elements / (self.capacity * self.bucket_size)
 
     def add(self, key: KeyT) -> None:
-        """ Add element key to the filter
+        """Add element key to the filter
 
-            Args:
-                key (str): The element to add
-            Raises:
-                CuckooFilterFullError: When element not inserted after \
-                maximum number of swaps or 'kicks' """
+        Args:
+            key (str): The element to add
+        Raises:
+            CuckooFilterFullError: When element not inserted after maximum number of swaps or 'kicks'"""
         idx_1, idx_2, fingerprint = self._generate_fingerprint_info(key)
 
         is_present = self._check_if_present(idx_1, idx_2, fingerprint)
@@ -242,7 +239,7 @@ class CountingCuckooFilter(CuckooFilter):
                 leftover = self.bucket_size - len(bucket)
                 array("I", [0 for _ in range(leftover * 2)]).tofile(filepointer)
             # now put out the required information at the end
-            filepointer.write(self.__FOOTER_STRUCT.pack(self.bucket_size, self.max_swaps))
+            filepointer.write(self.__COUNTING_CUCKOO_FOOTER_STRUCT.pack(self.bucket_size, self.max_swaps))
 
     def _insert_fingerprint_alt(
         self, fingerprint: int, idx_1: int, idx_2: int, count: int = 1
@@ -301,11 +298,15 @@ class CountingCuckooFilter(CuckooFilter):
             self._parse_buckets(file)  # type: ignore
 
     def _parse_footer(self, d: ByteString) -> None:
-        bucket_size, max_swaps = self.__FOOTER_STRUCT.unpack(bytes(d[-self.__FOOTER_STRUCT.size :]))
+        """Parse bytes to pull out and set footer information"""
+        bucket_size, max_swaps = self.__COUNTING_CUCKOO_FOOTER_STRUCT.unpack(
+            bytes(d[-self.__COUNTING_CUCKOO_FOOTER_STRUCT.size :])
+        )
         self._bucket_size = int(bucket_size)
         self.__max_cuckoo_swaps = int(max_swaps)
 
     def _parse_buckets(self, d: ByteString) -> None:
+        """Parse bytes to pull out and set the buckets"""
         bin_size = self.__BIN_STRUCT.size
         self._cuckoo_capacity = (len(bytes(d)) - bin_size) // bin_size // self.bucket_size
         start = 0
@@ -345,6 +346,7 @@ class CountingCuckooFilter(CuckooFilter):
 
     @staticmethod
     def __bucket_decomposition(bucket: List["CountingCuckooBin"]):
+        """convert a list of buckets into a single array for export"""
         arr = array("I")
         for buck in bucket:
             arr.extend(buck.get_array())
