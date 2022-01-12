@@ -6,13 +6,12 @@
 import math
 import random
 from array import array
-from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from numbers import Number
 from pathlib import Path
 from struct import Struct
-from typing import List, Tuple, Union
+from typing import ByteString, List, Tuple, Union
 
 from ..exceptions import CuckooFilterFullError, InitializationError
 from ..hashes import KeyT, SimpleHashT, fnv_1a
@@ -20,22 +19,21 @@ from ..utilities import MMap, get_x_bits, is_valid_file
 
 
 class CuckooFilter(object):
-    """ Simple Cuckoo Filter implementation
+    """Simple Cuckoo Filter implementation
 
-        Args:
-            capacity (int): The number of bins
-            bucket_size (int): The number of buckets per bin
-            max_swaps (int): The number of cuckoo swaps before stopping
-            expansion_rate (int): The rate at which to expand
-            auto_expand (bool): If the filter should automatically expand
-            finger_size (int): The size of the fingerprint to use in bytes \
-            (between 1 and 4); exported as 4 bytes; up to the user to reset \
-            the size correctly on import
-            filepath (str): The path to the file to load or None if no file
-            hash_function (function): Hashing strategy function to use \
-            `hf(key)`
-        Returns:
-            CuckooFilter: A Cuckoo Filter object """
+    Args:
+        capacity (int): The number of bins
+        bucket_size (int): The number of buckets per bin
+        max_swaps (int): The number of cuckoo swaps before stopping
+        expansion_rate (int): The rate at which to expand
+        auto_expand (bool): If the filter should automatically expand
+        finger_size (int): The size of the fingerprint to use in bytes \
+            (between 1 and 4); exported as 4 bytes; up to the user to \
+            reset the size correctly on import
+        filepath (str): The path to the file to load or None if no file
+        hash_function (function): Hashing strategy function to use `hf(key)`
+    Returns:
+        CuckooFilter: A Cuckoo Filter object"""
 
     __slots__ = [
         "_bucket_size",
@@ -144,11 +142,9 @@ class CuckooFilter(object):
         Args:
             error_rate (float):
             filepath (str): The path to the file to load or None if no file
-            hash_function (function): Hashing strategy function to use \
-            `hf(key)`
+            hash_function (function): Hashing strategy function to use `hf(key)`
         Returns:
-            CuckooFilter: A Cuckoo Filter object
-        """
+            CuckooFilter: A Cuckoo Filter object"""
         cku = CuckooFilter(filepath=filepath, hash_function=hash_function)
         cku._set_error_rate(error_rate)
         return cku
@@ -287,7 +283,7 @@ class CuckooFilter(object):
             msg = ("{}: fingerprint size must be between 1 and 4").format(self.__class__.__name__)
             raise ValueError(msg)
         # bytes to bits
-        self._fingerprint_size = tmp * 8  # type: ignore
+        self._fingerprint_size = tmp * 8
         self._calc_error_rate()  # if updating fingerprint size then error rate may change
 
     def load_factor(self) -> float:
@@ -295,13 +291,12 @@ class CuckooFilter(object):
         return self.elements_added / (self.capacity * self.bucket_size)
 
     def add(self, key: KeyT):
-        """ Add element key to the filter
+        """Add element key to the filter
 
-            Args:
-                key (str): The element to add
-            Raises:
-                CuckooFilterFullError: When element not inserted after \
-                maximum number of swaps or 'kicks' """
+        Args:
+            key (str): The element to add
+        Raises:
+            CuckooFilterFullError: When element not inserted after maximum number of swaps or 'kicks'"""
         idx_1, idx_2, fingerprint = self._generate_fingerprint_info(key)
 
         is_present = self._check_if_present(idx_1, idx_2, fingerprint)
@@ -350,11 +345,11 @@ class CuckooFilter(object):
         else:
             filepointer = file  # type:ignore
             for i in range(len(self.buckets)):
-                bucket = array(self.SINGLE_INT_C, self.buckets[i])
+                bucket = array(self._CUCKOO_SINGLE_INT_C, self.buckets[i])
                 bucket.extend([0] * (self.bucket_size - len(bucket)))
                 bucket.tofile(filepointer)
             # now put out the required information at the end
-            filepointer.write(self.HEADER_STRUCT.pack(self.bucket_size, self.max_swaps))
+            filepointer.write(self._CUCKOO_FOOTER_STRUCT.pack(self.bucket_size, self.max_swaps))
 
     def __bytes__(self) -> bytes:
         """Export cuckoo filter to `bytes`"""
@@ -411,18 +406,20 @@ class CuckooFilter(object):
             # now pull everything in!
             self._parse_buckets(file)  # type: ignore
 
-    SINGLE_INT_C = "I"
-    SINGLE_INT_SIZE = Struct(SINGLE_INT_C).size
-    HEADER_STRUCT = Struct("II")
+    _CUCKOO_SINGLE_INT_C = "I"
+    _CUCKOO_SINGLE_INT_SIZE = Struct(_CUCKOO_SINGLE_INT_C).size
+    _CUCKOO_FOOTER_STRUCT = Struct("II")
 
     def _parse_footer(self, d: ByteString) -> None:
-        list_size = len(d) - self.HEADER_STRUCT.size
-        self._bucket_size, self.__max_cuckoo_swaps = self.HEADER_STRUCT.unpack(d[list_size:])  # type:ignore
-        self._cuckoo_capacity = list_size // self.SINGLE_INT_SIZE // self.bucket_size
+        """parse bytes and set footer information"""
+        list_size = len(d) - self._CUCKOO_FOOTER_STRUCT.size
+        self._bucket_size, self.__max_cuckoo_swaps = self._CUCKOO_FOOTER_STRUCT.unpack(d[list_size:])  # type:ignore
+        self._cuckoo_capacity = list_size // self._CUCKOO_SINGLE_INT_SIZE // self.bucket_size
 
     def _parse_buckets(self, d: ByteString) -> None:
+        """parse bytes and set buckets"""
         self._buckets = list()
-        bucket_byte_size = self.bucket_size * self.SINGLE_INT_SIZE
+        bucket_byte_size = self.bucket_size * self._CUCKOO_SINGLE_INT_SIZE
         offs = 0
         for _ in range(self.capacity):
             next_offs = offs + bucket_byte_size
@@ -430,8 +427,9 @@ class CuckooFilter(object):
             offs = next_offs
 
     def _parse_bucket(self, d: ByteString) -> array:
-        bucket = array(self.SINGLE_INT_C, bytes(d))
-        bucket = array(self.SINGLE_INT_C, [el for el in bucket if el])
+        """parse a single bucket"""
+        bucket = array(self._CUCKOO_SINGLE_INT_C, bytes(d))
+        bucket = array(self._CUCKOO_SINGLE_INT_C, [el for el in bucket if el])
         self._inserted_elements += len(bucket)
         return bucket
 
@@ -486,11 +484,10 @@ class CuckooFilter(object):
         return fingerprints
 
     def _indicies_from_fingerprint(self, fingerprint):
-        """ Generate the possible insertion indicies from a fingerprint
+        """Generate the possible insertion indicies from a fingerprint
 
-            Args:
-                fingerprint (int): The fingerprint to use for generating \
-                indicies """
+        Args:
+            fingerprint (int): The fingerprint to use for generating indicies"""
         idx_1 = fingerprint % self.capacity
         idx_2 = self.__hash_func(str(fingerprint)) % self.capacity
         return idx_1, idx_2

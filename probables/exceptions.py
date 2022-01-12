@@ -9,7 +9,7 @@ class ProbablesBaseException(Exception):
 
     def __init__(self, message: str) -> None:
         self.message = message
-        super(ProbablesBaseException, self).__init__(self.message)
+        super().__init__(self.message)
 
     def __str__(self) -> str:
         return self.message
@@ -23,7 +23,7 @@ class InitializationError(ProbablesBaseException):
 
     def __init__(self, message: str) -> None:
         self.message = message
-        super(InitializationError, self).__init__(self.message)
+        super().__init__(self.message)
 
 
 class NotSupportedError(ProbablesBaseException):
@@ -34,7 +34,7 @@ class NotSupportedError(ProbablesBaseException):
 
     def __init__(self, message: str) -> None:
         self.message = message
-        super(NotSupportedError, self).__init__(self.message)
+        super().__init__(self.message)
 
 
 class CuckooFilterFullError(ProbablesBaseException):
@@ -45,7 +45,7 @@ class CuckooFilterFullError(ProbablesBaseException):
 
     def __init__(self, message: str) -> None:
         self.message = message
-        super(CuckooFilterFullError, self).__init__(self.message)
+        super().__init__(self.message)
 
 
 class RotatingBloomFilterError(ProbablesBaseException):
@@ -56,7 +56,7 @@ class RotatingBloomFilterError(ProbablesBaseException):
 
     def __init__(self, message: str) -> None:
         self.message = message
-        super(RotatingBloomFilterError, self).__init__(self.message)
+        super().__init__(self.message)
 
 
 class CountMinSketchError(ProbablesBaseException):
@@ -67,4 +67,4 @@ class CountMinSketchError(ProbablesBaseException):
 
     def __init__(self, message: str) -> None:
         self.message = message
-        super(CountMinSketchError, self).__init__(self.message)
+        super().__init__(self.message)

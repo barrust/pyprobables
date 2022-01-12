@@ -31,9 +31,7 @@ def hash_with_depth_bytes(func: HashFuncBytesT) -> HashFuncT:
     def hashing_func(key, depth=1):
         """wrapper function"""
         res = list()
-        tmp = key
-        if isinstance(key, str):
-            tmp = key.encode("utf-8")
+        tmp = key if not isinstance(key, str) else key.encode("utf-8")
         for idx in range(depth):
             tmp = func(tmp, idx)
             res.append(unpack("Q", tmp[:8])[0])  # turn into 64 bit number
@@ -97,10 +95,7 @@ def fnv_1a(key: KeyT, seed: int = 0) -> int:
     max64mod = UINT64_T_MAX + 1
     hval = (14695981039346656037 + (31 * seed)) % max64mod
     fnv_64_prime = 1099511628211
-    if isinstance(key, str):
-        tmp = list(map(ord, key))
-    else:
-        tmp = list(key)
+    tmp = list(key) if not isinstance(key, str) else list(map(ord, key))
     for t_str in tmp:
         hval ^= t_str
         hval *= fnv_64_prime
@@ -119,9 +114,7 @@ def default_md5(key: KeyT, seed: int = 0) -> bytes:
         list(int): List of 64-bit hashed representation of key hashes
     Note:
         Returns the upper-most 64 bits"""
-    if isinstance(key, str):
-        return md5(key.encode()).digest()
-    return md5(key).digest()
+    return md5(key).digest()  # type: ignore
 
 
 @hash_with_depth_bytes
@@ -135,6 +128,4 @@ def default_sha256(key: KeyT, seed: int = 0) -> bytes:
         list(int): List of 64-bit hashed representation of key hashes
     Note:
         Returns the upper-most 64 bits"""
-    if isinstance(key, str):
-        return sha256(key.encode()).digest()
-    return sha256(key).digest()
+    return sha256(key).digest()  # type: ignore
