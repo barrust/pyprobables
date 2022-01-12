@@ -1,4 +1,4 @@
-""" BloomFilter, python implementation
+""" BloomFilter and BloomFiter on Disk, python implementation
     License: MIT
     Author: Tyler Barrus (barrust@gmail.com)
     URL: https://github.com/barrust/bloom
@@ -364,7 +364,7 @@ class BloomFilter:
         Return:
             float: The current false positive rate"""
         num = self.number_hashes * -1 * self.elements_added
-        dbl = num / float(self.number_bits)
+        dbl = num / self.number_bits
         exp = math.exp(dbl)
         return math.pow((1 - exp), self.number_hashes)
 
