@@ -17,7 +17,7 @@ from ..utilities import MMap, is_valid_file
 from .bloom import BloomFilter
 
 
-class ExpandingBloomFilter(object):
+class ExpandingBloomFilter:
     """Simple expanding Bloom Filter implementation for use in python; the
     Bloom Fiter will automatically expand, or grow, if the false
     positive rate is about to become greater than the desired false
@@ -55,7 +55,7 @@ class ExpandingBloomFilter(object):
         self.__fpr = false_positive_rate
         self.__est_elements = est_elements
         self.__hash_func = hash_function
-        self._added_elements = int(0)  # total added...
+        self._added_elements = 0  # total added...
 
         if is_valid_file(filepath):
             self.__load(filepath)
