@@ -57,6 +57,7 @@ class CountingBloomFilter(BloomFilter):
         self._on_disk = False
         self._type = "counting"
         self._typecode = "I"
+        self._els_added = 0
         if is_valid_file(filepath):
             self._load(filepath, hash_function)
         elif is_hex_string(hex_string):
@@ -205,7 +206,7 @@ class CountingBloomFilter(BloomFilter):
         min_val = min(vals)
         if min_val == UINT32_T_MAX:  # cannot remove if we have hit the max
             return UINT32_T_MAX
-        elif min_val == 0:
+        if min_val == 0:
             return 0
 
         to_remove = num_els if min_val > num_els else min_val

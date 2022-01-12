@@ -351,7 +351,7 @@ class CountingCuckooFilter(CuckooFilter):
         return arr
 
 
-class CountingCuckooBin(object):
+class CountingCuckooBin:
     """A container class for the counting cuckoo filter"""
 
     # keep it lightweight
