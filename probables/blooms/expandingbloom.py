@@ -276,7 +276,7 @@ class RotatingBloomFilter(ExpandingBloomFilter):
         hash_function: Union[HashFuncT, None] = None,
     ) -> None:
         """initialize"""
-        super(RotatingBloomFilter, self).__init__(
+        super().__init__(
             est_elements=est_elements,
             false_positive_rate=false_positive_rate,
             filepath=filepath,

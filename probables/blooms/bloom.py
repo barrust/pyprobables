@@ -30,7 +30,7 @@ def _verify_not_type_mismatch(second: SimpleBloomT) -> bool:
     return isinstance(second, (BloomFilter, BloomFilterOnDisk))
 
 
-class BloomFilter(object):
+class BloomFilter:
     """Simple Bloom Filter implementation for use in python; It can read and write the
     same format as the c version (https://github.com/barrust/bloom)
 
@@ -610,7 +610,7 @@ class BloomFilterOnDisk(BloomFilter):
         if is_hex_string(hex_string):
             msg = "Loading from hex_string is currently not supported by the on disk Bloom Filter"
             raise NotSupportedError(msg)
-        elif est_elements is not None and false_positive_rate is not None:
+        if est_elements is not None and false_positive_rate is not None:
             fpr, n_hashes, n_bits = self._get_optimized_params(est_elements, false_positive_rate)
             self._set_values(est_elements, fpr, n_hashes, n_bits, hash_function)
 
@@ -668,7 +668,7 @@ class BloomFilterOnDisk(BloomFilter):
         self._on_disk = True
 
     def add_alt(self, hashes: HashResultsT) -> None:
-        super(BloomFilterOnDisk, self).add_alt(hashes)
+        super().add_alt(hashes)
         self.__update()
 
     @classmethod

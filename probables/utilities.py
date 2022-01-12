@@ -29,7 +29,7 @@ def get_x_bits(num: int, max_bits: int, num_bits: int, right_bits: bool = True) 
     return int(bits[:num_bits], 2)
 
 
-class MMap(object):
+class MMap:
     """Simplified mmap.mmap class"""
 
     __slots__ = ("p", "__f", "m", "_closed")

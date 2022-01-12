@@ -244,7 +244,7 @@ class CountingCuckooFilter(CuckooFilter):
             self._inserted_elements += 1
             self.__unique_elements += 1
             return None
-        elif self.__insert_element(fingerprint, idx_2, count):
+        if self.__insert_element(fingerprint, idx_2, count):
             self._inserted_elements += 1
             self.__unique_elements += 1
             return None
@@ -277,7 +277,7 @@ class CountingCuckooFilter(CuckooFilter):
         """wrapper for checking if fingerprint is already inserted"""
         if fingerprint in [x.finger for x in self.buckets[idx_1]]:
             return idx_1
-        elif fingerprint in [x.finger for x in self.buckets[idx_2]]:
+        if fingerprint in [x.finger for x in self.buckets[idx_2]]:
             return idx_2
         return None
 

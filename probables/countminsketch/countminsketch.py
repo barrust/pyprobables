@@ -19,7 +19,7 @@ from ..hashes import HashFuncT, HashResultsT, KeyT, default_fnv_1a
 from ..utilities import MMap, is_valid_file
 
 
-class CountMinSketch(object):
+class CountMinSketch:
     """Simple Count-Min Sketch implementation for use in python;
     It can read and write the same format as the c version
     (https://github.com/barrust/count-min-sketch)
@@ -141,7 +141,7 @@ class CountMinSketch(object):
 
     def __contains__(self, key: KeyT) -> bool:
         """setup the `in` keyword"""
-        return True if self.check(key) != 0 else False
+        return self.check(key) != 0
 
     def __bytes__(self) -> bytes:
         """Export countmin-sketch to `bytes`"""

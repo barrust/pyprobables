@@ -18,7 +18,7 @@ from ..hashes import KeyT, SimpleHashT, fnv_1a
 from ..utilities import MMap, get_x_bits, is_valid_file
 
 
-class CuckooFilter(object):
+class CuckooFilter:
     """Simple Cuckoo Filter implementation
 
     Args:
@@ -366,7 +366,7 @@ class CuckooFilter(object):
         if self.__insert_element(fingerprint, idx_1):
             self._inserted_elements += 1
             return None
-        elif self.__insert_element(fingerprint, idx_2):
+        if self.__insert_element(fingerprint, idx_2):
             self._inserted_elements += 1
             return None
 
@@ -444,7 +444,7 @@ class CuckooFilter(object):
         """wrapper for checking if fingerprint is already inserted"""
         if fingerprint in self.buckets[idx_1]:
             return idx_1
-        elif fingerprint in self.buckets[idx_2]:
+        if fingerprint in self.buckets[idx_2]:
             return idx_2
         return None
 
@@ -513,7 +513,7 @@ class CuckooFilter(object):
         """some code to handle the insertion the same"""
         if finger is None:
             return
-        elif self.auto_expand:
+        if self.auto_expand:
             self._expand_logic(finger)
         else:
             msg = "The {} is currently full".format(self.__class__.__name__)
