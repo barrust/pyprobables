@@ -1,5 +1,15 @@
 # PyProbables Changelog
 
+### Version 0.5.5
+* Bloom Filters:
+    * Re-implemented the entire Bloom Filter data structure to reduce complexity and code duplication
+* Removed un-unsed imports
+* Removed unnecessary casts
+* Pylint Requested Style Changes:
+    * Use python 3 `super()`
+    * Use python 3 classes
+* Remove use of temporary variables if possible and still clear
+
 ### Version 0.5.4
 * All Probablistic Data Structures:
     * Added ability to load each `frombytes()`
