@@ -243,7 +243,7 @@ class CuckooFilter:
     @expansion_rate.setter
     def expansion_rate(self, val: int):
         """set the self expand value"""
-        self.__expansion_rate = int(val)
+        self.__expansion_rate = val
 
     @property
     def error_rate(self) -> float:
@@ -278,7 +278,7 @@ class CuckooFilter:
     @fingerprint_size.setter
     def fingerprint_size(self, val: int):
         """set the fingerprint size"""
-        tmp = int(val)
+        tmp = val
         if not 1 <= tmp <= 4:
             msg = ("{}: fingerprint size must be between 1 and 4").format(self.__class__.__name__)
             raise ValueError(msg)

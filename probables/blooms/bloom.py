@@ -1,4 +1,4 @@
-""" BloomFilter, python implementation
+""" BloomFilter and BloomFiter on Disk, python implementation
     License: MIT
     Author: Tyler Barrus (barrust@gmail.com)
     URL: https://github.com/barrust/bloom
@@ -243,9 +243,9 @@ class BloomFilter:
         Args:
             hashes (list): A list of integers representing the key to insert"""
         for i in range(0, self._number_hashes):
-            k = int(hashes[i]) % self._num_bits
+            k = hashes[i] % self._num_bits
             idx = k // 8
-            self._bloom[idx] = int(self._bloom[idx]) | int((1 << (k % 8)))
+            self._bloom[idx] = self._bloom[idx] | (1 << (k % 8))
         self._els_added += 1
 
     def check(self, key: KeyT) -> bool:
@@ -364,7 +364,7 @@ class BloomFilter:
         Return:
             float: The current false positive rate"""
         num = self.number_hashes * -1 * self.elements_added
-        dbl = num / float(self.number_bits)
+        dbl = num / self.number_bits
         exp = math.exp(dbl)
         return math.pow((1 - exp), self.number_hashes)
 
@@ -483,21 +483,21 @@ class BloomFilter:
         if number_hashes == 0:
             raise InitializationError("Bloom: Number hashes is zero; unusable parameters provided")
 
-        return t_fpr, number_hashes, int(m_bt)
+        return t_fpr, number_hashes, m_bt
 
     def _set_values(
         self, est_els: int, fpr: float, n_hashes: int, n_bits: int, hash_func: Union[HashFuncT, None]
     ) -> None:
-        self._est_elements = int(est_els)
-        self._fpr = float(fpr)
-        self._bloom_length = int(math.ceil(n_bits / self._bits_per_elm))
+        self._est_elements = est_els
+        self._fpr = fpr
+        self._bloom_length = math.ceil(n_bits / self._bits_per_elm)
         if hash_func is not None:
             self._hash_func = hash_func
         else:
             self._hash_func = default_fnv_1a
         self._els_added = 0
-        self._number_hashes = int(n_hashes)
-        self._num_bits = int(n_bits)
+        self._number_hashes = n_hashes
+        self._num_bits = n_bits
 
     def _load_hex(self, hex_string: str, hash_function: Union[HashFuncT, None] = None) -> None:
         """placeholder for loading from hex string"""
