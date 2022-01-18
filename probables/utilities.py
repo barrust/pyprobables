@@ -1,4 +1,4 @@
-""" some utility functions """
+""" Utility Functions """
 
 import mmap
 import string
@@ -32,24 +32,24 @@ def get_x_bits(num: int, max_bits: int, num_bits: int, right_bits: bool = True) 
 class MMap:
     """Simplified mmap.mmap class"""
 
-    __slots__ = ("p", "__f", "m", "_closed")
+    __slots__ = ("__p", "__f", "__m", "_closed")
 
     def __init__(self, path: Union[Path, str]):
-        self.p = Path(path)
+        self.__p = Path(path)
         self.__f = self.path.open("rb")
-        self.m = mmap.mmap(self.__f.fileno(), 0, prot=mmap.PROT_READ)
+        self.__m = mmap.mmap(self.__f.fileno(), 0, prot=mmap.PROT_READ)
         self._closed = False
 
     def __enter__(self) -> mmap.mmap:
-        return self.map
+        return self.__m
 
     def __exit__(self, *args, **kwargs) -> None:
-        if self.m and not self.map.closed:
+        if self.__m and not self.map.closed:
             self.map.close()
         if self.__f:
             self.__f.close()
         self.__f = None
-        self.m = None
+        self.__m = None
         self._closed = True
 
     @property
@@ -60,12 +60,12 @@ class MMap:
     @property
     def map(self) -> mmap.mmap:
         """Return a pointer to the mmap"""
-        return self.m
+        return self.__m
 
     @property
     def path(self) -> Path:
         """Return the path to the mmap'd file"""
-        return self.p
+        return self.__p
 
     def close(self) -> None:
         """Close the MMap class includeing cleaning up open files, etc"""
@@ -73,8 +73,8 @@ class MMap:
 
     def seek(self, pos: int, whence: int) -> None:
         """Implement a method to seek on top of the MMap class"""
-        self.m.seek(pos, whence)
+        self.__m.seek(pos, whence)
 
     def read(self, n: int = -1) -> bytes:
         """Implement a method to read from the file on top of the MMap class"""
-        return self.m.read(n)
+        return self.__m.read(n)

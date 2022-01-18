@@ -1,4 +1,4 @@
-""" Cuckoo Filter data structures """
+""" Cuckoo Filters """
 
 from .countingcuckoo import CountingCuckooFilter
 from .cuckoo import CuckooFilter

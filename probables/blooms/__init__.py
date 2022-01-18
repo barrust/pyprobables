@@ -1,4 +1,4 @@
-""" Bloom Filter based data structures """
+""" Bloom Filters """
 
 from .bloom import BloomFilter, BloomFilterOnDisk
 from .countingbloom import CountingBloomFilter

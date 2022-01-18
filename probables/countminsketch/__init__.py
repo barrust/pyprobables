@@ -1,4 +1,4 @@
-""" count-min sketch submodule """
+""" Count-Min Sketchs """
 
 from .countminsketch import (
     CountMeanMinSketch,
