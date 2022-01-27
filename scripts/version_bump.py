@@ -1,24 +1,53 @@
 """ Update all the different version variables
 """
 import os
+from datetime import datetime
+from functools import wraps
 
 
-def update_file(path, k, v):
-    """Parse a file based on the key (k) and update it's value with the
-    provided value (v)
+def read_and_write(func):
+    @wraps(func)
+    def wrapper(**kwargs):
+        path = kwargs["path"]
+
+        with open(path, "r") as fobj:
+            data = fobj.readlines()
+
+        func(data, **kwargs)
+
+        with open(path, "w") as fobj:
+            fobj.writelines(data)
+
+    return wrapper
+
+
+@read_and_write
+def update_file(data, **kwargs):
+    """Parse a file based on the key (k) and update it's value with the provided value (v)
 
     Args:
         path (str):
         k (str):
         v (str):
     """
-    with open(path, "r") as fobj:
-        data = fobj.readlines()
     for i, line in enumerate(data):
-        if line.startswith(k):
-            data[i] = """{} = "{}"\n""".format(k, v)
-    with open(path, "w") as fobj:
-        fobj.writelines(data)
+        if line.startswith(kwargs["k"]):
+            data[i] = """{} = "{}"\n""".format(kwargs["k"], kwargs["v"])
+
+
+@read_and_write
+def update_citation_file(data, **kwargs):
+    """Parse the citation file and update it's values with the provide file
+
+    Args:
+        path (str):
+        v (str):
+    """
+    for i, line in enumerate(data):
+        if line.startswith("version:"):
+            data[i] = "version: {}\n".format(kwargs["v"])
+        if line.startswith("date-released:"):
+            data[i] = "date-released: '{}'".format(datetime.today().strftime("%Y-%m-%d"))
 
 
 def _parse_args():
@@ -41,8 +70,12 @@ if __name__ == "__main__":
 
     # update pyproject.toml
     pyproject = "{}/pyproject.toml".format(module_path)
-    update_file(pyproject, "version", args.new_version)
+    update_file(path=pyproject, k="version", v=args.new_version)
 
     # update the package __init__ file
     init_file = "{}/probables/__init__.py".format(module_path)
-    update_file(init_file, "__version__", args.new_version)
+    update_file(path=init_file, k="__version__", v=args.new_version)
+
+    # update the citation file
+    citation_file = "{}/CITATION.cff".format(module_path)
+    update_citation_file(path=citation_file, v=args.new_version)

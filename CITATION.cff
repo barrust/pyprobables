@@ -1,0 +1,35 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: PyProbables
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Tyler
+    family-names: Barrus
+    email: barrust@gmail.coim
+    orcid: 'https://orcid.org/0000-0002-6691-0360'
+repository-code: 'https://github.com/barrust/pyprobables'
+abstract: >-
+  A set of probabilistic data structures written in
+  python
+keywords:
+  - 'Probabilistic '
+  - Data Structures
+  - Bloom Filter
+  - Count-Min Sketch
+  - Cuckoo Filter
+  - Counting Bloom Filter
+  - Count-Mean-Min Sketch
+  - Count-Mean Sketch
+  - Heavy Hitters
+  - Stream Threshold
+  - Rolling Bloom Filter
+  - Expanding Bloom Filter
+  - Counting Cuckoo Filter
+license: MIT
+version: 0.5.5
+date-released: '2022-01-15'
