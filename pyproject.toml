@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pyprobables"
-version = "0.5.5"
+version = "0.5.6"
 description = "Probabilistic data structures in Python"
 authors = ["Tyler Barrus <barrust@gmail.com>"]
 license = "MIT"

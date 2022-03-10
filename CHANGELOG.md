@@ -1,5 +1,10 @@
 # PyProbables Changelog
 
+### Version 0.5.6
+* Bloom Filters:
+    * Fix for `ValueError` exception when using `estimate_elements()` when all bits are set
+* Add Citation file
+
 ### Version 0.5.5
 * Bloom Filters:
     * Re-implemented the entire Bloom Filter data structure to reduce complexity and code duplication
