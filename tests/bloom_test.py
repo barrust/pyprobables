@@ -373,6 +373,14 @@ class TestBloomFilter(unittest.TestCase):
         self.assertEqual("this is a test" in blm2, True)
         self.assertEqual("this is not a test" in blm2, False)
 
+    def test_bf_all_bits_set(self):
+        """test inserting too many elements so that the all bits are set"""
+        blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
+        for i in range(100):
+            blm.add(str(i))
+        # NOTE: this causes an exception when all bits are set
+        self.assertEqual(-1, blm.estimate_elements())
+
     def test_bf_load_invalid_file(self):
         """test importing a bloom filter from an invalid filepath"""
         filename = "invalid.blm"
@@ -869,14 +877,14 @@ class TestBloomFilterOnDisk(unittest.TestCase):
             blm3 = blm.jaccard_index(blm2)
             self.assertEqual(blm3, None)
 
-    def test_cbf_jaccard_invalid(self):
+    def test_bfod_jaccard_invalid(self):
         """use an invalid type in a jaccard index cbf"""
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
             blm = BloomFilterOnDisk(fobj.name, est_elements=10, false_positive_rate=0.05)
             blm.add("this is a test")
             self.assertRaises(TypeError, lambda: blm.jaccard_index(1))
 
-    def test_cbf_jaccard_invalid_msg(self):
+    def test_bfod_jaccard_invalid_msg(self):
         """check invalid type in a jaccard index message cbf"""
         msg = "The parameter second must be of type BloomFilter or a BloomFilterOnDisk"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
@@ -889,14 +897,14 @@ class TestBloomFilterOnDisk(unittest.TestCase):
             else:
                 self.assertEqual(True, False)
 
-    def test_cbf_union_invalid(self):
+    def test_bfod_union_invalid(self):
         """use an invalid type in a union cbf"""
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
             blm = BloomFilterOnDisk(fobj.name, est_elements=10, false_positive_rate=0.05)
             blm.add("this is a test")
             self.assertRaises(TypeError, lambda: blm.jaccard_index(1))
 
-    def test_cbf_union_invalid_msg(self):
+    def test_bfod_union_invalid_msg(self):
         """check invalid type in a union message cbf"""
         msg = "The parameter second must be of type BloomFilter or a BloomFilterOnDisk"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
@@ -909,7 +917,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
             else:
                 self.assertEqual(True, False)
 
-    def test_cbf_intersection_invalid(self):
+    def test_bfod_intersection_invalid(self):
         """use an invalid type in a intersection cbf"""
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
             blm = BloomFilterOnDisk(fobj.name, est_elements=10, false_positive_rate=0.05)
@@ -926,6 +934,15 @@ class TestBloomFilterOnDisk(unittest.TestCase):
                 blm.intersection(1)
             except TypeError as ex:
                 self.assertEqual(str(ex), msg)
+
+    def test_bfod_all_bits_set(self):
+        """test inserting too many elements so that the all bits are set"""
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
+            blm = BloomFilterOnDisk(fobj.name, est_elements=10, false_positive_rate=0.05)
+            for i in range(100):
+                blm.add(str(i))
+        # NOTE: this causes an exception when all bits are set
+        self.assertEqual(-1, blm.estimate_elements())
 
 
 if __name__ == "__main__":

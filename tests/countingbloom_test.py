@@ -533,6 +533,14 @@ class TestCountingBloomFilter(unittest.TestCase):
         blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
         self.assertEqual(blm1.intersection(blm2), None)
 
+    def test_cbf_all_bits_set(self):
+        """test inserting too many elements so that the all bits are set"""
+        blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        for i in range(100):
+            blm.add(str(i))
+        # NOTE: this causes an exception when all bits are set
+        self.assertEqual(-1, blm.estimate_elements())
+
 
 if __name__ == "__main__":
     unittest.main()

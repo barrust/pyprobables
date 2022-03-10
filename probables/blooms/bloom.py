@@ -345,8 +345,12 @@ class BloomFilter:
         """Estimate the number of unique elements added
 
         Returns:
-            int: Number of elements estimated to be inserted"""
+            int: Number of elements estimated to be inserted
+        Note:
+            Returns -1 if all bits in the Bloom filter are set"""
         setbits = self._cnt_number_bits_set()
+        if setbits >= self.number_bits:
+            return -1  # not sure this is the "best", but it would signal something is wrong
         log_n = math.log(1 - (float(setbits) / float(self.number_bits)))
         tmp = float(self.number_bits) / float(self.number_hashes)
         return int(-1 * tmp * log_n)
