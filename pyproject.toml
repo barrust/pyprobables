@@ -24,7 +24,7 @@ readme = "README.rst"
 python = "^3.5"
 
 [tool.poetry.dev-dependencies]
-pre-commit = {python = "^3.6.1"}
+pre-commit = {version = ">=2.18.1", python = "^3.6.1"}
 black = {version = "^20.8b1", python = "^3.6"}
 isort = {version = "^5.6.4", python = "^3.6"}
 pytest = {version = "^6.1.1", python = "^3.5"}
