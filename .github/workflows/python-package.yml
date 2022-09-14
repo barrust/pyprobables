@@ -42,4 +42,4 @@ jobs:
     - name: Test Build and Run Twine Check
       run: |
         python -m build
-        twine check dist
+        twine check dist/*
