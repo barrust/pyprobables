@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ['3.5', '3.6', '3.7', '3.8', '3.9', '3.10']
+        python-version: ['3.6', '3.7', '3.8', '3.9', '3.10']
 
     steps:
     - uses: actions/checkout@v2
@@ -39,3 +39,7 @@ jobs:
       with:
         file: ./coverage.xml
         fail_ci_if_error: true
+    - name: Test Build and Run Twine Check
+      run: |
+        python -m build
+        twine check dist
