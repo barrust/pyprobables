@@ -39,8 +39,9 @@ jobs:
       with:
         file: ./coverage.xml
         fail_ci_if_error: true
-  twine:
-    - name: Verify Build
+
+  build-verification:
+
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3
