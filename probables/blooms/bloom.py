@@ -18,7 +18,7 @@ from typing import ByteString, Tuple, Union
 
 from ..exceptions import InitializationError, NotSupportedError
 from ..hashes import HashFuncT, HashResultsT, KeyT, default_fnv_1a
-from ..utilities import MMap, is_hex_string, is_valid_file
+from ..utilities import MMap, is_hex_string, is_valid_file, resolve_path
 
 MISMATCH_MSG = "The parameter second must be of type BloomFilter or a BloomFilterOnDisk"
 
@@ -289,6 +289,7 @@ class BloomFilter:
         Args:
             filename (str): The filename to which the Bloom Filter will be written."""
         if not isinstance(file, (IOBase, mmap)):
+            file = resolve_path(file)
             with open(file, "wb") as filepointer:
                 self.export(filepointer)  # type: ignore
         else:
@@ -318,9 +319,21 @@ class BloomFilter:
         with open(filename, "w") as file:
             print("/* BloomFilter Export of a {} */".format(bloom_type), file=file)
             print("#include <inttypes.h>", file=file)
-            print("const uint64_t estimated_elements = ", self.estimated_elements, ";", sep="", file=file)
+            print(
+                "const uint64_t estimated_elements = ",
+                self.estimated_elements,
+                ";",
+                sep="",
+                file=file,
+            )
             print("const uint64_t elements_added = ", self.elements_added, ";", sep="", file=file)
-            print("const float false_positive_rate = ", self.false_positive_rate, ";", sep="", file=file)
+            print(
+                "const float false_positive_rate = ",
+                self.false_positive_rate,
+                ";",
+                sep="",
+                file=file,
+            )
             print("const uint64_t number_bits = ", self.number_bits, ";", sep="", file=file)
             print("const unsigned int number_hashes = ", self.number_hashes, ";", sep="", file=file)
             print("const unsigned char bloom[] = {", *data, "};", sep="\n", file=file)
@@ -490,7 +503,12 @@ class BloomFilter:
         return t_fpr, number_hashes, m_bt
 
     def _set_values(
-        self, est_els: int, fpr: float, n_hashes: int, n_bits: int, hash_func: Union[HashFuncT, None]
+        self,
+        est_els: int,
+        fpr: float,
+        n_hashes: int,
+        n_bits: int,
+        hash_func: Union[HashFuncT, None],
     ) -> None:
         self._est_elements = est_els
         self._fpr = fpr
@@ -520,7 +538,7 @@ class BloomFilter:
     ) -> None:
         """load the Bloom Filter from file or bytes"""
         if not isinstance(file, (IOBase, mmap, ByteString)):
-            file = Path(file)
+            file = resolve_path(file)
             with MMap(file) as filepointer:
                 self._load(filepointer, hash_function)
         else:
@@ -604,7 +622,7 @@ class BloomFilterOnDisk(BloomFilter):
         hash_function: Union[HashFuncT, None] = None,
     ) -> None:
         # set some things up
-        self._filepath = Path(filepath)
+        self._filepath = resolve_path(filepath)
         self.__file_pointer = None
         self._type = "regular-on-disk"
         self._typecode = "B"
@@ -618,11 +636,11 @@ class BloomFilterOnDisk(BloomFilter):
             fpr, n_hashes, n_bits = self._get_optimized_params(est_elements, false_positive_rate)
             self._set_values(est_elements, fpr, n_hashes, n_bits, hash_function)
 
-            with open(filepath, "wb") as filepointer:
+            with open(self._filepath, "wb") as filepointer:
                 (array(self._typecode, [0]) * self.bloom_length).tofile(filepointer)
                 filepointer.write(self._FOOTER_STRUCT.pack(est_elements, 0, false_positive_rate))
                 filepointer.flush()
-            self._load(filepath, hash_function)
+            self._load(self._filepath, hash_function)
         elif is_valid_file(self._filepath):
             self._load(self._filepath.name, hash_function)  # need .name for python 3.5
         else:
@@ -659,7 +677,8 @@ class BloomFilterOnDisk(BloomFilter):
         """load the Bloom Filter on disk"""
         # read the file, set the optimal params
         # mmap everything
-        with open(filepath, "r+b") as filepointer:
+        file = resolve_path(filepath)
+        with open(file, "r+b") as filepointer:
             offset = self._FOOTER_STRUCT.size
             filepointer.seek(offset * -1, os.SEEK_END)
             est_els, _, fpr = self._FOOTER_STRUCT.unpack_from(filepointer.read(offset))

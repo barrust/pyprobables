@@ -11,7 +11,7 @@ from typing import ByteString, Union
 from ..constants import UINT32_T_MAX, UINT64_T_MAX
 from ..exceptions import InitializationError
 from ..hashes import HashFuncT, HashResultsT, KeyT
-from ..utilities import is_hex_string, is_valid_file
+from ..utilities import is_hex_string, is_valid_file, resolve_path
 from .bloom import BloomFilter
 
 MISMATCH_MSG = "The parameter second must be of type CountingBloomFilter"
@@ -42,7 +42,7 @@ class CountingBloomFilter(BloomFilter):
             2) From Hex String
             3) From params"""
 
-    __slots__ = BloomFilter.__slots__
+    __slots__ = ["_filepath", "__file_pointer"]
 
     def __init__(
         self,
@@ -58,8 +58,10 @@ class CountingBloomFilter(BloomFilter):
         self._type = "counting"
         self._typecode = "I"
         self._els_added = 0
+
         if is_valid_file(filepath):
-            self._load(filepath, hash_function)
+            self._filepath = resolve_path(filepath)
+            self._load(self._filepath, hash_function)
         elif is_hex_string(hex_string):
             self._load_hex(hex_string, hash_function)
         else:

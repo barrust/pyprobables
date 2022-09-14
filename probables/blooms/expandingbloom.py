@@ -13,7 +13,7 @@ from typing import ByteString, Tuple, Union
 
 from ..exceptions import RotatingBloomFilterError
 from ..hashes import HashFuncT, HashResultsT, KeyT
-from ..utilities import MMap, is_valid_file
+from ..utilities import MMap, is_valid_file, resolve_path
 from .bloom import BloomFilter
 
 
@@ -100,12 +100,12 @@ class ExpandingBloomFilter:
 
     @property
     def false_positive_rate(self) -> float:
-        """ float: The desired false positive rate of the expanding Bloom Filter """
+        """float: The desired false positive rate of the expanding Bloom Filter"""
         return self.__fpr
 
     @property
     def estimated_elements(self) -> int:
-        """int: The original number of elements estimated to be in the Bloom Filter """
+        """int: The original number of elements estimated to be in the Bloom Filter"""
         return self.__est_elements
 
     @property
@@ -181,6 +181,7 @@ class ExpandingBloomFilter:
         Args:
             filepath (str): The path to the file to import"""
         if not isinstance(file, (IOBase, mmap)):
+            file = resolve_path(file)
             with open(file, "wb") as filepointer:
                 self.export(filepointer)  # type:ignore
         else:
@@ -201,6 +202,7 @@ class ExpandingBloomFilter:
     def __load(self, file: Union[Path, str, IOBase, mmap]):
         """load a file"""
         if not isinstance(file, (IOBase, mmap)):
+            file = resolve_path(file)
             with MMap(file) as filepointer:
                 self.__load(filepointer)
         else:

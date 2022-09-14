@@ -13,7 +13,7 @@ from typing import ByteString, List, Union
 
 from ..exceptions import CuckooFilterFullError
 from ..hashes import KeyT, SimpleHashT
-from ..utilities import MMap
+from ..utilities import MMap, resolve_path
 from .cuckoo import CuckooFilter
 
 
@@ -118,6 +118,7 @@ class CountingCuckooFilter(CuckooFilter):
         Returns:
             CuckooFilter: A Cuckoo Filter object
         """
+        filepath = resolve_path(filepath)
         cku = CountingCuckooFilter(filepath=filepath, hash_function=hash_function)
         cku._set_error_rate(error_rate)
         return cku
@@ -229,6 +230,7 @@ class CountingCuckooFilter(CuckooFilter):
         Args:
             file (str): Path to file to export"""
         if not isinstance(file, (IOBase, mmap)):
+            file = resolve_path(file)
             with open(file, "wb") as filepointer:
                 self.export(filepointer)  # type:ignore
         else:
@@ -284,7 +286,7 @@ class CountingCuckooFilter(CuckooFilter):
     def _load(self, file: Union[Path, str, IOBase, mmap, bytes, ByteString]) -> None:
         """load a cuckoo filter from file"""
         if not isinstance(file, (IOBase, mmap, bytes, ByteString)):
-            file = Path(file)
+            file = resolve_path(file)
             with MMap(file) as filepointer:
                 self._load(filepointer)
         else:

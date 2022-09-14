@@ -13,7 +13,13 @@ sys.path.insert(0, str(this_dir.parent))
 
 from utilities import different_hash
 
-from probables.utilities import MMap, get_x_bits, is_hex_string, is_valid_file
+from probables.utilities import (
+    MMap,
+    get_x_bits,
+    is_hex_string,
+    is_valid_file,
+    resolve_path,
+)
 
 DELETE_TEMP_FILES = True
 
@@ -97,6 +103,17 @@ class TestProbablesUtilities(unittest.TestCase):
             self.assertEqual(data[5:], m.read())
             m.close()
             self.assertTrue(m.closed)
+
+    def test_resolve_path(self):
+        """test that resolve_path returns correct"""
+        p = resolve_path("~")
+        self.assertTrue(p.is_absolute())
+
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".rbf", delete=DELETE_TEMP_FILES) as fobj:
+            with open(fobj.name, "w"):
+                pass
+            p2 = resolve_path("./{}".format(fobj.name))
+            self.assertTrue(p2.is_absolute())
 
 
 if __name__ == "__main__":
