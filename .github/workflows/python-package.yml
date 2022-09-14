@@ -39,7 +39,7 @@ jobs:
       with:
         file: ./coverage.xml
         fail_ci_if_error: true
-  twine-check:
+  twine:
     - name: Test Build and Run Twine Check
       runs-on: ubuntu-latest
       steps:
