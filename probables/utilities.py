@@ -20,6 +20,11 @@ def is_valid_file(filepath: Union[str, Path, None]) -> bool:
     return Path(filepath).exists()
 
 
+def resolve_path(filepath: Union[str, Path]) -> Path:
+    """fully resolve the path by expanding user and resolving"""
+    return Path(filepath).expanduser().resolve()
+
+
 def get_x_bits(num: int, max_bits: int, num_bits: int, right_bits: bool = True) -> int:
     """ensure the correct number of bits and pull the upper x bits"""
     bits = bin(num).lstrip("0b")

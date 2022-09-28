@@ -15,7 +15,7 @@ from typing import ByteString, List, Tuple, Union
 
 from ..exceptions import CuckooFilterFullError, InitializationError
 from ..hashes import KeyT, SimpleHashT, fnv_1a
-from ..utilities import MMap, get_x_bits, is_valid_file
+from ..utilities import MMap, get_x_bits, is_valid_file, resolve_path
 
 
 class CuckooFilter:
@@ -91,6 +91,7 @@ class CuckooFilter:
             for _ in range(self.capacity):
                 self.buckets.append(list())
         elif is_valid_file(filepath):
+            filepath = resolve_path(filepath)
             self._load(filepath)
         else:
             msg = "CuckooFilter: failed to load provided file"
@@ -135,7 +136,10 @@ class CuckooFilter:
 
     @classmethod
     def load_error_rate(
-        cls, error_rate: float, filepath: Union[str, Path], hash_function: Union[SimpleHashT, None] = None
+        cls,
+        error_rate: float,
+        filepath: Union[str, Path],
+        hash_function: Union[SimpleHashT, None] = None,
     ):
         """Initialize a previously exported Cuckoo Filter based on error rate
 
@@ -145,13 +149,17 @@ class CuckooFilter:
             hash_function (function): Hashing strategy function to use `hf(key)`
         Returns:
             CuckooFilter: A Cuckoo Filter object"""
+        filepath = resolve_path(filepath)
         cku = CuckooFilter(filepath=filepath, hash_function=hash_function)
         cku._set_error_rate(error_rate)
         return cku
 
     @classmethod
     def frombytes(
-        cls, b: ByteString, error_rate: Union[float, None] = None, hash_function: Union[SimpleHashT, None] = None
+        cls,
+        b: ByteString,
+        error_rate: Union[float, None] = None,
+        hash_function: Union[SimpleHashT, None] = None,
     ) -> "CuckooFilter":
         """
         Args:
@@ -340,6 +348,7 @@ class CuckooFilter:
             file: Path to file to export"""
 
         if not isinstance(file, (IOBase, mmap)):
+            file = resolve_path(file)
             with open(file, "wb") as filepointer:
                 self.export(filepointer)  # type:ignore
         else:
@@ -397,7 +406,7 @@ class CuckooFilter:
     def _load(self, file: Union[Path, str, IOBase, mmap, bytes]) -> None:
         """load a cuckoo filter from file"""
         if not isinstance(file, (IOBase, mmap, bytes)):
-            file = Path(file)
+            file = resolve_path(file)
             with MMap(file) as filepointer:
                 self._load(filepointer)
         else:

@@ -16,7 +16,7 @@ from typing import ByteString, Dict, Tuple, Union
 from ..constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN
 from ..exceptions import CountMinSketchError, InitializationError, NotSupportedError
 from ..hashes import HashFuncT, HashResultsT, KeyT, default_fnv_1a
-from ..utilities import MMap, is_valid_file
+from ..utilities import MMap, is_valid_file, resolve_path
 
 
 class CountMinSketch:
@@ -75,6 +75,7 @@ class CountMinSketch:
         self.__query_method = self.__min_query
 
         if is_valid_file(filepath):
+            filepath = resolve_path(filepath)
             self.__load(filepath)
         else:
             if width is not None and depth is not None:
@@ -344,6 +345,7 @@ class CountMinSketch:
         Args:
             filename (str): The filename to which the count-min sketch will be written."""
         if not isinstance(file, (IOBase, mmap)):
+            file = resolve_path(file)
             with open(file, "wb") as filepointer:
                 self.export(filepointer)  # type: ignore
         else:
@@ -399,7 +401,7 @@ class CountMinSketch:
     def __load(self, file: Union[Path, str, IOBase, mmap]):
         """load the count-min sketch from file"""
         if not isinstance(file, (IOBase, mmap)):
-            file = Path(file)
+            file = resolve_path(file)
             with MMap(file) as filepointer:
                 self.__load(filepointer)
         else:
