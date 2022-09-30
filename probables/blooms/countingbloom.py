@@ -160,9 +160,7 @@ class CountingBloomFilter(BloomFilter):
                 vals[i] = UINT32_T_MAX
             else:
                 self._bloom[k] += num_els  # This keeps the original methodology
-        self.elements_added += num_els
-        if self.elements_added > UINT64_T_MAX:
-            self.elements_added = UINT64_T_MAX
+        self.elements_added = min(self.elements_added + num_els, UINT64_T_MAX)
         return min(vals)
 
     def check(self, key: KeyT) -> int:  # type: ignore
@@ -182,7 +180,7 @@ class CountingBloomFilter(BloomFilter):
             hashes (list): A list of integers representing the key to check
         Returns:
             int: Maximum number of insertions"""
-        return min([self._bloom[x % self.number_bits] for x in hashes])
+        return min(self._bloom[x % self.number_bits] for x in hashes)
 
     def remove(self, key: KeyT, num_els: int = 1) -> int:
         """Remove the element from the counting bloom
@@ -314,4 +312,4 @@ class CountingBloomFilter(BloomFilter):
 
     def _cnt_number_bits_set(self) -> int:
         """calculate the total number of set bits in the bloom"""
-        return sum([1 for x in self._bloom if x > 0])
+        return sum(1 for x in self._bloom if x > 0)
