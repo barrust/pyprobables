@@ -525,7 +525,7 @@ class CuckooFilter:
         if self.auto_expand:
             self._expand_logic(finger)
         else:
-            msg = "The {} is currently full".format(self.__class__.__name__)
+            msg = f"The {self.__class__.__name__} is currently full"
             raise CuckooFilterFullError(msg)
 
     def _calc_error_rate(self):

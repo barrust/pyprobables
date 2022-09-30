@@ -387,7 +387,7 @@ class CountingCuckooBin:
 
     def __str__(self) -> str:
         """convert it into a string"""
-        return "(fingerprint:{} count:{})".format(self.__bin[0], self.__bin[1])
+        return f"(fingerprint:{self.__bin[0]} count:{self.__bin[1]})"
 
     def increment(self) -> int:
         """increment"""

@@ -309,7 +309,7 @@ class BloomFilter:
             filename (str): The filename to which the Bloom Filter will be written."""
         data = (
             "  " + line
-            for line in wrap(", ".join(("0x{:02x}".format(e) for e in bytearray.fromhex(self.export_hex()))), 80)
+            for line in wrap(", ".join(f"0x{e:02x}" for e in bytearray.fromhex(self.export_hex())), 80)
         )
         if self._type in ["regular", "regular-on-disk"]:
             bloom_type = "standard BloomFilter"
@@ -317,7 +317,7 @@ class BloomFilter:
             bloom_type = "CountingBloomFilter"
 
         with open(filename, "w") as file:
-            print("/* BloomFilter Export of a {} */".format(bloom_type), file=file)
+            print(f"/* BloomFilter Export of a {bloom_type} */", file=file)
             print("#include <inttypes.h>", file=file)
             print(
                 "const uint64_t estimated_elements = ",

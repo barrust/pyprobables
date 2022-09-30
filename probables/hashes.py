@@ -60,7 +60,7 @@ def hash_with_depth_int(func: HashFuncT) -> HashFuncT:
         tmp = func(key, 0)
         res.append(tmp)
         for idx in range(1, depth):
-            tmp = func("{0:x}".format(tmp), idx)
+            tmp = func(f"{tmp:x}", idx)
             res.append(tmp)
         return res
 
