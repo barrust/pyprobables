@@ -5,7 +5,7 @@ from hashlib import md5, sha256
 from struct import unpack
 from typing import Callable, List, Union
 
-from .constants import UINT32_T_MAX, UINT64_T_MAX
+from .constants import UINT64_T_MAX
 
 KeyT = Union[str, bytes]
 SimpleHashT = Callable[[KeyT, int], int]
@@ -30,7 +30,7 @@ def hash_with_depth_bytes(func: HashFuncBytesT) -> HashFuncT:
     @wraps(func)
     def hashing_func(key, depth=1):
         """wrapper function"""
-        res = list()
+        res = []
         tmp = key if not isinstance(key, str) else key.encode("utf-8")
         for idx in range(depth):
             tmp = func(tmp, idx)
@@ -56,7 +56,7 @@ def hash_with_depth_int(func: HashFuncT) -> HashFuncT:
     @wraps(func)
     def hashing_func(key, depth=1):
         """wrapper function"""
-        res = list()
+        res = []
         tmp = func(key, 0)
         res.append(tmp)
         for idx in range(1, depth):
@@ -76,7 +76,7 @@ def default_fnv_1a(key: KeyT, depth: int = 1) -> List[int]:
     Returns:
         list(int): List of size depth hashes"""
 
-    res = list()
+    res = []
     for idx in range(depth):
         res.append(fnv_1a(key, idx))
     return res

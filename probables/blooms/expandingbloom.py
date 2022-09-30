@@ -51,7 +51,7 @@ class ExpandingBloomFilter:
         hash_function: Union[HashFuncT, None] = None,
     ):
         """initialize"""
-        self._blooms = list()  # type: ignore
+        self._blooms = []  # type: ignore
         self.__fpr = false_positive_rate
         self.__est_elements = est_elements
         self.__hash_func = hash_function
@@ -207,7 +207,7 @@ class ExpandingBloomFilter:
                 self.__load(filepointer)
         else:
             size, est_els, els_added, fpr = self._parse_footer(file)  # type: ignore
-            self._blooms = list()
+            self._blooms = []
             self._added_elements = els_added
             self.__fpr = fpr
             self.__est_elements = est_els
@@ -221,7 +221,7 @@ class ExpandingBloomFilter:
 
     def _parse_blooms(self, b: ByteString, size: int) -> None:
         # reset the bloom list
-        self._blooms = list()
+        self._blooms = []
         blm_size = 0
         start = 0
         end = 0

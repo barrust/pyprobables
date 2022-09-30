@@ -35,7 +35,7 @@ class CuckooFilter:
     Returns:
         CuckooFilter: A Cuckoo Filter object"""
 
-    __slots__ = [
+    __slots__ = (
         "_bucket_size",
         "_cuckoo_capacity",
         "__max_cuckoo_swaps",
@@ -46,7 +46,7 @@ class CuckooFilter:
         "_inserted_elements",
         "_buckets",
         "_error_rate",
-    ]
+    )
 
     def __init__(
         self,
@@ -87,9 +87,9 @@ class CuckooFilter:
             self.__hash_func = hash_function  # type: ignore
         self._inserted_elements = 0
         if filepath is None:
-            self._buckets = list()  # type: ignore
+            self._buckets = []  # type: ignore
             for _ in range(self.capacity):
-                self.buckets.append(list())
+                self.buckets.append([])
         elif is_valid_file(filepath):
             filepath = resolve_path(filepath)
             self._load(filepath)
@@ -288,7 +288,7 @@ class CuckooFilter:
         """set the fingerprint size"""
         tmp = val
         if not 1 <= tmp <= 4:
-            msg = ("{}: fingerprint size must be between 1 and 4").format(self.__class__.__name__)
+            msg = f"{self.__class__.__name__}: fingerprint size must be between 1 and 4"
             raise ValueError(msg)
         # bytes to bits
         self._fingerprint_size = tmp * 8
@@ -353,8 +353,8 @@ class CuckooFilter:
                 self.export(filepointer)  # type:ignore
         else:
             filepointer = file  # type:ignore
-            for i in range(len(self.buckets)):
-                bucket = array(self._CUCKOO_SINGLE_INT_C, self.buckets[i])
+            for _, val in enumerate(self.buckets):
+                bucket = array(self._CUCKOO_SINGLE_INT_C, val)
                 bucket.extend([0] * (self.bucket_size - len(bucket)))
                 bucket.tofile(filepointer)
             # now put out the required information at the end
@@ -427,7 +427,7 @@ class CuckooFilter:
 
     def _parse_buckets(self, d: ByteString) -> None:
         """parse bytes and set buckets"""
-        self._buckets = list()
+        self._buckets = []
         bucket_byte_size = self.bucket_size * self._CUCKOO_SINGLE_INT_SIZE
         offs = 0
         for _ in range(self.capacity):
@@ -478,17 +478,17 @@ class CuckooFilter:
 
     def _setup_expand(self, extra_fingerprint):
         """setup this thing"""
-        fingerprints = list()
+        fingerprints = []
         if extra_fingerprint is not None:
             fingerprints.append(extra_fingerprint)
         for idx in range(self.capacity):
             fingerprints.extend(self.buckets[idx])
 
         self._cuckoo_capacity = self.capacity * self.expansion_rate
-        self._buckets = list()
+        self._buckets = []
         self._inserted_elements = 0
         for _ in range(self.capacity):
-            self.buckets.append(list())
+            self.buckets.append([])
 
         return fingerprints
 

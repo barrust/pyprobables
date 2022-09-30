@@ -33,15 +33,10 @@ class CountingCuckooFilter(CuckooFilter):
     Returns:
         CountingCuckooFilter: A Cuckoo Filter object"""
 
-    __slots__ = [
+    __slots__ = (
         "__unique_elements",
-        "_inserted_elements",
-        "_bucket_size",
         "__max_cuckoo_swaps",
-        "_cuckoo_capacity",
-        "_buckets",
-        "_fingerprint_size",
-    ]
+    )
 
     def __init__(
         self,
@@ -297,7 +292,7 @@ class CountingCuckooFilter(CuckooFilter):
     def _parse_footer(self, d: ByteString) -> None:
         """Parse bytes to pull out and set footer information"""
         bucket_size, max_swaps = self.__COUNTING_CUCKOO_FOOTER_STRUCT.unpack(
-            bytes(d[-self.__COUNTING_CUCKOO_FOOTER_STRUCT.size :])
+            bytes(d[-1 * self.__COUNTING_CUCKOO_FOOTER_STRUCT.size :])
         )
         self._bucket_size = int(bucket_size)
         self.__max_cuckoo_swaps = int(max_swaps)
@@ -308,9 +303,9 @@ class CountingCuckooFilter(CuckooFilter):
         self._cuckoo_capacity = (len(bytes(d)) - bin_size) // bin_size // self.bucket_size
         start = 0
         end = bin_size
-        self._buckets = list()
+        self._buckets = []
         for i in range(self.capacity):
-            self.buckets.append(list())
+            self.buckets.append([])
             for _ in range(self.bucket_size):
                 finger, count = self.__BIN_STRUCT.unpack(bytes(d[start:end]))
                 if finger > 0:
