@@ -85,7 +85,7 @@ class CountingBloomFilter(BloomFilter):
             CountingBloomFilter: A Counting Bloom Filter object
         """
         offset = cls._FOOTER_STRUCT.size
-        est_els, els_added, fpr, n_hashes, n_bits = cls._parse_footer(cls._FOOTER_STRUCT, bytes(b[-offset:]))
+        est_els, els_added, fpr, n_hashes, n_bits = cls._parse_footer(cls._FOOTER_STRUCT, bytes(b[-1 * offset :]))
         blm = CountingBloomFilter(est_elements=est_els, false_positive_rate=fpr, hash_function=hash_function)
         blm._set_values(est_els, fpr, n_hashes, n_bits, hash_function)
         blm._els_added = els_added
@@ -96,7 +96,7 @@ class CountingBloomFilter(BloomFilter):
         """string representation of the counting bloom filter"""
         on_disk = "no" if self.is_on_disk is False else "yes"
 
-        cnt = sum([x for x in self._bloom if x > 0])
+        cnt = sum(x for x in self._bloom if x > 0)
         total = sum(self._bloom)
         largest = max(self._bloom)
         largest_idx = (self._bloom).index(largest)

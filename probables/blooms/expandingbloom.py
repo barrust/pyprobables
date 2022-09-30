@@ -35,13 +35,13 @@ class ExpandingBloomFilter:
             1) Filepath
             2) est_elements and false_positive_rate"""
 
-    __slots__ = [
+    __slots__ = (
         "_blooms",
         "__fpr",
         "__est_elements",
         "__hash_func",
         "_added_elements",
-    ]
+    )
 
     def __init__(
         self,
@@ -216,7 +216,7 @@ class ExpandingBloomFilter:
     @classmethod
     def _parse_footer(cls, b: ByteString) -> Tuple[int, int, int, float]:
         offset = cls.__FOOTER_STRUCT.size
-        size, est_els, els_added, fpr = cls.__FOOTER_STRUCT.unpack(bytes(b[-offset:]))
+        size, est_els, els_added, fpr = cls.__FOOTER_STRUCT.unpack(bytes(b[-1 * offset :]))
         return int(size), int(est_els), int(els_added), float(fpr)
 
     def _parse_blooms(self, b: ByteString, size: int) -> None:
@@ -260,14 +260,12 @@ class RotatingBloomFilter(ExpandingBloomFilter):
             2) est_elements and false_positive_rate
     """
 
-    __slots__ = [
-        "_blooms",
-        "__fpr",
-        "__est_elements",
-        "__hash_func",
-        "_added_elements",
+    __slots__ = (
         "_queue_size",
-    ]
+        "__est_elements",
+        "__fpr",
+        "__hash_func",
+    )
 
     def __init__(
         self,
