@@ -410,7 +410,7 @@ class CuckooFilter:
             with MMap(file) as filepointer:
                 self._load(filepointer)
         else:
-            self._parse_footer(file)  # type: ignore
+            self._parse_footer(file, self._CUCKOO_FOOTER_STRUCT)  # type: ignore
             self._inserted_elements = 0
             # now pull everything in!
             self._parse_buckets(file)  # type: ignore
@@ -419,10 +419,10 @@ class CuckooFilter:
     _CUCKOO_SINGLE_INT_SIZE = Struct(_CUCKOO_SINGLE_INT_C).size
     _CUCKOO_FOOTER_STRUCT = Struct("II")
 
-    def _parse_footer(self, d: ByteString) -> None:
+    def _parse_footer(self, d: ByteString, stct: Struct) -> None:
         """parse bytes and set footer information"""
-        list_size = len(d) - self._CUCKOO_FOOTER_STRUCT.size
-        self._bucket_size, self.__max_cuckoo_swaps = self._CUCKOO_FOOTER_STRUCT.unpack(d[list_size:])  # type:ignore
+        list_size = len(d) - stct.size
+        self._bucket_size, self.__max_cuckoo_swaps = stct.unpack(d[list_size:])  # type:ignore
         self._cuckoo_capacity = list_size // self._CUCKOO_SINGLE_INT_SIZE // self.bucket_size
 
     def _parse_buckets(self, d: ByteString) -> None:

@@ -33,10 +33,7 @@ class CountingCuckooFilter(CuckooFilter):
     Returns:
         CountingCuckooFilter: A Cuckoo Filter object"""
 
-    __slots__ = (
-        "__unique_elements",
-        "__max_cuckoo_swaps",
-    )
+    __slots__ = ("__unique_elements",)
 
     def __init__(
         self,
@@ -285,17 +282,9 @@ class CountingCuckooFilter(CuckooFilter):
             with MMap(file) as filepointer:
                 self._load(filepointer)
         else:
-            self._parse_footer(file)  # type: ignore
+            self._parse_footer(file, self.__COUNTING_CUCKOO_FOOTER_STRUCT)  # type: ignore
             self._inserted_elements = 0
             self._parse_buckets(file)  # type: ignore
-
-    def _parse_footer(self, d: ByteString) -> None:
-        """Parse bytes to pull out and set footer information"""
-        bucket_size, max_swaps = self.__COUNTING_CUCKOO_FOOTER_STRUCT.unpack(
-            bytes(d[-1 * self.__COUNTING_CUCKOO_FOOTER_STRUCT.size :])
-        )
-        self._bucket_size = int(bucket_size)
-        self.__max_cuckoo_swaps = int(max_swaps)
 
     def _parse_buckets(self, d: ByteString) -> None:
         """Parse bytes to pull out and set the buckets"""

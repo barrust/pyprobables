@@ -113,6 +113,11 @@ class ExpandingBloomFilter:
         """int: The total number of elements added"""
         return self._added_elements
 
+    @property
+    def hash_function(self) -> HashFuncT:
+        """int: The total number of elements added"""
+        return self.__hash_func
+
     def push(self) -> None:
         """Push a new expansion onto the Bloom Filter"""
         self.__add_bloom_filter()
@@ -260,12 +265,7 @@ class RotatingBloomFilter(ExpandingBloomFilter):
             2) est_elements and false_positive_rate
     """
 
-    __slots__ = (
-        "_queue_size",
-        "__est_elements",
-        "__fpr",
-        "__hash_func",
-    )
+    __slots__ = ("_queue_size",)
 
     def __init__(
         self,
@@ -283,10 +283,6 @@ class RotatingBloomFilter(ExpandingBloomFilter):
             hash_function=hash_function,
         )
         self._queue_size = max_queue_size
-        self._added_elements = self.elements_added
-        self.__est_elements = self.estimated_elements
-        self.__fpr = self.false_positive_rate
-        self.__hash_func = hash_function
 
     @classmethod
     def frombytes(  # type:ignore
@@ -365,8 +361,8 @@ class RotatingBloomFilter(ExpandingBloomFilter):
     def __add_bloom_filter(self):
         """build a new bloom and add it on!"""
         blm = BloomFilter(
-            est_elements=self.__est_elements,
-            false_positive_rate=self.__fpr,
-            hash_function=self.__hash_func,
+            est_elements=self.estimated_elements,
+            false_positive_rate=self.false_positive_rate,
+            hash_function=self.hash_function,
         )
         self._blooms.append(blm)
