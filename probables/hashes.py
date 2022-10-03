@@ -104,7 +104,7 @@ def fnv_1a(key: KeyT, seed: int = 0) -> int:
 
 
 @hash_with_depth_bytes
-def default_md5(key: KeyT, seed: int = 0) -> bytes:
+def default_md5(key: KeyT, *args, **kwargs) -> bytes:
     """The default md5 hashing routine
 
     Args:
@@ -118,7 +118,7 @@ def default_md5(key: KeyT, seed: int = 0) -> bytes:
 
 
 @hash_with_depth_bytes
-def default_sha256(key: KeyT, seed: int = 0) -> bytes:
+def default_sha256(key: KeyT, *args, **kwargs) -> bytes:
     """The default sha256 hashing routine
 
     Args:
