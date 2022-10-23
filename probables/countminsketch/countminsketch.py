@@ -478,7 +478,6 @@ class CountMeanSketch(CountMinSketch):
         For width and depth, width may realistically be in the thousands while depth is \
             in the single digit to teens"""
 
-
     def __init__(
         self,
         width: Union[int, None] = None,
@@ -516,7 +515,6 @@ class CountMeanMinSketch(CountMinSketch):
     Note:
         For width and depth, width may realistically be in the thousands while depth is \
             in the single digit to teens"""
-
 
     def __init__(
         self,
