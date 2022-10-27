@@ -717,10 +717,17 @@ class TestBloomFilterOnDisk(unittest.TestCase):
             try:
                 self.assertEqual(True, blm)
             except UnboundLocalError as ex:
-                msg = "local variable 'blm' referenced before assignment"
-                self.assertEqual(str(ex), msg)
+                msg1 = "local variable 'blm' referenced before assignment"
+                msg2 = "cannot access local variable 'blm' where it is not associated with a value"
+                self.assertIn(str(ex), [msg1, msg2])
             else:
                 self.assertEqual(True, False)
+            # test that it was closed and saved
+            self.assertTrue(os.path.exists(fobj.name))
+            blm_new = BloomFilterOnDisk(fobj.name)
+            self.assertTrue("this is a test" in blm_new)
+            self.assertFalse("test test test" in blm_new)
+            blm_new.close()
 
     # export to new file
     def test_bfod_export(self):
