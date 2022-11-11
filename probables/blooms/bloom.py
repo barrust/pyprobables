@@ -89,6 +89,7 @@ class BloomFilter:
         self._load_init(filepath, hash_function, hex_string, est_elements, false_positive_rate)
 
     def _load_init(self, filepath, hash_function, hex_string, est_elements, false_positive_rate):
+        """Handle setting params and loading everything as needed"""
         if is_valid_file(filepath):
             self._load(filepath, hash_function)
         elif is_hex_string(hex_string):
