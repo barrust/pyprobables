@@ -22,10 +22,10 @@ from probables.hashes import (
 
 
 class TestHashes(unittest.TestCase):
-    """ Test the different hash algorithms """
+    """Test the different hash algorithms"""
 
     def test_default_fnv_1a(self):
-        """ test default fnv-1a algorithm """
+        """test default fnv-1a algorithm"""
         this_is_a_test = [
             4040040117721899264,
             3916497180155386777,
@@ -46,7 +46,7 @@ class TestHashes(unittest.TestCase):
         self.assertEqual(hashes, this_is_also)
 
     def test_default_hash_colision(self):
-        """ test when different strings start with the same hash value (issue 62)"""
+        """test when different strings start with the same hash value (issue 62)"""
         h1 = default_fnv_1a("gMPflVXtwGDXbIhP73TX", 5)
         h2 = default_fnv_1a("LtHf1prlU1bCeYZEdqWf", 5)
 
@@ -55,7 +55,7 @@ class TestHashes(unittest.TestCase):
             self.assertNotEqual(h1[i], h2[i])
 
     def test_default_md5(self):
-        """ test default md5 algorithm """
+        """test default md5 algorithm"""
         this_is_a_test = [
             12174049463882854484,
             10455450501617390806,
@@ -76,7 +76,7 @@ class TestHashes(unittest.TestCase):
         self.assertEqual(hashes, this_is_also)
 
     def test_default_sha256(self):
-        """ test default sha256 algorithm """
+        """test default sha256 algorithm"""
         this_is_a_test = [
             10244166640140130606,
             5650905005272240665,
@@ -97,7 +97,7 @@ class TestHashes(unittest.TestCase):
         self.assertEqual(hashes, this_is_also)
 
     def test_hash_bytes_decorator(self):
-        """ test making bytes hashing strategy with decorator """
+        """test making bytes hashing strategy with decorator"""
         results = [
             1164302962920061,
             16735493734761467723,
@@ -108,7 +108,7 @@ class TestHashes(unittest.TestCase):
 
         @hash_with_depth_bytes
         def my_hash(key, depth=1):
-            """  my hash function """
+            """my hash function"""
             return hashlib.sha512(key).digest()
 
         self.assertEqual(my_hash("this is a test", 5), results)
@@ -117,7 +117,7 @@ class TestHashes(unittest.TestCase):
         self.assertEqual(res[0], results[0])
 
     def test_hash_ints_decorator(self):
-        """ test making int hashing strategy with decorator """
+        """test making int hashing strategy with decorator"""
         results = [
             14409285476674975580,
             6203976290780191624,
@@ -128,7 +128,7 @@ class TestHashes(unittest.TestCase):
 
         @hash_with_depth_int
         def my_hash(key, depth=1, encoding="utf-8"):
-            """  my hash function """
+            """my hash function"""
             max64mod = UINT64_T_MAX + 1
             val = int(hashlib.sha512(key.encode(encoding)).hexdigest(), 16)
             return val % max64mod
@@ -139,7 +139,7 @@ class TestHashes(unittest.TestCase):
         self.assertEqual(res[0], results[0])
 
     def test_default_fnv_1a_bytes(self):
-        """ test default fnv-1a algorithm """
+        """test default fnv-1a algorithm"""
         this_is_a_test = [
             4040040117721899264,
             3916497180155386777,
@@ -160,7 +160,7 @@ class TestHashes(unittest.TestCase):
         self.assertEqual(hashes, this_is_also)
 
     def test_default_md5_bytes(self):
-        """ test default md5 algorithm using bytes """
+        """test default md5 algorithm using bytes"""
         this_is_a_test = [
             12174049463882854484,
             10455450501617390806,
@@ -181,7 +181,7 @@ class TestHashes(unittest.TestCase):
         self.assertEqual(hashes, this_is_also)
 
     def test_default_sha256_bytes(self):
-        """ test default sha256 algorithm using bytes """
+        """test default sha256 algorithm using bytes"""
         this_is_a_test = [
             10244166640140130606,
             5650905005272240665,

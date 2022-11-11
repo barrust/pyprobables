@@ -35,13 +35,13 @@ class ExpandingBloomFilter:
             1) Filepath
             2) est_elements and false_positive_rate"""
 
-    __slots__ = [
+    __slots__ = (
         "_blooms",
         "__fpr",
         "__est_elements",
         "__hash_func",
         "_added_elements",
-    ]
+    )
 
     def __init__(
         self,
@@ -51,7 +51,7 @@ class ExpandingBloomFilter:
         hash_function: Union[HashFuncT, None] = None,
     ):
         """initialize"""
-        self._blooms = list()  # type: ignore
+        self._blooms = []  # type: ignore
         self.__fpr = false_positive_rate
         self.__est_elements = est_elements
         self.__hash_func = hash_function
@@ -112,6 +112,11 @@ class ExpandingBloomFilter:
     def elements_added(self) -> int:
         """int: The total number of elements added"""
         return self._added_elements
+
+    @property
+    def hash_function(self) -> HashFuncT:
+        """int: The total number of elements added"""
+        return self.__hash_func
 
     def push(self) -> None:
         """Push a new expansion onto the Bloom Filter"""
@@ -207,7 +212,7 @@ class ExpandingBloomFilter:
                 self.__load(filepointer)
         else:
             size, est_els, els_added, fpr = self._parse_footer(file)  # type: ignore
-            self._blooms = list()
+            self._blooms = []
             self._added_elements = els_added
             self.__fpr = fpr
             self.__est_elements = est_els
@@ -216,12 +221,12 @@ class ExpandingBloomFilter:
     @classmethod
     def _parse_footer(cls, b: ByteString) -> Tuple[int, int, int, float]:
         offset = cls.__FOOTER_STRUCT.size
-        size, est_els, els_added, fpr = cls.__FOOTER_STRUCT.unpack(bytes(b[-offset:]))
+        size, est_els, els_added, fpr = cls.__FOOTER_STRUCT.unpack(bytes(b[-1 * offset :]))
         return int(size), int(est_els), int(els_added), float(fpr)
 
     def _parse_blooms(self, b: ByteString, size: int) -> None:
         # reset the bloom list
-        self._blooms = list()
+        self._blooms = []
         blm_size = 0
         start = 0
         end = 0
@@ -260,14 +265,7 @@ class RotatingBloomFilter(ExpandingBloomFilter):
             2) est_elements and false_positive_rate
     """
 
-    __slots__ = [
-        "_blooms",
-        "__fpr",
-        "__est_elements",
-        "__hash_func",
-        "_added_elements",
-        "_queue_size",
-    ]
+    __slots__ = ("_queue_size",)
 
     def __init__(
         self,
@@ -285,10 +283,6 @@ class RotatingBloomFilter(ExpandingBloomFilter):
             hash_function=hash_function,
         )
         self._queue_size = max_queue_size
-        self._added_elements = self.elements_added
-        self.__est_elements = self.estimated_elements
-        self.__fpr = self.false_positive_rate
-        self.__hash_func = hash_function
 
     @classmethod
     def frombytes(  # type:ignore
@@ -367,8 +361,8 @@ class RotatingBloomFilter(ExpandingBloomFilter):
     def __add_bloom_filter(self):
         """build a new bloom and add it on!"""
         blm = BloomFilter(
-            est_elements=self.__est_elements,
-            false_positive_rate=self.__fpr,
-            hash_function=self.__hash_func,
+            est_elements=self.estimated_elements,
+            false_positive_rate=self.false_positive_rate,
+            hash_function=self.hash_function,
         )
         self._blooms.append(blm)

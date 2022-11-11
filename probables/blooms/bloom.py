@@ -49,7 +49,7 @@ class BloomFilter:
             3) From params
     """
 
-    __slots__ = [
+    __slots__ = (
         "_on_disk",
         "_type",
         "_typecode",
@@ -62,7 +62,7 @@ class BloomFilter:
         "_els_added",
         "_number_hashes",
         "_num_bits",
-    ]
+    )
 
     def __init__(
         self,
@@ -307,16 +307,13 @@ class BloomFilter:
 
         Args:
             filename (str): The filename to which the Bloom Filter will be written."""
-        data = (
-            "  " + line
-            for line in wrap(", ".join(f"0x{e:02x}" for e in bytearray.fromhex(self.export_hex())), 80)
-        )
+        data = ("  " + line for line in wrap(", ".join(f"0x{e:02x}" for e in bytearray.fromhex(self.export_hex())), 80))
         if self._type in ["regular", "regular-on-disk"]:
             bloom_type = "standard BloomFilter"
         else:
             bloom_type = "CountingBloomFilter"
 
-        with open(filename, "w") as file:
+        with open(filename, "w", encoding="utf-8") as file:
             print(f"/* BloomFilter Export of a {bloom_type} */", file=file)
             print("#include <inttypes.h>", file=file)
             print(
@@ -348,7 +345,7 @@ class BloomFilter:
             BloomFilter: A Bloom Filter object
         """
         offset = cls._FOOTER_STRUCT.size
-        est_els, els_added, fpr, _, _ = cls._parse_footer(cls._FOOTER_STRUCT, bytes(b[-offset:]))
+        est_els, els_added, fpr, _, _ = cls._parse_footer(cls._FOOTER_STRUCT, bytes(b[-1 * offset :]))
         blm = BloomFilter(est_elements=est_els, false_positive_rate=fpr, hash_function=hash_function)
         blm._load(b, hash_function=blm.hash_function)
         blm._els_added = els_added
@@ -544,7 +541,7 @@ class BloomFilter:
         else:
             offset = self._FOOTER_STRUCT.size
             est_els, els_added, fpr, n_hashes, n_bits = self._parse_footer(
-                self._FOOTER_STRUCT, file[-offset:]  # type: ignore
+                self._FOOTER_STRUCT, file[-1 * offset :]  # type: ignore
             )
             self._set_values(est_els, fpr, n_hashes, n_bits, hash_function)
             # now read in the bit array!
@@ -712,6 +709,6 @@ class BloomFilterOnDisk(BloomFilter):
     def __update(self):
         """update the on disk Bloom Filter and ensure everything is out to disk"""
         self._bloom.flush()
-        self.__file_pointer.seek(-self._UPDATE_OFFSET.size, os.SEEK_END)
+        self.__file_pointer.seek(-1 * self._UPDATE_OFFSET.size, os.SEEK_END)
         self.__file_pointer.write(self._EXPECTED_ELM_STRUCT.pack(self.elements_added))
         self.__file_pointer.flush()

@@ -1,6 +1,6 @@
 [project]
 name = "pyprobables"
-version = "0.5.6"
+dynamic = ["version"]
 authors = [{name = "Tyler Barrus", email = "barrust@gmail.com"}]
 license = {text = "MIT"}
 description = "Probabilistic data structures in python"
@@ -33,8 +33,12 @@ classifiers = [
     #"Programming Language :: Python :: 3.8",
     #"Programming Language :: Python :: 3.9",
     #"Programming Language :: Python :: 3.10",
+    #"Programming Language :: Python :: 3.11",
 ]
 requires-python = ">=3.6"
+
+[tool.setuptools.dynamic]
+version = {attr = "probables.__version__"}
 
 [project.urls]
 Homepage = "https://github.com/barrust/pyprobables"

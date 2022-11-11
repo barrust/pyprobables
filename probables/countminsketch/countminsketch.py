@@ -45,7 +45,7 @@ class CountMinSketch:
         For width and depth, width may realistically be in the thousands while depth \
             is in the single digit to teens"""
 
-    __slots__ = [
+    __slots__ = (
         "__width",
         "__depth",
         "__confidence",
@@ -54,7 +54,7 @@ class CountMinSketch:
         "__query_method",
         "_bins",
         "_hash_function",
-    ]
+    )
 
     def __init__(
         self,
@@ -160,7 +160,7 @@ class CountMinSketch:
             CountMinSketch: A count-min sketch object
         """
         offset = cls.__FOOTER_STRUCT.size
-        width, depth, _ = cls.__FOOTER_STRUCT.unpack_from(bytes(b[-offset:]))
+        width, depth, _ = cls.__FOOTER_STRUCT.unpack_from(bytes(b[-1 * offset :]))
         cms = CountMinSketch(width=width, depth=depth, hash_function=hash_function)
         cms._parse_bytes(b)
         return cms
@@ -411,7 +411,7 @@ class CountMinSketch:
     def _parse_footer(cls, file: ByteString) -> Tuple[int, int, int]:
         """return width, depth and elements added, in that order"""
         offset = cls.__FOOTER_STRUCT.size
-        width, depth, elements_added = cls.__FOOTER_STRUCT.unpack_from(bytes(file[-offset:]))
+        width, depth, elements_added = cls.__FOOTER_STRUCT.unpack_from(bytes(file[-1 * offset :]))
         return width, depth, elements_added
 
     def _parse_bytes(self, file: ByteString):
@@ -439,7 +439,7 @@ class CountMinSketch:
         """generate the mean-min query; assumes sorted list"""
         if results[0] == 0 and results[-1] == 0:
             return 0
-        meanmin = list()
+        meanmin = []
         for t_bin in results:
             diff = self.elements_added - t_bin
             calc = t_bin - diff // (self.width - 1)
@@ -478,8 +478,6 @@ class CountMeanSketch(CountMinSketch):
         For width and depth, width may realistically be in the thousands while depth is \
             in the single digit to teens"""
 
-    __slots__ = CountMinSketch.__slots__
-
     def __init__(
         self,
         width: Union[int, None] = None,
@@ -517,8 +515,6 @@ class CountMeanMinSketch(CountMinSketch):
     Note:
         For width and depth, width may realistically be in the thousands while depth is \
             in the single digit to teens"""
-
-    __slots__ = CountMinSketch.__slots__
 
     def __init__(
         self,
@@ -572,7 +568,7 @@ class HeavyHitters(CountMinSketch):
     ) -> None:
 
         super().__init__(width, depth, confidence, error_rate, filepath, hash_function)
-        self.__top_x = dict()  # type: ignore
+        self.__top_x = {}  # type: ignore
         self.__top_x_size = 0
         self.__num_hitters = num_hitters
         self.__smallest = 0
@@ -680,7 +676,7 @@ class HeavyHitters(CountMinSketch):
     def clear(self) -> None:
         """Clear out the heavy hitters!"""
         super().clear()
-        self.__top_x = dict()
+        self.__top_x = {}
         self.__top_x_size = 0
         self.__smallest = 0
 
@@ -731,7 +727,7 @@ class StreamThreshold(CountMinSketch):
     ) -> None:
         super().__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.__threshold = threshold
-        self.__meets_threshold = dict()  # type: ignore
+        self.__meets_threshold = {}  # type: ignore
 
     @classmethod
     def frombytes(  # type: ignore
@@ -769,7 +765,7 @@ class StreamThreshold(CountMinSketch):
     def clear(self) -> None:
         """Clear out the stream threshold!"""
         super().clear()
-        self.__meets_threshold = dict()
+        self.__meets_threshold = {}
 
     def add(self, key: str, num_els: int = 1) -> int:  # type: ignore
         """Add the element for key into the data structure
