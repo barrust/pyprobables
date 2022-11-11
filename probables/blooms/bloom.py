@@ -76,8 +76,19 @@ class BloomFilter:
         self._on_disk = False
         self._type = "regular"
         self._typecode = "B"
+        self._fpr = 0.0
+        self._bloom_length = 0
+        self._est_elements = 0
         self._bits_per_elm = 8.0
+        self._bloom = []
+        self._hash_func = None
+        self._els_added = 0
+        self._number_hashes = 0
+        self._num_bits = 0
 
+        self._load_init(filepath, hash_function, hex_string, est_elements, false_positive_rate)
+
+    def _load_init(self, filepath, hash_function, hex_string, est_elements, false_positive_rate):
         if is_valid_file(filepath):
             self._load(filepath, hash_function)
         elif is_hex_string(hex_string):
@@ -621,11 +632,12 @@ class BloomFilterOnDisk(BloomFilter):
         # set some things up
         self._filepath = resolve_path(filepath)
         self.__file_pointer = None
-        self._type = "regular-on-disk"
-        self._typecode = "B"
-        self._bits_per_elm = 8.0
-        self._on_disk = True
+        super().__init__(est_elements, false_positive_rate, filepath, hex_string, hash_function)
 
+    def _load_init(self, filepath, hash_function, hex_string, est_elements, false_positive_rate):
+        """Handle setting params and loading everything as needed"""
+        self._type = "regular-on-disk"
+        self._on_disk = True
         if is_hex_string(hex_string):
             msg = "Loading from hex_string is currently not supported by the on disk Bloom Filter"
             raise NotSupportedError(msg)

@@ -1,5 +1,11 @@
 # PyProbables Changelog
 
+### Future Version
+* Update Build System and update project metadata
+* Better support for `resolve_path` in passed filenames
+* Remove Python 3.5 support
+* Pylint inspired updates
+
 ### Version 0.5.6
 * Bloom Filters:
     * Fix for `ValueError` exception when using `estimate_elements()` when all bits are set

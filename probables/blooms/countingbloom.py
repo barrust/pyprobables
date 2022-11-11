@@ -42,7 +42,7 @@ class CountingBloomFilter(BloomFilter):
             2) From Hex String
             3) From params"""
 
-    __slots__ = ["_filepath", "__file_pointer"]
+    __slots__ = ("_filepath",)
 
     def __init__(
         self,
@@ -53,11 +53,14 @@ class CountingBloomFilter(BloomFilter):
         hash_function: Union[HashFuncT, None] = None,
     ) -> None:
         """setup the basic values needed"""
+        self._filepath = None
+        super().__init__(est_elements, false_positive_rate, filepath, hex_string, hash_function)
+
+    def _load_init(self, filepath, hash_function, hex_string, est_elements, false_positive_rate):
+        """Handle setting params and loading everything as needed"""
         self._bits_per_elm = 1.0
-        self._on_disk = False
         self._type = "counting"
         self._typecode = "I"
-        self._els_added = 0
 
         if is_valid_file(filepath):
             self._filepath = resolve_path(filepath)
