@@ -1,6 +1,6 @@
 # PyProbables Changelog
 
-### Future Version
+### Version 0.5.7
 * Update Build System and update project metadata
 * Better support for `resolve_path` in passed filenames
 * Remove Python 3.5 support
