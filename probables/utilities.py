@@ -42,7 +42,7 @@ class MMap:
     def __init__(self, path: Union[Path, str]):
         self.__p = Path(path)
         self.__f = self.path.open("rb")
-        self.__m = mmap.mmap(self.__f.fileno(), 0, prot=mmap.PROT_READ)
+        self.__m = mmap.mmap(self.__f.fileno(), 0, access=mmap.ACCESS_READ)
         self._closed = False
 
     def __enter__(self) -> mmap.mmap:
