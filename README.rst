@@ -17,7 +17,7 @@ PyProbables
     :target: http://pyprobables.readthedocs.io/en/latest/?badge=latest
     :alt: Documentation Status
 .. image:: https://badge.fury.io/py/pyprobables.svg
-    :target: https://badge.fury.io/py/pyprobables
+    :target: https://pypi.org/project/pyprobables/
     :alt: Pypi Release
 .. image:: https://pepy.tech/badge/pyprobables
     :target: https://pepy.tech/project/pyprobables

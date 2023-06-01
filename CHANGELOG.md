@@ -1,5 +1,8 @@
 # PyProbables Changelog
 
+### Version 0.5.8
+* Make the `mmap` utility class windows compatible; see [PR #160](https://github.com/barrust/pyprobables/pull/106); Thanks [@leonhma](https://github.com/leonhma)
+
 ### Version 0.5.7
 * Update Build System and update project metadata
 * Better support for `resolve_path` in passed filenames
