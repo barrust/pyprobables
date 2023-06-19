@@ -56,7 +56,7 @@ To install `pyprobables`, simply clone the `repository on GitHub
 
     $ python setup.py install
 
-`pyprobables` supports python 3.6 - 3.10+
+`pyprobables` supports python 3.6 - 3.11+
 
 For *python 2.7* support, install `release 0.3.2 <https://github.com/barrust/pyprobables/releases/tag/v0.3.2>`__
 
@@ -101,7 +101,7 @@ Import pyprobables and setup a Bloom Filter
 
 .. code:: python
 
-    from probables import (BloomFilter)
+    from probables import BloomFilter
     blm = BloomFilter(est_elements=1000, false_positive_rate=0.05)
     blm.add('google.com')
     blm.check('facebook.com')  # should return False
@@ -113,7 +113,7 @@ Import pyprobables and setup a Count-Min Sketch
 
 .. code:: python
 
-    from probables import (CountMinSketch)
+    from probables import CountMinSketch
     cms = CountMinSketch(width=1000, depth=5)
     cms.add('google.com')  # should return 1
     cms.add('facebook.com', 25)  # insert 25 at once; should return 25
@@ -124,7 +124,7 @@ Import pyprobables and setup a Cuckoo Filter
 
 .. code:: python
 
-    from probables import (CuckooFilter)
+    from probables import CuckooFilter
     cko = CuckooFilter(capacity=100, max_swaps=10)
     cko.add('google.com')
     cko.check('facebook.com')  # should return False
@@ -136,8 +136,8 @@ Supplying a pre-defined, alternative hashing strategies
 
 .. code:: python
 
-    from probables import (BloomFilter)
-    from probables.hashes import (default_sha256)
+    from probables import BloomFilter
+    from probables.hashes import default_sha256
     blm = BloomFilter(est_elements=1000, false_positive_rate=0.05,
                       hash_function=default_sha256)
     blm.add('google.com')
@@ -153,25 +153,27 @@ Defining hashing function using the provided decorators
 .. code:: python
 
     import mmh3  # murmur hash 3 implementation (pip install mmh3)
-    from pyprobables.hashes import (hash_with_depth_bytes)
-    from pyprobables import (BloomFilter)
+    from probables.hashes import hash_with_depth_bytes
+    from probables import BloomFilter
 
     @hash_with_depth_bytes
-    def my_hash(key):
-        return mmh3.hash_bytes(key)
+    def my_hash(key, depth):
+        return mmh3.hash_bytes(key, seed=depth)
 
     blm = BloomFilter(est_elements=1000, false_positive_rate=0.05, hash_function=my_hash)
 
 .. code:: python
 
-    import mmh3  # murmur hash 3 implementation (pip install mmh3)
-    from pyprobables.hashes import (hash_with_depth_int)
-    from pyprobables import (BloomFilter)
+    import hashlib
+    from probables.hashes import hash_with_depth_int
+    from probables.constants import UINT64_T_MAX
+    from probables import BloomFilter
 
     @hash_with_depth_int
-    def my_hash(key, encoding='utf-8'):
+    def my_hash(key, seed=0, encoding="utf-8"):
         max64mod = UINT64_T_MAX + 1
         val = int(hashlib.sha512(key.encode(encoding)).hexdigest(), 16)
+        val += seed  # not a good example, but uses the seed value
         return val % max64mod
 
     blm = BloomFilter(est_elements=1000, false_positive_rate=0.05, hash_function=my_hash)
