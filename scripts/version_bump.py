@@ -68,10 +68,6 @@ if __name__ == "__main__":
 
     module_path = os.path.abspath("{}/../".format(script_path))
 
-    # update pyproject.toml
-    pyproject = "{}/pyproject.toml".format(module_path)
-    update_file(path=pyproject, k="version", v=args.new_version)
-
     # update the package __init__ file
     init_file = "{}/probables/__init__.py".format(module_path)
     update_file(path=init_file, k="__version__", v=args.new_version)
