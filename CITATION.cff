@@ -31,5 +31,5 @@ keywords:
   - Expanding Bloom Filter
   - Counting Cuckoo Filter
 license: MIT
-version: 0.5.8
-date-released: '2023-06-19'
+version: 0.5.9
+date-released: '2023-12-28'
