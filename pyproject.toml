@@ -1,8 +1,8 @@
 [project]
 name = "pyprobables"
 dynamic = ["version"]
-authors = [{name = "Tyler Barrus", email = "barrust@gmail.com"}]
-license = {text = "MIT"}
+authors = [{ name = "Tyler Barrus", email = "barrust@gmail.com" }]
+license = { text = "MIT" }
 description = "Probabilistic data structures in python"
 keywords = [
     "python",
@@ -28,17 +28,16 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.6",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 requires-python = ">=3.6"
 
 [tool.setuptools.dynamic]
-version = {attr = "probables.__version__"}
+version = { attr = "probables.__version__" }
 
 [project.urls]
 Homepage = "https://github.com/barrust/pyprobables"
@@ -46,16 +45,14 @@ Bug-tracker = "https://github.com/barrust/pyprobables/issues"
 Documentation = "https://pyprobables.readthedocs.io/"
 
 [tool.poetry]
-packages = [
-        {include = "probables"},
-]
+packages = [{ include = "probables" }]
 
 [tool.poetry.dev-dependencies]
-pre-commit = {version = ">=2.18.1", python = "^3.6.1"}
-black = {version = "^20.8b1", python = "^3.6"}
-isort = {version = "^5.6.4", python = "^3.6"}
-pytest = {version = "^6.1.1", python = "^3.6"}
-flake8 = {version = "^3.6.0", python = "^3.6"}
+pre-commit = { version = ">=2.18.1", python = "^3.6.1" }
+black = { version = "^20.8b1", python = "^3.6" }
+isort = { version = "^5.6.4", python = "^3.6" }
+pytest = { version = "^6.1.1", python = "^3.6" }
+flake8 = { version = "^3.6.0", python = "^3.6" }
 
 [tool.setuptools.packages.find]
 include = ["probables", "probables.*"]
