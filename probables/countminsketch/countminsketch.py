@@ -566,7 +566,6 @@ class HeavyHitters(CountMinSketch):
         filepath: Union[str, Path, None] = None,
         hash_function: Union[HashFuncT, None] = None,
     ) -> None:
-
         super().__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.__top_x = {}  # type: ignore
         self.__top_x_size = 0
@@ -593,8 +592,11 @@ class HeavyHitters(CountMinSketch):
     def __str__(self) -> str:
         """heavy hitters string rep"""
         msg = super().__str__()
-        tmp = "Heavy Hitters {0}\n\tNumber Hitters: {1}\n\tNumber Recorded: {2}"
-        return tmp.format(msg, self.number_heavy_hitters, self.__top_x_size)
+        return (
+            f"Heavy Hitters {msg}\n"
+            f"\tNumber Hitters: {self.number_heavy_hitters}\n"
+            f"\tNumber Recorded: {self.__top_x_size}"
+        )
 
     @property
     def heavy_hitters(self) -> Dict[str, int]:
@@ -749,8 +751,11 @@ class StreamThreshold(CountMinSketch):
     def __str__(self) -> str:
         """stream threshold string rep"""
         msg = super().__str__()
-        tmp = "Stream Threshold {0}\n\tThreshold: {1}\n\tNumber Meeting Threshold: {2}"
-        return tmp.format(msg, self.threshold, len(self.__meets_threshold))
+        return (
+            f"Stream Threshold {msg}\n"
+            f"\tThreshold: {self.threshold}\n"
+            f"\tNumber Meeting Threshold: {len(self.__meets_threshold)}"
+        )
 
     @property
     def meets_threshold(self) -> Dict[str, int]:

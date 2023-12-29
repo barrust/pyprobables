@@ -106,32 +106,19 @@ class CountingBloomFilter(BloomFilter):
         fullness = cnt / self.number_bits
         els_added = total // self.number_hashes
 
-        stats = (
+        return (
             "CountingBloom:\n"
-            "\tbits: {0}\n"
-            "\testimated elements: {1}\n"
-            "\tnumber hashes: {2}\n"
-            "\tmax false positive rate: {3:.6f}\n"
-            "\telements added: {4}\n"
-            "\tcurrent false positive rate: {5:.6f}\n"
-            "\tis on disk: {6}\n"
-            "\tindex fullness: {7:.6}\n"
-            "\tmax index usage: {8}\n"
-            "\tmax index id: {9}\n"
-            "\tcalculated elements: {10}\n"
-        )
-        return stats.format(
-            self.number_bits,
-            self.estimated_elements,
-            self.number_hashes,
-            self.false_positive_rate,
-            self.elements_added,
-            self.current_false_positive_rate(),
-            on_disk,
-            fullness,
-            largest,
-            largest_idx,
-            els_added,
+            f"\tbits: {self.number_bits}\n"
+            f"\testimated elements: {self.estimated_elements}\n"
+            f"\tnumber hashes: {self.number_hashes}\n"
+            f"\tmax false positive rate: {self.false_positive_rate:.6f}\n"
+            f"\telements added: {self.elements_added}\n"
+            f"\tcurrent false positive rate: {self.current_false_positive_rate():.6f}\n"
+            f"\tis on disk: {on_disk}\n"
+            f"\tindex fullness: {fullness:.6}\n"
+            f"\tmax index usage: {largest}\n"
+            f"\tmax index id: {largest_idx}\n"
+            f"\tcalculated elements: {els_added}\n"
         )
 
     def add(self, key: KeyT, num_els: int = 1) -> int:  # type: ignore

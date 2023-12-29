@@ -10,7 +10,7 @@ def read_and_write(func):
     def wrapper(**kwargs):
         path = kwargs["path"]
 
-        with open(path, "r") as fobj:
+        with open(path) as fobj:
             data = fobj.readlines()
 
         func(data, **kwargs)
@@ -60,18 +60,17 @@ def _parse_args():
 
 
 if __name__ == "__main__":
-
     args = _parse_args()
 
     # get current path to find where the script is currently
     script_path = os.path.dirname(os.path.abspath(__file__))
 
-    module_path = os.path.abspath("{}/../".format(script_path))
+    module_path = os.path.abspath(f"{script_path}/../")
 
     # update the package __init__ file
-    init_file = "{}/probables/__init__.py".format(module_path)
+    init_file = f"{module_path}/probables/__init__.py"
     update_file(path=init_file, k="__version__", v=args.new_version)
 
     # update the citation file
-    citation_file = "{}/CITATION.cff".format(module_path)
+    citation_file = f"{module_path}/CITATION.cff"
     update_citation_file(path=citation_file, v=args.new_version)

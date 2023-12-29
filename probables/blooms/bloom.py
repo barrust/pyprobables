@@ -115,32 +115,19 @@ class BloomFilter:
     def __str__(self) -> str:
         """output statistics of the bloom filter"""
         on_disk = "no" if self.is_on_disk is False else "yes"
-        stats = (
+        return (
             "BloomFilter:\n"
-            "\tbits: {0}\n"
-            "\testimated elements: {1}\n"
-            "\tnumber hashes: {2}\n"
-            "\tmax false positive rate: {3:.6f}\n"
-            "\tbloom length (8 bits): {4}\n"
-            "\telements added: {5}\n"
-            "\testimated elements added: {6}\n"
-            "\tcurrent false positive rate: {7:.6f}\n"
-            "\texport size (bytes): {8}\n"
-            "\tnumber bits set: {9}\n"
-            "\tis on disk: {10}\n"
-        )
-        return stats.format(
-            self.number_bits,
-            self.estimated_elements,
-            self.number_hashes,
-            self.false_positive_rate,
-            self.bloom_length,
-            self.elements_added,
-            self.estimate_elements(),
-            self.current_false_positive_rate(),
-            self.export_size(),
-            self._cnt_number_bits_set(),
-            on_disk,
+            f"\tbits: {self.number_bits}\n"
+            f"\testimated elements: {self.estimated_elements}\n"
+            f"\tnumber hashes: {self.number_hashes}\n"
+            f"\tmax false positive rate: {self.false_positive_rate:.6f}\n"
+            f"\tbloom length (8 bits): {self.bloom_length}\n"
+            f"\telements added: {self.elements_added}\n"
+            f"\testimated elements added: {self.estimate_elements()}\n"
+            f"\tcurrent false positive rate: {self.current_false_positive_rate():.6f}\n"
+            f"\texport size (bytes): {self.export_size()}\n"
+            f"\tnumber bits set: {self._cnt_number_bits_set()}\n"
+            f"\tis on disk: {on_disk}\n"
         )
 
     def __bytes__(self) -> bytes:

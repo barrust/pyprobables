@@ -182,25 +182,15 @@ class CuckooFilter:
 
     def __str__(self):
         """setup what it will print"""
-        msg = (
-            "{0}:\n"
-            "\tCapacity: {1}\n"
-            "\tTotal Bins: {2}\n"
-            "\tLoad Factor: {3}%\n"
-            "\tInserted Elements: {4}\n"
-            "\tMax Swaps: {5}\n"
-            "\tExpansion Rate: {6}\n"
-            "\tAuto Expand: {7}"
-        )
-        return msg.format(
-            self.__class__.__name__,
-            self.capacity,
-            self.capacity * self.bucket_size,
-            self.load_factor() * 100,
-            self.elements_added,
-            self.max_swaps,
-            self.expansion_rate,
-            self.auto_expand,
+        return (
+            f"{self.__class__.__name__}:\n"
+            f"\tCapacity: {self.capacity}\n"
+            f"\tTotal Bins: {self.capacity * self.bucket_size}\n"
+            f"\tLoad Factor: {self.load_factor() * 100}%\n"
+            f"\tInserted Elements: {self.elements_added}\n"
+            f"\tMax Swaps: {self.max_swaps}\n"
+            f"\tExpansion Rate: {self.expansion_rate}\n"
+            f"\tAuto Expand: {self.auto_expand}"
         )
 
     @property
@@ -514,8 +504,7 @@ class CuckooFilter:
 
         # NOTE: This should never happen...
         if idx_1 > self.capacity or idx_2 > self.capacity:
-            msg = "Either idx_1 {0} or idx_2 {1} is greater than {2}"
-            raise ValueError(msg.format(idx_1, idx_2, self.capacity))
+            raise ValueError(f"Either idx_1 {idx_1} or idx_2 {idx_2} is greater than {self.capacity}")
         return idx_1, idx_2, fingerprint
 
     def _deal_with_insertion(self, finger):
