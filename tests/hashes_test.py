@@ -16,6 +16,7 @@ from probables.hashes import (
     default_fnv_1a,
     default_md5,
     default_sha256,
+    fnv_1a_32,
     hash_with_depth_bytes,
     hash_with_depth_int,
 )
@@ -53,6 +54,13 @@ class TestHashes(unittest.TestCase):
         self.assertEqual(h1[0], h2[0])  # these should match
         for i in range(1, 5):
             self.assertNotEqual(h1[i], h2[i])
+
+    def test_fnv_1a_32(self):
+        """test fnv_1a 32 bit hash"""
+        hash = fnv_1a_32("this is a test", 0)
+        self.assertEqual(hash, 2139996864)
+        hash = fnv_1a_32("this is also a test", 0)
+        self.assertEqual(hash, 1462718619)
 
     def test_default_md5(self):
         """test default md5 algorithm"""
