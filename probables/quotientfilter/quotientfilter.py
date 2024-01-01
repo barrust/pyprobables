@@ -3,43 +3,23 @@
 from array import array
 
 from probables.hashes import KeyT, fnv_1a_32
+from probables.utilities import Bitarray
 
 
-def get_hash(x, m):
+def get_hash(x: KeyT, m: int):
     return fnv_1a_32(x, 0) & ((1 << m) - 1)
-
-
-class bitarray:
-    # NOTE: NOT SPACE EFFICIENT FOR NOW
-    def __init__(self, size: int):
-        self.bitarray = array("B", [0]) * size
-        self.size = size
-
-    def __getitem__(self, idx: int):
-        return self.bitarray[idx]
-
-    def __setitem__(self, idx: int, val: int):
-        if val < 0 or val > 1:
-            raise ValueError("Invalid bit setting; must be 0 or 1")
-        self.bitarray[idx] = val
-
-    def set_bit(self, idx: int):
-        self.bitarray[idx] = 1
-
-    def clear_bit(self, idx: int):
-        self.bitarray[idx] = 0
 
 
 class QuotientFilter:
     def __init__(self):  # needs to be parameterized
-        self.q = 24
-        self.r = 8
-        self.m = 1 << self.q  # the size of the array (2**q)
+        self._q = 24
+        self._r = 8
+        self._size = 1 << self._q  # same as 2**q
 
-        self.is_occupied_arr = bitarray(self.m)
-        self.is_continuation_arr = bitarray(self.m)
-        self.is_shifted_arr = bitarray(self.m)
-        self._filter = array("I", [0]) * self.m
+        self.is_occupied_arr = Bitarray(self._size)
+        self.is_continuation_arr = Bitarray(self._size)
+        self.is_shifted_arr = Bitarray(self._size)
+        self._filter = array("I", [0]) * self._size
 
     def shift_insert(self, k, v, start, j, flag):
         if self.is_occupied_arr[j] == 0 and self.is_continuation_arr[j] == 0 and self.is_shifted_arr[j] == 0:
@@ -49,7 +29,8 @@ class QuotientFilter:
             self.is_shifted_arr[j] = 1 if j != k else 0
 
         else:
-            i = (j + 1) & (self.m - 1)
+            # print("using shift insert")
+            i = (j + 1) & (self._size - 1)
 
             while True:
                 f = self.is_occupied_arr[i] + self.is_continuation_arr[i] + self.is_shifted_arr[i]
@@ -67,7 +48,7 @@ class QuotientFilter:
                 if f == 0:
                     break
 
-                i = (i + 1) & (self.m - 1)
+                i = (i + 1) & (self._size - 1)
 
             self._filter[j] = v
             self.is_occupied_arr[k] = 1
@@ -75,7 +56,7 @@ class QuotientFilter:
             self.is_shifted_arr[j] = 1 if j != k else 0
 
             if flag == 1:
-                self.is_continuation_arr[(j + 1) & (self.m - 1)] = 1
+                self.is_continuation_arr[(j + 1) & (self._size - 1)] = 1
 
     def get_start_index(self, k):
         j = k
@@ -86,7 +67,7 @@ class QuotientFilter:
                 cnts += 1
 
             if self.is_shifted_arr[j] == 1:
-                j = (j - 1) & (self.m - 1)
+                j = (j - 1) & (self._size - 1)
             else:
                 break
 
@@ -96,15 +77,15 @@ class QuotientFilter:
                     break
                 cnts -= 1
 
-            j = (j + 1) & (self.m - 1)
+            j = (j + 1) & (self._size - 1)
 
         return j
 
     def add(self, key: KeyT):
         if self.contains(key) is False:
-            _hash = get_hash(key, self.q + self.r)
-            key_quotient = _hash >> self.r
-            key_remainder = _hash & ((1 << self.r) - 1)
+            _hash = get_hash(key, self._q + self._r)
+            key_quotient = _hash >> self._r
+            key_remainder = _hash & ((1 << self._r) - 1)
 
             if (
                 self.is_occupied_arr[key_quotient] == 0
@@ -126,7 +107,7 @@ class QuotientFilter:
                     f = self.is_occupied_arr[j] + self.is_continuation_arr[j] + self.is_shifted_arr[j]
 
                     while starts == 0 and f != 0 and key_remainder > self._filter[j]:
-                        j = (j + 1) & (self.m - 1)
+                        j = (j + 1) & (self._size - 1)
 
                         if self.is_continuation_arr[j] == 0:
                             starts += 1
@@ -139,9 +120,9 @@ class QuotientFilter:
                         self.shift_insert(key_quotient, key_remainder, u, j, 1)
 
     def contains(self, key: KeyT):
-        _hash = get_hash(key, self.q + self.r)
-        key_quotient = _hash >> self.r
-        key_remainder = _hash & ((1 << self.r) - 1)
+        _hash = get_hash(key, self._q + self._r)
+        key_quotient = _hash >> self._r
+        key_remainder = _hash & ((1 << self._r) - 1)
 
         if self.is_occupied_arr[key_quotient] == 0:
             return False
@@ -162,7 +143,7 @@ class QuotientFilter:
                 if self._filter[j] == key_remainder:
                     return True
 
-                j = (j + 1) & (self.m - 1)
+                j = (j + 1) & (self._size - 1)
                 f = self.is_occupied_arr[j] + self.is_continuation_arr[j] + self.is_shifted_arr[j]
 
             return False
