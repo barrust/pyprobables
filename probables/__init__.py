@@ -1,19 +1,7 @@
 """ pyprobables module """
 
-from .blooms import (
-    BloomFilter,
-    BloomFilterOnDisk,
-    CountingBloomFilter,
-    ExpandingBloomFilter,
-    RotatingBloomFilter,
-)
-from .countminsketch import (
-    CountMeanMinSketch,
-    CountMeanSketch,
-    CountMinSketch,
-    HeavyHitters,
-    StreamThreshold,
-)
+from .blooms import BloomFilter, BloomFilterOnDisk, CountingBloomFilter, ExpandingBloomFilter, RotatingBloomFilter
+from .countminsketch import CountMeanMinSketch, CountMeanSketch, CountMinSketch, HeavyHitters, StreamThreshold
 from .cuckoo import CountingCuckooFilter, CuckooFilter
 from .exceptions import (
     CuckooFilterFullError,
@@ -22,6 +10,7 @@ from .exceptions import (
     ProbablesBaseException,
     RotatingBloomFilterError,
 )
+from .quotientfilter import QuotientFilter
 
 __author__ = "Tyler Barrus"
 __maintainer__ = "Tyler Barrus"
@@ -50,4 +39,5 @@ __all__ = [
     "ExpandingBloomFilter",
     "RotatingBloomFilter",
     "RotatingBloomFilterError",
+    "QuotientFilter",
 ]
