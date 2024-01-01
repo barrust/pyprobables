@@ -112,6 +112,13 @@ class TestProbablesUtilities(unittest.TestCase):
     def test_bitarray(self):
         """test bit array basic operations"""
         ba = Bitarray(100)
+
+        self.assertEqual(ba.size, 100)
+        self.assertEqual(ba.size_bytes, 13)
+        for i in range(ba.size_bytes):
+            self.assertEqual(0, ba.bitarray[i])
+
+        # test setting bits
         for i in range(33):
             ba.set_bit(i * 3)
 
@@ -124,6 +131,7 @@ class TestProbablesUtilities(unittest.TestCase):
         self.assertEqual(ba[0], 1)
         self.assertEqual(ba[1], 0)
 
+        # test clearing bits
         for i in range(33):
             ba.clear_bit(i * 3)
 
@@ -153,6 +161,8 @@ class TestProbablesUtilities(unittest.TestCase):
 
     def test_bitarray_invalid_idx(self):
         """use an invalid type in a jaccard index"""
+        self.assertRaises(TypeError, lambda: Bitarray("100"))
+        self.assertRaises(ValueError, lambda: Bitarray(-100))
         ba = Bitarray(10)
         self.assertRaises(IndexError, lambda: ba.set_bit(12))
         self.assertRaises(IndexError, lambda: ba.set_bit(-1))

@@ -91,6 +91,8 @@ class Bitarray:
     """Simplified, pure python bitarray implementation using as little memory as possible"""
 
     def __init__(self, size: int):
+        if not isinstance(size, int):
+            raise TypeError(f"Bitarray size must be an int; {type(size)} was provided")
         if size <= 0:
             raise ValueError(f"Bitarray size must be larger than 1; {size} was provided")
         self._size_bytes = math.ceil(size / 8)
