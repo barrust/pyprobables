@@ -15,11 +15,14 @@ class QuotientFilter:
         self._q = 24
         self._r = 8
         self._size = 1 << self._q  # same as 2**q
+        self._elements_added = 0
 
         self.is_occupied_arr = Bitarray(self._size)
         self.is_continuation_arr = Bitarray(self._size)
         self.is_shifted_arr = Bitarray(self._size)
         self._filter = array("I", [0]) * self._size
+
+    # TODO: Add properties
 
     def shift_insert(self, k, v, start, j, flag):
         if self.is_occupied_arr[j] == 0 and self.is_continuation_arr[j] == 0 and self.is_shifted_arr[j] == 0:
@@ -118,6 +121,7 @@ class QuotientFilter:
                         self.shift_insert(key_quotient, key_remainder, u, j, 0)
                     else:
                         self.shift_insert(key_quotient, key_remainder, u, j, 1)
+            self._elements_added += 1
 
     def contains(self, key: KeyT):
         _hash = get_hash(key, self._q + self._r)

@@ -11,6 +11,7 @@ from .exceptions import (
     RotatingBloomFilterError,
 )
 from .quotientfilter import QuotientFilter
+from .utilities import Bitarray
 
 __author__ = "Tyler Barrus"
 __maintainer__ = "Tyler Barrus"
@@ -40,4 +41,5 @@ __all__ = [
     "RotatingBloomFilter",
     "RotatingBloomFilterError",
     "QuotientFilter",
+    "Bitarray",
 ]
