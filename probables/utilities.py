@@ -1,6 +1,5 @@
 """ Utility Functions """
 
-import logging
 import math
 import mmap
 import string
@@ -190,11 +189,11 @@ class Bitarray:
 
         Returns:
             str: Bitarray representation as a string"""
-        return "".join([str(self.check_bit(x)) for x in range(self._size)])
+        return "".join(str(self.check_bit(x)) for x in range(self._size))
 
     def num_bits_set(self) -> int:
         """Number of bits set in the bitarray
 
         Returns:
             int: Number of bits set"""
-        return sum([self.check_bit(x) for x in range(self._size)])
+        return sum(self.check_bit(x) for x in range(self._size))

@@ -97,6 +97,10 @@ class QuotientFilter:
 
     # External properties
     def add(self, key: KeyT) -> None:
+        """Add key to the quotient filter
+
+        Args:
+            key (str|bytes): The element to add"""
         _hash = self._hash_func(key)
         key_quotient = _hash >> self._r
         key_remainder = _hash & ((1 << self._r) - 1)
@@ -106,6 +110,12 @@ class QuotientFilter:
             self._add(key_quotient, key_remainder)
 
     def contains(self, key: KeyT) -> bool:
+        """Check to see if key is likely in the quotient filter
+
+        Args:
+            key (str|bytes): The element to add
+        Return:
+            bool: True if likely encountered, False if definately not"""
         _hash = self._hash_func(key)
         key_quotient = _hash >> self._r
         key_remainder = _hash & ((1 << self._r) - 1)
@@ -176,50 +186,50 @@ class QuotientFilter:
             self._is_occupied[q] = 1
 
         else:
-            j = self._get_start_index(q)
+            start_idx = self._get_start_index(q)
 
             if self._is_occupied[q] == 0:
-                self._shift_insert(q, r, j, j, 0)
+                self._shift_insert(q, r, start_idx, start_idx, 0)
 
             else:
-                u = j
+                orig_start_idx = start_idx
                 starts = 0
-                f = self._is_occupied[j] + self._is_continuation[j] + self._is_shifted[j]
+                f = self._is_occupied[start_idx] + self._is_continuation[start_idx] + self._is_shifted[start_idx]
 
-                while starts == 0 and f != 0 and r > self._filter[j]:
-                    j = (j + 1) & (self._size - 1)
+                while starts == 0 and f != 0 and r > self._filter[start_idx]:
+                    start_idx = (start_idx + 1) & (self._size - 1)
 
-                    if self._is_continuation[j] == 0:
+                    if self._is_continuation[start_idx] == 0:
                         starts += 1
 
-                    f = self._is_occupied[j] + self._is_continuation[j] + self._is_shifted[j]
+                    f = self._is_occupied[start_idx] + self._is_continuation[start_idx] + self._is_shifted[start_idx]
 
                 if starts == 1:
-                    self._shift_insert(q, r, u, j, 0)
+                    self._shift_insert(q, r, orig_start_idx, start_idx, 0)
                 else:
-                    self._shift_insert(q, r, u, j, 1)
+                    self._shift_insert(q, r, orig_start_idx, start_idx, 1)
         self._elements_added += 1
 
     def _contains(self, q: int, r: int) -> bool:
         if self._is_occupied[q] == 0:
             return False
 
-        j = self._get_start_index(q)
+        start_idx = self._get_start_index(q)
 
         starts = 0
-        f = self._is_occupied[j] + self._is_continuation[j] + self._is_shifted[j]
+        meta_bits = self._is_occupied[start_idx] + self._is_continuation[start_idx] + self._is_shifted[start_idx]
 
-        while f != 0:
-            if self._is_continuation[j] == 0:
+        while meta_bits != 0:
+            if self._is_continuation[start_idx] == 0:
                 starts += 1
 
-            if starts == 2 or self._filter[j] > r:
+            if starts == 2 or self._filter[start_idx] > r:
                 break
 
-            if self._filter[j] == r:
+            if self._filter[start_idx] == r:
                 return True
 
-            j = (j + 1) & (self._size - 1)
-            f = self._is_occupied[j] + self._is_continuation[j] + self._is_shifted[j]
+            start_idx = (start_idx + 1) & (self._size - 1)
+            meta_bits = self._is_occupied[start_idx] + self._is_continuation[start_idx] + self._is_shifted[start_idx]
 
         return False
