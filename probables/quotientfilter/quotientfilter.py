@@ -1,48 +1,134 @@
-# https://mecha-mind.medium.com/membership-queries-with-big-data-9e5046d3270f
+""" BloomFilter and BloomFiter on Disk, python implementation
+    License: MIT
+    Author: Tyler Barrus (barrust@gmail.com)
+"""
 
 from array import array
 
-from probables.hashes import KeyT, fnv_1a_32
+from probables.hashes import HashFuncT, KeyT, fnv_1a_32
 from probables.utilities import Bitarray
 
 
-def get_hash(x: KeyT, m: int):
-    return fnv_1a_32(x, 0) & ((1 << m) - 1)
-
-
 class QuotientFilter:
-    def __init__(self):  # needs to be parameterized
-        self._q = 24
-        self._r = 8
+    """Simple Quotient Filter implementation
+
+    Args:
+        quotient (int): The size of the quotient to use
+        hash_function (function): Hashing strategy function to use `hf(key, number)`
+    Returns:
+        QuotientFilter: The initialized filter
+    Raises:
+        ValueError:
+    Note:
+        The size of the QuotientFilter will be 2**q"""
+
+    __slots__ = (
+        "_q",
+        "_r",
+        "_size",
+        "_elements_added",
+        "_hash_func",
+        "_int_type_code",
+        "_bits_per_elm",
+        "_is_occupied",
+        "_is_continuation",
+        "_is_shifted",
+        "_filter",
+    )
+
+    def __init__(self, quotient: int = 20, hash_function: HashFuncT = None):  # needs to be parameterized
+        if quotient < 3 or quotient > 31:
+            raise ValueError(
+                f"Invalid q setting for Quotient filter; q must be between 3 and 31; {quotient} was provided"
+            )
+        self._q = quotient
+        self._r = 32 - quotient
         self._size = 1 << self._q  # same as 2**q
         self._elements_added = 0
+        self._hash_func = fnv_1a_32 if hash_function is None else hash_function
 
-        self.is_occupied_arr = Bitarray(self._size)
-        self.is_continuation_arr = Bitarray(self._size)
-        self.is_shifted_arr = Bitarray(self._size)
-        self._filter = array("I", [0]) * self._size
+        # ensure we use the smallest type possible to reduce memory wastage
+        if self._r <= 8:
+            self._int_type_code = "B"
+            self._bits_per_elm = 8
+        elif self._r <= 16:
+            self._int_type_code = "I"
+            self._bits_per_elm = 16
+        else:
+            self._int_type_code = "L"
+            self._bits_per_elm = 32
 
-    # TODO: Add properties
+        self._is_occupied = Bitarray(self._size)
+        self._is_continuation = Bitarray(self._size)
+        self._is_shifted = Bitarray(self._size)
+        self._filter = array(self._int_type_code, [0]) * self._size
 
-    def shift_insert(self, k, v, start, j, flag):
-        if self.is_occupied_arr[j] == 0 and self.is_continuation_arr[j] == 0 and self.is_shifted_arr[j] == 0:
+    def __contains__(self, val: KeyT) -> bool:
+        """setup the `in` keyword"""
+        return self.contains(val)
+
+    @property
+    def quotient(self) -> int:
+        """int: The size of the quotient, in bits"""
+        return self._q
+
+    @property
+    def remainder(self) -> int:
+        """int: The size of the remainder, in bits"""
+        return self._r
+
+    @property
+    def num_elements(self) -> int:
+        """int: The total size of the filter"""
+        return self._size
+
+    @property
+    def elements_added(self) -> int:
+        """int: The number of elements added to the filter"""
+        return self._elements_added
+
+    @property
+    def bits_per_elm(self):
+        """int: The number of bits used per element"""
+        return self._bits_per_elm
+
+    def _get_hash(self, key: KeyT, m: int = 32):
+        return self._hash_func(key, 0) & ((1 << m) - 1)  # ensure that we only get 32 bits
+
+    # External properties
+    def add(self, key: KeyT) -> None:
+        _hash = self._hash_func(key)
+        key_quotient = _hash >> self._r
+        key_remainder = _hash & ((1 << self._r) - 1)
+
+        if not self._contains(key_quotient, key_remainder):
+            # TODO, add it here
+            self._add(key_quotient, key_remainder)
+
+    def contains(self, key: KeyT) -> bool:
+        _hash = self._hash_func(key)
+        key_quotient = _hash >> self._r
+        key_remainder = _hash & ((1 << self._r) - 1)
+        return self._contains(key_quotient, key_remainder)
+
+    def _shift_insert(self, k, v, start, j, flag):
+        if self._is_occupied[j] == 0 and self._is_continuation[j] == 0 and self._is_shifted[j] == 0:
             self._filter[j] = v
-            self.is_occupied_arr[k] = 1
-            self.is_continuation_arr[j] = 1 if j != start else 0
-            self.is_shifted_arr[j] = 1 if j != k else 0
+            self._is_occupied[k] = 1
+            self._is_continuation[j] = 1 if j != start else 0
+            self._is_shifted[j] = 1 if j != k else 0
 
         else:
-            # print("using shift insert")
             i = (j + 1) & (self._size - 1)
 
             while True:
-                f = self.is_occupied_arr[i] + self.is_continuation_arr[i] + self.is_shifted_arr[i]
+                f = self._is_occupied[i] + self._is_continuation[i] + self._is_shifted[i]
 
-                temp = self.is_continuation_arr[i]
-                self.is_continuation_arr[i] = self.is_continuation_arr[j]
-                self.is_continuation_arr[j] = temp
+                temp = self._is_continuation[i]
+                self._is_continuation[i] = self._is_continuation[j]
+                self._is_continuation[j] = temp
 
-                self.is_shifted_arr[i] = 1
+                self._is_shifted[i] = 1
 
                 temp = self._filter[i]
                 self._filter[i] = self._filter[j]
@@ -54,28 +140,28 @@ class QuotientFilter:
                 i = (i + 1) & (self._size - 1)
 
             self._filter[j] = v
-            self.is_occupied_arr[k] = 1
-            self.is_continuation_arr[j] = 1 if j != start else 0
-            self.is_shifted_arr[j] = 1 if j != k else 0
+            self._is_occupied[k] = 1
+            self._is_continuation[j] = 1 if j != start else 0
+            self._is_shifted[j] = 1 if j != k else 0
 
             if flag == 1:
-                self.is_continuation_arr[(j + 1) & (self._size - 1)] = 1
+                self._is_continuation[(j + 1) & (self._size - 1)] = 1
 
-    def get_start_index(self, k):
+    def _get_start_index(self, k):
         j = k
         cnts = 0
 
         while True:
-            if j == k or self.is_occupied_arr[j] == 1:
+            if j == k or self._is_occupied[j] == 1:
                 cnts += 1
 
-            if self.is_shifted_arr[j] == 1:
+            if self._is_shifted[j] == 1:
                 j = (j - 1) & (self._size - 1)
             else:
                 break
 
         while True:
-            if self.is_continuation_arr[j] == 0:
+            if self._is_continuation[j] == 0:
                 if cnts == 1:
                     break
                 cnts -= 1
@@ -84,70 +170,56 @@ class QuotientFilter:
 
         return j
 
-    def add(self, key: KeyT):
-        if self.contains(key) is False:
-            _hash = get_hash(key, self._q + self._r)
-            key_quotient = _hash >> self._r
-            key_remainder = _hash & ((1 << self._r) - 1)
-
-            if (
-                self.is_occupied_arr[key_quotient] == 0
-                and self.is_continuation_arr[key_quotient] == 0
-                and self.is_shifted_arr[key_quotient] == 0
-            ):
-                self._filter[key_quotient] = key_remainder
-                self.is_occupied_arr[key_quotient] = 1
-
-            else:
-                j = self.get_start_index(key_quotient)
-
-                if self.is_occupied_arr[key_quotient] == 0:
-                    self.shift_insert(key_quotient, key_remainder, j, j, 0)
-
-                else:
-                    u = j
-                    starts = 0
-                    f = self.is_occupied_arr[j] + self.is_continuation_arr[j] + self.is_shifted_arr[j]
-
-                    while starts == 0 and f != 0 and key_remainder > self._filter[j]:
-                        j = (j + 1) & (self._size - 1)
-
-                        if self.is_continuation_arr[j] == 0:
-                            starts += 1
-
-                        f = self.is_occupied_arr[j] + self.is_continuation_arr[j] + self.is_shifted_arr[j]
-
-                    if starts == 1:
-                        self.shift_insert(key_quotient, key_remainder, u, j, 0)
-                    else:
-                        self.shift_insert(key_quotient, key_remainder, u, j, 1)
-            self._elements_added += 1
-
-    def contains(self, key: KeyT):
-        _hash = get_hash(key, self._q + self._r)
-        key_quotient = _hash >> self._r
-        key_remainder = _hash & ((1 << self._r) - 1)
-
-        if self.is_occupied_arr[key_quotient] == 0:
-            return False
+    def _add(self, q: int, r: int):
+        if self._is_occupied[q] == 0 and self._is_continuation[q] == 0 and self._is_shifted[q] == 0:
+            self._filter[q] = r
+            self._is_occupied[q] = 1
 
         else:
-            j = self.get_start_index(key_quotient)
+            j = self._get_start_index(q)
 
-            starts = 0
-            f = self.is_occupied_arr[j] + self.is_continuation_arr[j] + self.is_shifted_arr[j]
+            if self._is_occupied[q] == 0:
+                self._shift_insert(q, r, j, j, 0)
 
-            while f != 0:
-                if self.is_continuation_arr[j] == 0:
-                    starts += 1
+            else:
+                u = j
+                starts = 0
+                f = self._is_occupied[j] + self._is_continuation[j] + self._is_shifted[j]
 
-                if starts == 2 or self._filter[j] > key_remainder:
-                    break
+                while starts == 0 and f != 0 and r > self._filter[j]:
+                    j = (j + 1) & (self._size - 1)
 
-                if self._filter[j] == key_remainder:
-                    return True
+                    if self._is_continuation[j] == 0:
+                        starts += 1
 
-                j = (j + 1) & (self._size - 1)
-                f = self.is_occupied_arr[j] + self.is_continuation_arr[j] + self.is_shifted_arr[j]
+                    f = self._is_occupied[j] + self._is_continuation[j] + self._is_shifted[j]
 
+                if starts == 1:
+                    self._shift_insert(q, r, u, j, 0)
+                else:
+                    self._shift_insert(q, r, u, j, 1)
+        self._elements_added += 1
+
+    def _contains(self, q: int, r: int) -> bool:
+        if self._is_occupied[q] == 0:
             return False
+
+        j = self._get_start_index(q)
+
+        starts = 0
+        f = self._is_occupied[j] + self._is_continuation[j] + self._is_shifted[j]
+
+        while f != 0:
+            if self._is_continuation[j] == 0:
+                starts += 1
+
+            if starts == 2 or self._filter[j] > r:
+                break
+
+            if self._filter[j] == r:
+                return True
+
+            j = (j + 1) & (self._size - 1)
+            f = self._is_occupied[j] + self._is_continuation[j] + self._is_shifted[j]
+
+        return False

@@ -126,6 +126,7 @@ class TestProbablesUtilities(unittest.TestCase):
             ba.as_string(),
             "1001001001001001001001001001001001001001001001001001001001001001001001001001001001001001001001001000",
         )
+        self.assertEqual(ba.num_bits_set(), 33)
         self.assertTrue(ba.is_bit_set(3))
         self.assertFalse(ba.is_bit_set(4))
         self.assertEqual(ba[0], 1)

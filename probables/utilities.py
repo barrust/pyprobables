@@ -88,7 +88,15 @@ class MMap:
 
 
 class Bitarray:
-    """Simplified, pure python bitarray implementation using as little memory as possible"""
+    """Simplified, pure python bitarray implementation using as little memory as possible
+
+    Args:
+        size (int): The number of bits in the bitarray
+    Returns:
+        Bitarray: A bitarray
+    Raises:
+        TypeError:
+        ValueError:"""
 
     def __init__(self, size: int):
         if not isinstance(size, int):
@@ -179,3 +187,10 @@ class Bitarray:
         Returns:
             str: Bitarray representation as a string"""
         return "".join([str(self.check_bit(x)) for x in range(self._size)])
+
+    def num_bits_set(self) -> int:
+        """Number of bits set in the bitarray
+
+        Returns:
+            int: Number of bits set"""
+        return sum([self.check_bit(x) for x in range(self._size)])

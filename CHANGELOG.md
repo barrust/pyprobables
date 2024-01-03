@@ -1,5 +1,10 @@
 # PyProbables Changelog
 
+### Version 0.6.0
+
+* Add `QuotientFilter` implementation; [see issue #37](https://github.com/barrust/pyprobables/issues/37)
+* Add `bitarray` implementation
+
 ### Version 0.5.9
 
 * Add `py.typed` files so that mypy will find type annotations
