@@ -1,5 +1,6 @@
 """ Utility Functions """
 
+import logging
 import math
 import mmap
 import string
@@ -122,8 +123,11 @@ class Bitarray:
         """The bitarray"""
         return self._bitarray
 
-    def __getitem__(self, idx: int) -> int:
-        return self.check_bit(idx)
+    def __getitem__(self, key: Union[int, slice]) -> int:
+        if isinstance(key, slice):
+            indices = range(*key.indices(self._size))
+            return [self.check_bit(i) for i in indices]
+        return self.check_bit(key)
 
     def __setitem__(self, idx: int, val: int):
         if val < 0 or val > 1:
