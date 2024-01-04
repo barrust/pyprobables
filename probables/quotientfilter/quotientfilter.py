@@ -92,10 +92,6 @@ class QuotientFilter:
         """int: The number of bits used per element"""
         return self._bits_per_elm
 
-    def _get_hash(self, key: KeyT, m: int = 32):
-        return self._hash_func(key, 0) & ((1 << m) - 1)  # ensure that we only get 32 bits
-
-    # External properties
     def add(self, key: KeyT) -> None:
         """Add key to the quotient filter
 
