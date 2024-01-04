@@ -4,7 +4,6 @@ import math
 import mmap
 import string
 from array import array
-from functools import reduce
 from pathlib import Path
 from typing import Union
 
