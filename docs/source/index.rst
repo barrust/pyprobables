@@ -3,7 +3,6 @@
 
 
 .. toctree::
-    :hidden:
 
     code
     quickstart
