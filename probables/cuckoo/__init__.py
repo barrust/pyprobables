@@ -1,6 +1,6 @@
 """ Cuckoo Filters """
 
-from .countingcuckoo import CountingCuckooFilter
-from .cuckoo import CuckooFilter
+from probables.cuckoo.countingcuckoo import CountingCuckooFilter
+from probables.cuckoo.cuckoo import CuckooFilter
 
 __all__ = ["CuckooFilter", "CountingCuckooFilter"]

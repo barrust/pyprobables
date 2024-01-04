@@ -16,9 +16,9 @@ from struct import Struct
 from textwrap import wrap
 from typing import ByteString, Tuple, Union
 
-from ..exceptions import InitializationError, NotSupportedError
-from ..hashes import HashFuncT, HashResultsT, KeyT, default_fnv_1a
-from ..utilities import MMap, is_hex_string, is_valid_file, resolve_path
+from probables.exceptions import InitializationError, NotSupportedError
+from probables.hashes import HashFuncT, HashResultsT, KeyT, default_fnv_1a
+from probables.utilities import MMap, is_hex_string, is_valid_file, resolve_path
 
 MISMATCH_MSG = "The parameter second must be of type BloomFilter or a BloomFilterOnDisk"
 

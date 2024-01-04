@@ -11,10 +11,10 @@ from pathlib import Path
 from struct import Struct
 from typing import ByteString, List, Union
 
-from ..exceptions import CuckooFilterFullError
-from ..hashes import KeyT, SimpleHashT
-from ..utilities import MMap, resolve_path
-from .cuckoo import CuckooFilter
+from probables.cuckoo.cuckoo import CuckooFilter
+from probables.exceptions import CuckooFilterFullError
+from probables.hashes import KeyT, SimpleHashT
+from probables.utilities import MMap, resolve_path
 
 
 class CountingCuckooFilter(CuckooFilter):

@@ -13,9 +13,9 @@ from pathlib import Path
 from struct import Struct
 from typing import ByteString, List, Tuple, Union
 
-from ..exceptions import CuckooFilterFullError, InitializationError
-from ..hashes import KeyT, SimpleHashT, fnv_1a
-from ..utilities import MMap, get_x_bits, is_valid_file, resolve_path
+from probables.exceptions import CuckooFilterFullError, InitializationError
+from probables.hashes import KeyT, SimpleHashT, fnv_1a
+from probables.utilities import MMap, get_x_bits, is_valid_file, resolve_path
 
 
 class CuckooFilter:

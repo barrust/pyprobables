@@ -11,10 +11,10 @@ from pathlib import Path
 from struct import Struct
 from typing import ByteString, Tuple, Union
 
-from ..exceptions import RotatingBloomFilterError
-from ..hashes import HashFuncT, HashResultsT, KeyT
-from ..utilities import MMap, is_valid_file, resolve_path
-from .bloom import BloomFilter
+from probables.blooms.bloom import BloomFilter
+from probables.exceptions import RotatingBloomFilterError
+from probables.hashes import HashFuncT, HashResultsT, KeyT
+from probables.utilities import MMap, is_valid_file, resolve_path
 
 
 class ExpandingBloomFilter:

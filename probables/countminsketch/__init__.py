@@ -1,6 +1,6 @@
 """ Count-Min Sketchs """
 
-from .countminsketch import (
+from probables.countminsketch.countminsketch import (
     CountMeanMinSketch,
     CountMeanSketch,
     CountMinSketch,

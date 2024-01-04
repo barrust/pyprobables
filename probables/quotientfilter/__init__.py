@@ -1,6 +1,6 @@
 """ Quotient Filters """
 
 
-from .quotientfilter import QuotientFilter
+from probables.quotientfilter.quotientfilter import QuotientFilter
 
 __all__ = ["QuotientFilter"]

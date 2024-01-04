@@ -8,11 +8,11 @@ from pathlib import Path
 from struct import Struct
 from typing import ByteString, Union
 
-from ..constants import UINT32_T_MAX, UINT64_T_MAX
-from ..exceptions import InitializationError
-from ..hashes import HashFuncT, HashResultsT, KeyT
-from ..utilities import is_hex_string, is_valid_file, resolve_path
-from .bloom import BloomFilter
+from probables.blooms.bloom import BloomFilter
+from probables.constants import UINT32_T_MAX, UINT64_T_MAX
+from probables.exceptions import InitializationError
+from probables.hashes import HashFuncT, HashResultsT, KeyT
+from probables.utilities import is_hex_string, is_valid_file, resolve_path
 
 MISMATCH_MSG = "The parameter second must be of type CountingBloomFilter"
 

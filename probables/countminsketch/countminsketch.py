@@ -13,10 +13,10 @@ from pathlib import Path
 from struct import Struct
 from typing import ByteString, Dict, Tuple, Union
 
-from ..constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN
-from ..exceptions import CountMinSketchError, InitializationError, NotSupportedError
-from ..hashes import HashFuncT, HashResultsT, KeyT, default_fnv_1a
-from ..utilities import MMap, is_valid_file, resolve_path
+from probables.constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN
+from probables.exceptions import CountMinSketchError, InitializationError, NotSupportedError
+from probables.hashes import HashFuncT, HashResultsT, KeyT, default_fnv_1a
+from probables.utilities import MMap, is_valid_file, resolve_path
 
 
 class CountMinSketch:

@@ -5,7 +5,7 @@ from hashlib import md5, sha256
 from struct import unpack
 from typing import Callable, List, Union
 
-from .constants import UINT32_T_MAX, UINT64_T_MAX
+from probables.constants import UINT32_T_MAX, UINT64_T_MAX
 
 KeyT = Union[str, bytes]
 SimpleHashT = Callable[[KeyT, int], int]
