@@ -253,6 +253,34 @@ The counting cuckoo filter is similar to the standard filter except that it
 tracks the number of times a fingerprint has been added to the filter.
 
 
+Quotient Filters
+-------------
+
+Quotient Filters provide set operations of large datasets while being relatively
+small in memory footprint. They provide a zero percent false negative rate and a
+small false positive rate.
+`more information <https://en.wikipedia.org/wiki/Quotient_filter>`__
+
+
+Import, Initialize, and Train
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. code:: python3
+
+    >>> qf = QuotientFilter(quotient=22)
+    >>> with open('war_and_peace.txt', 'r') as fp:
+    >>>     for line in fp:
+    >>>         for word in line.split():
+    >>>             blm.add(word.lower())  # add each word to the bloom filter!
+
+
+Query the Quotient Filter
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. code:: python3
+
+    >>> words_to_check = ['borzoi', 'diametrically', 'fleches', 'rain', 'foo']
+    >>> for word in words_to_check:
+    >>>     print(qf.check(word))  # prints: True, True, True, True, False
+
 Custom Hashing Functions
 ----------------------------------
 In many instances, to get the best raw performance out of the data structures,

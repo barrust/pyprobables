@@ -58,13 +58,13 @@ class TestQuotientFilter(unittest.TestCase):
 
         found_no = False
         for i in range(0, 200, 2):
-            if not qf.contains(str(i)):
+            if not qf.check(str(i)):
                 found_no = True
         self.assertFalse(found_no)
 
         for i in range(1, 200, 2):
             print(i)
-            self.assertFalse(qf.contains(str(i)))
+            self.assertFalse(qf.check(str(i)))
 
         self.assertEqual(qf.elements_added, 100)
 

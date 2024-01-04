@@ -65,7 +65,7 @@ class QuotientFilter:
 
     def __contains__(self, val: KeyT) -> bool:
         """setup the `in` keyword"""
-        return self.contains(val)
+        return self.check(val)
 
     @property
     def quotient(self) -> int:
@@ -105,7 +105,7 @@ class QuotientFilter:
             # TODO, add it here
             self._add(key_quotient, key_remainder)
 
-    def contains(self, key: KeyT) -> bool:
+    def check(self, key: KeyT) -> bool:
         """Check to see if key is likely in the quotient filter
 
         Args:
