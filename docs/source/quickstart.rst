@@ -254,7 +254,7 @@ tracks the number of times a fingerprint has been added to the filter.
 
 
 Quotient Filters
--------------
+----------------
 
 Quotient Filters provide set operations of large datasets while being relatively
 small in memory footprint. They provide a zero percent false negative rate and a

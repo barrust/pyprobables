@@ -2,6 +2,13 @@
 .. include:: ../../README.rst
 
 
+.. toctree::
+    :hidden:
+
+    code
+    quickstart
+
+
 Read More
 ==================
 
