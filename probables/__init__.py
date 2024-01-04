@@ -1,17 +1,23 @@
 """ pyprobables module """
 
-from .blooms import BloomFilter, BloomFilterOnDisk, CountingBloomFilter, ExpandingBloomFilter, RotatingBloomFilter
-from .countminsketch import CountMeanMinSketch, CountMeanSketch, CountMinSketch, HeavyHitters, StreamThreshold
-from .cuckoo import CountingCuckooFilter, CuckooFilter
-from .exceptions import (
+from probables.blooms import (
+    BloomFilter,
+    BloomFilterOnDisk,
+    CountingBloomFilter,
+    ExpandingBloomFilter,
+    RotatingBloomFilter,
+)
+from probables.countminsketch import CountMeanMinSketch, CountMeanSketch, CountMinSketch, HeavyHitters, StreamThreshold
+from probables.cuckoo import CountingCuckooFilter, CuckooFilter
+from probables.exceptions import (
     CuckooFilterFullError,
     InitializationError,
     NotSupportedError,
     ProbablesBaseException,
     RotatingBloomFilterError,
 )
-from .quotientfilter import QuotientFilter
-from .utilities import Bitarray
+from probables.quotientfilter import QuotientFilter
+from probables.utilities import Bitarray
 
 __author__ = "Tyler Barrus"
 __maintainer__ = "Tyler Barrus"
