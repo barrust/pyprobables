@@ -131,6 +131,18 @@ Import pyprobables and setup a Cuckoo Filter
     cko.check('google.com')  # should return True
 
 
+Import pyprobables and setup a Quotient Filter
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: python
+
+    from probables import QuotientFilter
+    qf = QuotientFilter(quotient=24)
+    qf.add('google.com')
+    qf.check('facebook.com')  # should return False
+    qf.check('google.com')  # should return True
+
+
 Supplying a pre-defined, alternative hashing strategies
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
