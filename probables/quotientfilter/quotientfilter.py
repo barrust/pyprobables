@@ -39,7 +39,7 @@ class QuotientFilter:
     def __init__(self, quotient: int = 20, hash_function: HashFuncT = None):  # needs to be parameterized
         if quotient < 3 or quotient > 31:
             raise ValueError(
-                f"Invalid q setting for Quotient filter; q must be between 3 and 31; {quotient} was provided"
+                f"Quotient filter: Invalid quotient setting; quotient must be between 3 and 31; {quotient} was provided"
             )
         self._q = quotient
         self._r = 32 - quotient
