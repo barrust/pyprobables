@@ -4,6 +4,7 @@ import math
 import mmap
 import string
 from array import array
+from functools import reduce
 from pathlib import Path
 from typing import Union
 
@@ -28,12 +29,10 @@ def resolve_path(filepath: Union[str, Path]) -> Path:
 
 
 def get_x_bits(num: int, max_bits: int, num_bits: int, right_bits: bool = True) -> int:
-    """ensure the correct number of bits and pull the upper x bits"""
-    bits = bin(num).lstrip("0b")
-    bits = bits.zfill(max_bits)
+    """ensure the correct bits are pulled from num"""
     if right_bits:
-        return int(bits[-num_bits:], 2)
-    return int(bits[:num_bits], 2)
+        return num & (2**num_bits - 1)
+    return ((1 << num_bits) - 1) & (num >> (max_bits - num_bits))
 
 
 class MMap:

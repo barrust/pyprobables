@@ -92,14 +92,13 @@ def fnv_1a(key: KeyT, seed: int = 0) -> int:
         int: 64-bit hashed representation of key
     Note:
         Uses the lower 64 bits when overflows occur"""
-    max64mod = UINT64_T_MAX + 1
-    hval = (14695981039346656037 + (31 * seed)) % max64mod
+    hval = (14695981039346656037 + (31 * seed)) & UINT64_T_MAX
     fnv_64_prime = 1099511628211
     tmp = list(key) if not isinstance(key, str) else list(map(ord, key))
     for t_str in tmp:
         hval ^= t_str
         hval *= fnv_64_prime
-        hval %= max64mod
+        hval &= UINT64_T_MAX
     return hval
 
 
@@ -112,14 +111,13 @@ def fnv_1a_32(key: KeyT, seed: int = 0) -> int:
         int: 32-bit hashed representation of key
     Note:
         Uses the lower 32 bits when overflows occur"""
-    max32mod = UINT32_T_MAX + 1
-    hval = (0x811C9DC5 + (31 * seed)) % max32mod
+    hval = (0x811C9DC5 + (31 * seed)) & UINT32_T_MAX
     fnv_32_prime = 0x01000193
     tmp = list(key) if not isinstance(key, str) else list(map(ord, key))
     for t_str in tmp:
         hval ^= t_str
         hval *= fnv_32_prime
-        hval %= max32mod
+        hval &= UINT32_T_MAX
     return hval
 
 
