@@ -1,7 +1,9 @@
 """ Utility Functions """
 
+import math
 import mmap
 import string
+from array import array
 from pathlib import Path
 from typing import Union
 
@@ -83,3 +85,115 @@ class MMap:
     def read(self, n: int = -1) -> bytes:
         """Implement a method to read from the file on top of the MMap class"""
         return self.__m.read(n)
+
+
+class Bitarray:
+    """Simplified, pure python bitarray implementation using as little memory as possible
+
+    Args:
+        size (int): The number of bits in the bitarray
+    Returns:
+        Bitarray: A bitarray
+    Raises:
+        TypeError:
+        ValueError:"""
+
+    def __init__(self, size: int):
+        if not isinstance(size, int):
+            raise TypeError(f"Bitarray size must be an int; {type(size)} was provided")
+        if size <= 0:
+            raise ValueError(f"Bitarray size must be larger than 1; {size} was provided")
+        self._size_bytes = math.ceil(size / 8)
+        self._bitarray = array("B", [0]) * self._size_bytes
+        self._size = size
+
+    @property
+    def size_bytes(self) -> int:
+        """The size of the bitarray in bytes"""
+        return self._size_bytes
+
+    @property
+    def size(self) -> int:
+        """The number of bits in the bitarray"""
+        return self._size
+
+    @property
+    def bitarray(self) -> array:
+        """The bitarray"""
+        return self._bitarray
+
+    def __getitem__(self, key: Union[int, slice]) -> int:
+        if isinstance(key, slice):
+            indices = range(*key.indices(self._size))
+            return [self.check_bit(i) for i in indices]
+        return self.check_bit(key)
+
+    def __setitem__(self, idx: int, val: int):
+        if val < 0 or val > 1:
+            raise ValueError("Invalid bit setting; must be 0 or 1")
+        if idx < 0 or idx >= self._size:
+            raise IndexError(f"Bitarray index outside of range; index {idx} was provided")
+        b = idx // 8
+        if val == 1:
+            self._bitarray[b] = self._bitarray[b] | (1 << (idx % 8))
+        else:
+            self._bitarray[b] = self._bitarray[b] & ~(1 << (idx % 8))
+
+    def check_bit(self, idx: int) -> int:
+        """Check if the bit idx is set
+
+        Args:
+            idx (int): The index to check
+        Returns:
+            int: The status of the bit, either 0 or 1"""
+        if idx < 0 or idx >= self._size:
+            raise IndexError(f"Bitarray index outside of range; index {idx} was provided")
+        return 0 if (self._bitarray[idx // 8] & (1 << (idx % 8))) == 0 else 1
+
+    def is_bit_set(self, idx: int) -> bool:
+        """Check if the bit idx is set
+
+        Args:
+            idx (int): The index to check
+        Returns:
+            int: The status of the bit, either 0 or 1"""
+        return bool(self.check_bit(idx))
+
+    def set_bit(self, idx: int) -> None:
+        """Set the bit at idx to 1
+
+        Args:
+            idx (int): The index to set"""
+        if idx < 0 or idx >= self._size:
+            raise IndexError(f"Bitarray index outside of range; index {idx} was provided")
+        b = idx // 8
+        self._bitarray[b] = self._bitarray[b] | (1 << (idx % 8))
+
+    def clear_bit(self, idx: int) -> None:
+        """Set the bit at idx to 0
+
+        Args:
+            idx (int): The index to clear"""
+        if idx < 0 or idx >= self._size:
+            raise IndexError(f"Bitarray index outside of range; index {idx} was provided")
+        b = idx // 8
+        self._bitarray[b] = self._bitarray[b] & ~(1 << (idx % 8))
+
+    def clear(self):
+        """Clear all bits in the bitarray"""
+        for i in range(self._size_bytes):
+            self._bitarray[i] = 0
+
+    def as_string(self):
+        """String representation of the bitarray
+
+        Returns:
+            str: Bitarray representation as a string"""
+        return "".join(str(self.check_bit(x)) for x in range(self._size))
+
+    def num_bits_set(self) -> int:
+        """Number of bits set in the bitarray
+
+        Returns:
+            int: Number of bits set"""
+        return sum(self.check_bit(x) for x in range(self._size))

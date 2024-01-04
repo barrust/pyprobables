@@ -19,6 +19,7 @@ operations. Bloom Filters guarantee a zero percent false negative rate
 and a predetermined false positive rate. Once the number of elements inserted
 exceeds the estimated elements, the false positive rate will increase over the
 desired amount.
+
 `Further Reading <https://en.wikipedia.org/wiki/Bloom_filter>`__
 
 
@@ -69,6 +70,7 @@ membership testing. Cuckoo filters support insertion, deletion, and lookup of
 elements with low overhead and few false positive results. The name is derived
 from the `cuckoo hashing <https://en.wikipedia.org/wiki/Cuckoo_hashing>`__
 strategy used to resolve conflicts.
+
 `Further Reading <https://www.cs.cmu.edu/~dga/papers/cuckoo-conext2014.pdf>`__
 
 CuckooFilter
@@ -92,6 +94,7 @@ data elements. The result is a probabilistic count of elements inserted into
 the data structure. It will always provide the **maximum** number of times a
 data element was encountered. Notice that the result may be **more** than the
 true number of times it was inserted, but never fewer.
+
 `Further Reading <https://en.wikipedia.org/wiki/Count%E2%80%93min_sketch>`__
 
 
@@ -137,6 +140,38 @@ StreamThreshold
 
 For more information of all methods and properties, see `CountMinSketch`_.
 
+QuotientFilter
+------------------
+
+Quotient filters are an aproximate membership query filter (AMQ) that is both
+space efficient and returns a zero false negative rate and a probablistic false
+positive rate. Unlike Bloom filters, the quotient filter only requires a single
+hash of the element to insert. The upper **q** bits denote the location within the
+filter while the lower **r** bits are stored in the filter.
+
+Quotient filters provide some useful benifits over Bloom filters including:
+
+* Merging of two filters (not union)
+* Resizing of the filter
+* Ability to remove elements
+
+`Further Reading <https://en.wikipedia.org/wiki/Quotient_filter>`__
+
+QuotientFilter
++++++++++++++++++++++++++++++++
+
+.. autoclass:: probables.QuotientFilter
+    :members:
+
+
+Utilities
+------------------
+
+Bitarray
++++++++++++++++++++++++++++++++
+
+.. autoclass:: probables.utilities.Bitarray
+    :members:
 
 Exceptions
 ============================

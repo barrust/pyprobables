@@ -286,7 +286,7 @@ class BloomFilter:
         """Export the Bloom Filter to disk
 
         Args:
-            filename (str): The filename to which the Bloom Filter will be written."""
+            file (str): The file or filepath to which the Bloom Filter will be written."""
         if not isinstance(file, (IOBase, mmap)):
             file = resolve_path(file)
             with open(file, "wb") as filepointer:
@@ -658,23 +658,23 @@ class BloomFilterOnDisk(BloomFilter):
             self.__file_pointer.close()
             self.__file_pointer = None
 
-    def export(self, filename: Union[str, Path]) -> None:  # type: ignore
+    def export(self, file: Union[str, Path]) -> None:  # type: ignore
         """Export to disk if a different location
 
         Args:
-            filename (str): The filename to which the Bloom Filter will be exported
+            file (str|Path): The filename to which the Bloom Filter will be exported
         Note:
             Only exported if the filename is not the original filename"""
         self.__update()
-        if filename and Path(filename) != self._filepath:
-            copyfile(self._filepath.name, str(filename))
+        if file and Path(file) != self._filepath:
+            copyfile(self._filepath.name, str(file))
         # otherwise, nothing to do!
 
-    def _load(self, filepath: Union[str, Path], hash_function: Union[HashFuncT, None] = None):  # type: ignore
+    def _load(self, file: Union[str, Path], hash_function: Union[HashFuncT, None] = None):  # type: ignore
         """load the Bloom Filter on disk"""
         # read the file, set the optimal params
         # mmap everything
-        file = resolve_path(filepath)
+        file = resolve_path(file)
         with open(file, "r+b") as filepointer:
             offset = self._FOOTER_STRUCT.size
             filepointer.seek(offset * -1, os.SEEK_END)
@@ -683,7 +683,7 @@ class BloomFilterOnDisk(BloomFilter):
             fpr, n_hashes, n_bits = self._get_optimized_params(est_els, fpr)
             self._set_values(est_els, fpr, n_hashes, n_bits, hash_function)
         # setup a few additional items
-        self.__file_pointer = open(filepath, "r+b")  # type: ignore
+        self.__file_pointer = open(file, "r+b")  # type: ignore
         self._bloom = mmap(self.__file_pointer.fileno(), 0)  # type: ignore
         self._on_disk = True
 

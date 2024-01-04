@@ -5,7 +5,7 @@ from hashlib import md5, sha256
 from struct import unpack
 from typing import Callable, List, Union
 
-from .constants import UINT64_T_MAX
+from .constants import UINT32_T_MAX, UINT64_T_MAX
 
 KeyT = Union[str, bytes]
 SimpleHashT = Callable[[KeyT, int], int]
@@ -100,6 +100,26 @@ def fnv_1a(key: KeyT, seed: int = 0) -> int:
         hval ^= t_str
         hval *= fnv_64_prime
         hval %= max64mod
+    return hval
+
+
+def fnv_1a_32(key: KeyT, seed: int = 0) -> int:
+    """Pure python implementation of the 32 bit fnv-1a hash
+    Args:
+        key (str): The element to be hashed
+        seed (int): Add a seed to the initial starting point (0 means no seed)
+    Returns:
+        int: 32-bit hashed representation of key
+    Note:
+        Uses the lower 32 bits when overflows occur"""
+    max32mod = UINT32_T_MAX + 1
+    hval = (0x811C9DC5 + (31 * seed)) % max32mod
+    fnv_32_prime = 0x01000193
+    tmp = list(key) if not isinstance(key, str) else list(map(ord, key))
+    for t_str in tmp:
+        hval ^= t_str
+        hval *= fnv_32_prime
+        hval %= max32mod
     return hval
 
 
