@@ -4,9 +4,8 @@ import math
 import mmap
 import string
 from array import array
-from io import BufferedReader
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import List, Union
 
 
 def is_hex_string(hex_string: Union[str, None]) -> bool:
