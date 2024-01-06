@@ -4,8 +4,9 @@ import math
 import mmap
 import string
 from array import array
+from io import BufferedReader
 from pathlib import Path
-from typing import Union
+from typing import List, Optional, Union
 
 
 def is_hex_string(hex_string: Union[str, None]) -> bool:
@@ -53,8 +54,6 @@ class MMap:
             self.map.close()
         if self.__f:
             self.__f.close()
-        self.__f = None
-        self.__m = None
         self._closed = True
 
     @property
@@ -120,7 +119,7 @@ class Bitarray:
         """The bitarray"""
         return self._bitarray
 
-    def __getitem__(self, key: Union[int, slice]) -> int:
+    def __getitem__(self, key: Union[int, slice]) -> Union[int, List[int]]:
         if isinstance(key, slice):
             indices = range(*key.indices(self._size))
             return [self.check_bit(i) for i in indices]

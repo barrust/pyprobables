@@ -44,16 +44,6 @@ Homepage = "https://github.com/barrust/pyprobables"
 Bug-tracker = "https://github.com/barrust/pyprobables/issues"
 Documentation = "https://pyprobables.readthedocs.io/"
 
-[tool.poetry]
-packages = [{ include = "probables" }]
-
-[tool.poetry.dev-dependencies]
-pre-commit = { version = ">=2.18.1", python = "^3.6.1" }
-black = { version = "^20.8b1", python = "^3.6" }
-isort = { version = "^5.6.4", python = "^3.6" }
-pytest = { version = "^6.1.1", python = "^3.6" }
-flake8 = { version = "^3.6.0", python = "^3.6" }
-
 [tool.setuptools.packages.find]
 include = ["probables", "probables.*"]
 
