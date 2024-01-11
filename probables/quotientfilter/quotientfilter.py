@@ -4,8 +4,9 @@
 """
 
 from array import array
+from typing import Optional
 
-from probables.hashes import HashFuncT, KeyT, fnv_1a_32
+from probables.hashes import KeyT, SimpleHashT, fnv_1a_32
 from probables.utilities import Bitarray
 
 
@@ -36,7 +37,7 @@ class QuotientFilter:
         "_filter",
     )
 
-    def __init__(self, quotient: int = 20, hash_function: HashFuncT = None):  # needs to be parameterized
+    def __init__(self, quotient: int = 20, hash_function: Optional[SimpleHashT] = None):  # needs to be parameterized
         if quotient < 3 or quotient > 31:
             raise ValueError(
                 f"Quotient filter: Invalid quotient setting; quotient must be between 3 and 31; {quotient} was provided"
@@ -45,7 +46,7 @@ class QuotientFilter:
         self._r = 32 - quotient
         self._size = 1 << self._q  # same as 2**q
         self._elements_added = 0
-        self._hash_func = fnv_1a_32 if hash_function is None else hash_function
+        self._hash_func: SimpleHashT = fnv_1a_32 if hash_function is None else hash_function  # type: ignore
 
         # ensure we use the smallest type possible to reduce memory wastage
         if self._r <= 8:
@@ -97,7 +98,7 @@ class QuotientFilter:
 
         Args:
             key (str|bytes): The element to add"""
-        _hash = self._hash_func(key)
+        _hash = self._hash_func(key, 0)
         key_quotient = _hash >> self._r
         key_remainder = _hash & ((1 << self._r) - 1)
 
@@ -112,7 +113,7 @@ class QuotientFilter:
             key (str|bytes): The element to add
         Return:
             bool: True if likely encountered, False if definately not"""
-        _hash = self._hash_func(key)
+        _hash = self._hash_func(key, 0)
         key_quotient = _hash >> self._r
         key_remainder = _hash & ((1 << self._r) - 1)
         return self._contains(key_quotient, key_remainder)
@@ -190,7 +191,11 @@ class QuotientFilter:
             else:
                 orig_start_idx = start_idx
                 starts = 0
-                f = self._is_occupied[start_idx] + self._is_continuation[start_idx] + self._is_shifted[start_idx]
+                f = (
+                    self._is_occupied.check_bit(start_idx)
+                    + self._is_continuation.check_bit(start_idx)
+                    + self._is_shifted.check_bit(start_idx)
+                )
 
                 while starts == 0 and f != 0 and r > self._filter[start_idx]:
                     start_idx = (start_idx + 1) & (self._size - 1)
@@ -198,7 +203,11 @@ class QuotientFilter:
                     if self._is_continuation[start_idx] == 0:
                         starts += 1
 
-                    f = self._is_occupied[start_idx] + self._is_continuation[start_idx] + self._is_shifted[start_idx]
+                    f = (
+                        self._is_occupied.check_bit(start_idx)
+                        + self._is_continuation.check_bit(start_idx)
+                        + self._is_shifted.check_bit(start_idx)
+                    )
 
                 if starts == 1:
                     self._shift_insert(q, r, orig_start_idx, start_idx, 0)
@@ -213,7 +222,11 @@ class QuotientFilter:
         start_idx = self._get_start_index(q)
 
         starts = 0
-        meta_bits = self._is_occupied[start_idx] + self._is_continuation[start_idx] + self._is_shifted[start_idx]
+        meta_bits = (
+            self._is_occupied.check_bit(start_idx)
+            + self._is_continuation.check_bit(start_idx)
+            + self._is_shifted.check_bit(start_idx)
+        )
 
         while meta_bits != 0:
             if self._is_continuation[start_idx] == 0:
@@ -226,6 +239,10 @@ class QuotientFilter:
                 return True
 
             start_idx = (start_idx + 1) & (self._size - 1)
-            meta_bits = self._is_occupied[start_idx] + self._is_continuation[start_idx] + self._is_shifted[start_idx]
+            meta_bits = (
+                self._is_occupied.check_bit(start_idx)
+                + self._is_continuation.check_bit(start_idx)
+                + self._is_shifted.check_bit(start_idx)
+            )
 
         return False

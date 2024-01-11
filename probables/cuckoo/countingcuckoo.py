@@ -277,7 +277,7 @@ class CountingCuckooFilter(CuckooFilter):
 
     def _load(self, file: Union[Path, str, IOBase, mmap, bytes, ByteString]) -> None:
         """load a cuckoo filter from file"""
-        if not isinstance(file, (IOBase, mmap, bytes, ByteString)):
+        if not isinstance(file, (IOBase, mmap, bytes, bytearray, memoryview)):
             file = resolve_path(file)
             with MMap(file) as filepointer:
                 self._load(filepointer)
@@ -318,7 +318,7 @@ class CountingCuckooFilter(CuckooFilter):
                 msg = "The CountingCuckooFilter failed to expand"
                 raise CuckooFilterFullError(msg)
 
-    def __insert_element(self, fingerprint, idx, count=1):
+    def __insert_element(self, fingerprint, idx, count=1) -> bool:
         """insert an element"""
         if len(self.buckets[idx]) < self.bucket_size:
             self.buckets[idx].append(CountingCuckooBin(fingerprint, count))
@@ -326,7 +326,7 @@ class CountingCuckooFilter(CuckooFilter):
         return False
 
     @staticmethod
-    def __bucket_decomposition(buckets, bucket_size: int):
+    def __bucket_decomposition(buckets, bucket_size: int) -> array:
         """convert a list of buckets into a single array for export"""
         arr = array("I")
         for bucket in buckets:

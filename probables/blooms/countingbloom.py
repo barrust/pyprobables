@@ -206,7 +206,7 @@ class CountingBloomFilter(BloomFilter):
         self.elements_added -= to_remove
         return min_val - to_remove
 
-    def intersection(self, second: "CountingBloomFilter") -> "CountingBloomFilter":
+    def intersection(self, second: "CountingBloomFilter") -> Union["CountingBloomFilter", None]:  # type: ignore
         """Take the intersection of two Counting Bloom Filters
 
         Args:

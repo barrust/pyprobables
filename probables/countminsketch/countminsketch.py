@@ -74,7 +74,7 @@ class CountMinSketch:
         self.__elements_added = 0
         self.__query_method = self.__min_query
 
-        if is_valid_file(filepath):
+        if filepath is not None and is_valid_file(filepath):
             filepath = resolve_path(filepath)
             self.__load(filepath)
         else:
@@ -653,10 +653,10 @@ class HeavyHitters(CountMinSketch):
         elif res > self.__smallest:  # something in there is smaller
             self.__top_x[key] = res
             # get the key with the smallest element
-            tmp_key = min(self.__top_x, key=self.__top_x.get)
+            tmp_key = min(self.__top_x, key=self.__top_x.get)  # type: ignore
             # delete this key
             self.__top_x.pop(tmp_key, None)
-            new_min = min(self.__top_x, key=self.__top_x.get)
+            new_min = min(self.__top_x, key=self.__top_x.get)  # type: ignore
             self.__smallest = self.__top_x[new_min]
         return res
 

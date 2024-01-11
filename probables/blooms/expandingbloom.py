@@ -13,7 +13,7 @@ from typing import ByteString, Tuple, Union
 
 from probables.blooms.bloom import BloomFilter
 from probables.exceptions import RotatingBloomFilterError
-from probables.hashes import HashFuncT, HashResultsT, KeyT
+from probables.hashes import HashFuncT, HashResultsT, KeyT, default_fnv_1a
 from probables.utilities import MMap, is_valid_file, resolve_path
 
 
@@ -52,12 +52,17 @@ class ExpandingBloomFilter:
     ):
         """initialize"""
         self._blooms = []  # type: ignore
-        self.__fpr = false_positive_rate
-        self.__est_elements = est_elements
-        self.__hash_func = hash_function
+        self.__fpr = false_positive_rate if false_positive_rate is not None else 0.0
+        self.__est_elements = est_elements if est_elements is not None else 100
+        self.__hash_func: HashFuncT
         self._added_elements = 0  # total added...
 
-        if is_valid_file(filepath):
+        if hash_function is not None:
+            self.__hash_func = hash_function
+        else:
+            self.__hash_func = default_fnv_1a
+
+        if filepath is not None and is_valid_file(filepath):
             self.__load(filepath)
         else:
             # add in the initial bloom filter!

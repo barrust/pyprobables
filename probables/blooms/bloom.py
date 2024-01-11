@@ -14,7 +14,7 @@ from pathlib import Path
 from shutil import copyfile
 from struct import Struct
 from textwrap import wrap
-from typing import ByteString, Tuple, Union
+from typing import ByteString, List, Tuple, Union
 
 from probables.exceptions import InitializationError, NotSupportedError
 from probables.hashes import HashFuncT, HashResultsT, KeyT, default_fnv_1a
@@ -80,8 +80,8 @@ class BloomFilter:
         self._bloom_length = 0
         self._est_elements = 0
         self._bits_per_elm = 8.0
-        self._bloom = []
-        self._hash_func = None
+        self._bloom: array
+        self._hash_func: HashFuncT
         self._els_added = 0
         self._number_hashes = 0
         self._num_bits = 0
@@ -290,7 +290,7 @@ class BloomFilter:
         if not isinstance(file, (IOBase, mmap)):
             file = resolve_path(file)
             with open(file, "wb") as filepointer:
-                self.export(filepointer)  # type: ignore
+                self.export(filepointer)
         else:
             self._bloom.tofile(file)  # type: ignore
             file.write(
@@ -381,7 +381,7 @@ class BloomFilter:
         exp = math.exp(dbl)
         return math.pow((1 - exp), self.number_hashes)
 
-    def intersection(self, second) -> Union["BloomFilter", None]:
+    def intersection(self, second: SimpleBloomT) -> Union[SimpleBloomT, None]:
         """Return a new Bloom Filter that contains the intersection of the
         two
 
@@ -533,7 +533,7 @@ class BloomFilter:
         hash_function: Union[HashFuncT, None] = None,
     ) -> None:
         """load the Bloom Filter from file or bytes"""
-        if not isinstance(file, (IOBase, mmap, ByteString)):
+        if not isinstance(file, (IOBase, mmap, bytes, bytearray, memoryview)):
             file = resolve_path(file)
             with MMap(file) as filepointer:
                 self._load(filepointer, hash_function)
