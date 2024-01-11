@@ -14,7 +14,7 @@ from pathlib import Path
 from shutil import copyfile
 from struct import Struct
 from textwrap import wrap
-from typing import ByteString, List, Tuple, Union
+from typing import ByteString, Tuple, Union
 
 from probables.exceptions import InitializationError, NotSupportedError
 from probables.hashes import HashFuncT, HashResultsT, KeyT, default_fnv_1a
