@@ -11,9 +11,8 @@ this_dir = Path(__file__).parent
 sys.path.insert(0, str(this_dir))
 sys.path.insert(0, str(this_dir.parent))
 
-from utilities import different_hash
-
 from probables.utilities import Bitarray, MMap, get_x_bits, is_hex_string, is_valid_file, resolve_path
+from tests.utilities import different_hash
 
 DELETE_TEMP_FILES = True
 

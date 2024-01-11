@@ -13,9 +13,8 @@ this_dir = Path(__file__).parent
 sys.path.insert(0, str(this_dir))
 sys.path.insert(0, str(this_dir.parent))
 
-from utilities import calc_file_md5
-
 from probables import CuckooFilter, CuckooFilterFullError, InitializationError
+from tests.utilities import calc_file_md5
 
 DELETE_TEMP_FILES = True
 

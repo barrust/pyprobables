@@ -13,10 +13,9 @@ this_dir = Path(__file__).parent
 sys.path.insert(0, str(this_dir))
 sys.path.insert(0, str(this_dir.parent))
 
-from utilities import calc_file_md5, different_hash
-
 from probables import CountingBloomFilter
 from probables.exceptions import InitializationError
+from tests.utilities import calc_file_md5, different_hash
 
 DELETE_TEMP_FILES = True
 
