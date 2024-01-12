@@ -30,6 +30,7 @@ keywords:
   - Rolling Bloom Filter
   - Expanding Bloom Filter
   - Counting Cuckoo Filter
+  - Quotient Filter
 license: MIT
-version: 0.5.9
-date-released: '2023-12-28'
+version: 0.6.0
+date-released: '2024-01-10'

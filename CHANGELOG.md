@@ -4,6 +4,7 @@
 
 * Add `QuotientFilter` implementation; [see issue #37](https://github.com/barrust/pyprobables/issues/37)
 * Add `bitarray` implementation
+* Bitwise operations in lieu of modulo calculations
 
 ### Version 0.5.9
 
