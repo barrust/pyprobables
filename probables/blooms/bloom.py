@@ -315,21 +315,9 @@ class BloomFilter:
         with open(filename, "w", encoding="utf-8") as file:
             print(f"/* BloomFilter Export of a {bloom_type} */", file=file)
             print("#include <inttypes.h>", file=file)
-            print(
-                "const uint64_t estimated_elements = ",
-                self.estimated_elements,
-                ";",
-                sep="",
-                file=file,
-            )
+            print("const uint64_t estimated_elements = ", self.estimated_elements, ";", sep="", file=file)
             print("const uint64_t elements_added = ", self.elements_added, ";", sep="", file=file)
-            print(
-                "const float false_positive_rate = ",
-                self.false_positive_rate,
-                ";",
-                sep="",
-                file=file,
-            )
+            print("const float false_positive_rate = ", self.false_positive_rate, ";", sep="", file=file)
             print("const uint64_t number_bits = ", self.number_bits, ";", sep="", file=file)
             print("const unsigned int number_hashes = ", self.number_hashes, ";", sep="", file=file)
             print("const unsigned char bloom[] = {", *data, "};", sep="\n", file=file)

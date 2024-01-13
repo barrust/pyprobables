@@ -158,7 +158,6 @@ class QuotientFilter:
                 break
             start += 1
 
-        print(f"start: {start}")
         cur_quot = 0
         for i in range(start, self._size + start):  # this will allow for wrap-arounds
             idx = i % self._size
