@@ -121,7 +121,7 @@ class QuotientFilter:
             _hash (int): The element to add"""
         key_quotient = _hash >> self._r
         key_remainder = _hash & ((1 << self._r) - 1)
-        if not self._contains(key_quotient, key_remainder):
+        if self._contained_at_loc(key_quotient, key_remainder) == -1:
             self._add(key_quotient, key_remainder)
 
     def check(self, key: KeyT) -> bool:
@@ -143,7 +143,7 @@ class QuotientFilter:
             bool: True if likely encountered, False if definately not"""
         key_quotient = _hash >> self._r
         key_remainder = _hash & ((1 << self._r) - 1)
-        return self._contains(key_quotient, key_remainder)
+        return self._contained_at_loc(key_quotient, key_remainder) != -1
 
     def iter_hashes(self) -> Iterator[int]:
         """A generator over the hashes in the quotient filter
@@ -287,9 +287,10 @@ class QuotientFilter:
                     self._shift_insert(q, r, orig_start_idx, start_idx, 1)
         self._elements_added += 1
 
-    def _contains(self, q: int, r: int) -> bool:
+    def _contained_at_loc(self, q: int, r: int) -> int:
+        """returns the index location of the element, or -1 if not present"""
         if self._is_occupied[q] == 0:
-            return False
+            return -1
 
         start_idx = self._get_start_index(q)
 
@@ -308,7 +309,7 @@ class QuotientFilter:
                 break
 
             if self._filter[start_idx] == r:
-                return True
+                return start_idx
 
             start_idx = (start_idx + 1) & (self._size - 1)
             meta_bits = (
@@ -317,4 +318,4 @@ class QuotientFilter:
                 + self._is_shifted.check_bit(start_idx)
             )
 
-        return False
+        return -1
