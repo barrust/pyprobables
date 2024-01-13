@@ -38,14 +38,16 @@ class TestQuotientFilter(unittest.TestCase):
         self.assertEqual(qf.remainder, 24)
         self.assertEqual(qf.elements_added, 0)
         self.assertEqual(qf.num_elements, 256)  # 2**qf.quotient
+        self.assertTrue(qf.auto_expand)
 
-        qf = QuotientFilter(quotient=24)
+        qf = QuotientFilter(quotient=24, auto_expand=False)
 
         self.assertEqual(qf.bits_per_elm, 8)
         self.assertEqual(qf.quotient, 24)
         self.assertEqual(qf.remainder, 8)
         self.assertEqual(qf.elements_added, 0)
         self.assertEqual(qf.num_elements, 16777216)  # 2**qf.quotient
+        self.assertFalse(qf.auto_expand)
 
     def test_qf_add_check(self):
         "test that the qf is able to add and check elements"
@@ -94,7 +96,7 @@ class TestQuotientFilter(unittest.TestCase):
 
     def test_retrieve_hashes(self):
         """test retrieving hashes back from the quotient filter"""
-        qf = QuotientFilter(quotient=8)
+        qf = QuotientFilter(quotient=8, auto_expand=False)
         hashes = []
         for i in range(255):
             hashes.append(qf._hash_func(str(i), 0))  # use the private function here..
@@ -107,7 +109,7 @@ class TestQuotientFilter(unittest.TestCase):
 
     def test_resize(self):
         """test resizing the quotient filter"""
-        qf = QuotientFilter(quotient=8)
+        qf = QuotientFilter(quotient=8, auto_expand=False)
         for i in range(200):
             qf.add(str(i))
 
@@ -128,3 +130,23 @@ class TestQuotientFilter(unittest.TestCase):
         # ensure everything is still accessable
         for i in range(200):
             self.assertTrue(qf.check(str(i)))
+
+    def test_auto_resize(self):
+        """test resizing the quotient filter"""
+        qf = QuotientFilter(quotient=8, auto_expand=True)
+        self.assertEqual(qf.max_load_factor, 0.85)
+        self.assertEqual(qf.elements_added, 0)
+        self.assertEqual(qf.load_factor, 0 / qf.size)
+        self.assertEqual(qf.quotient, 8)
+        self.assertEqual(qf.remainder, 24)
+        self.assertEqual(qf.bits_per_elm, 32)
+
+        for i in range(220):
+            qf.add(str(i))
+
+        self.assertEqual(qf.max_load_factor, 0.85)
+        self.assertEqual(qf.elements_added, 220)
+        self.assertEqual(qf.load_factor, 220 / qf.size)
+        self.assertEqual(qf.quotient, 9)
+        self.assertEqual(qf.remainder, 23)
+        self.assertEqual(qf.bits_per_elm, 32)
