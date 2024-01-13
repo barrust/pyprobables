@@ -146,6 +146,10 @@ class QuotientFilter:
         return self._contains(key_quotient, key_remainder)
 
     def iter_hashes(self) -> Iterator[int]:
+        """A generator over the hashes in the quotient filter
+
+        Yields:
+            int: The next hash stored in the quotient filter"""
         queue: List[int] = []
 
         # find first empty location
@@ -180,7 +184,11 @@ class QuotientFilter:
                 yield (cur_quot << self._r) + self._filter[idx]
 
     def get_hashes(self) -> List[int]:
-        return [x for x in self.iter_hashes()]
+        """Get the hashes from the quotient filter as a list
+
+        Returns:
+            list(int): The hash values stored in the quotient filter"""
+        return list(self.iter_hashes())
 
     def _shift_insert(self, k, v, start, j, flag):
         if self._is_occupied[j] == 0 and self._is_continuation[j] == 0 and self._is_shifted[j] == 0:
