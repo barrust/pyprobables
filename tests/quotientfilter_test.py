@@ -87,11 +87,13 @@ class TestQuotientFilter(unittest.TestCase):
 
         self.assertEqual(qf.elements_added, 100)
 
-    def test_qf_errors(self):
+    def test_qf_init_errors(self):
+        """test quotient filter initialization errors"""
         self.assertRaises(ValueError, lambda: QuotientFilter(quotient=2))
         self.assertRaises(ValueError, lambda: QuotientFilter(quotient=32))
 
     def test_retrieve_hashes(self):
+        """test retrieving hashes back from the quotient filter"""
         qf = QuotientFilter(quotient=8)
         hashes = []
         for i in range(255):
@@ -102,3 +104,27 @@ class TestQuotientFilter(unittest.TestCase):
         out_hashes = qf.get_hashes()
         self.assertEqual(qf.elements_added, len(out_hashes))
         self.assertEqual(set(hashes), set(out_hashes))
+
+    def test_resize(self):
+        """test resizing the quotient filter"""
+        qf = QuotientFilter(quotient=8)
+        for i in range(200):
+            qf.add(str(i))
+
+        self.assertEqual(qf.elements_added, 200)
+        self.assertEqual(qf.load_factor, 200 / qf.size)
+        self.assertEqual(qf.quotient, 8)
+        self.assertEqual(qf.remainder, 24)
+        self.assertEqual(qf.bits_per_elm, 32)
+
+        self.assertRaises(ValueError, lambda: qf.resize(7))  # should be too small to fit
+
+        qf.resize(17)
+        self.assertEqual(qf.elements_added, 200)
+        self.assertEqual(qf.load_factor, 200 / qf.size)
+        self.assertEqual(qf.quotient, 17)
+        self.assertEqual(qf.remainder, 15)
+        self.assertEqual(qf.bits_per_elm, 16)
+        # ensure everything is still accessable
+        for i in range(200):
+            self.assertTrue(qf.check(str(i)))

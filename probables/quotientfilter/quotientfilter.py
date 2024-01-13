@@ -42,6 +42,9 @@ class QuotientFilter:
             raise ValueError(
                 f"Quotient filter: Invalid quotient setting; quotient must be between 3 and 31; {quotient} was provided"
             )
+        self.__set_params(quotient, hash_function)
+
+    def __set_params(self, quotient, hash_function):
         self._q = quotient
         self._r = 32 - quotient
         self._size = 1 << self._q  # same as 2**q
@@ -143,7 +146,7 @@ class QuotientFilter:
             bool: True if likely encountered, False if definately not"""
         key_quotient = _hash >> self._r
         key_remainder = _hash & ((1 << self._r) - 1)
-        return self._contained_at_loc(key_quotient, key_remainder) != -1
+        return not self._contained_at_loc(key_quotient, key_remainder) == -1
 
     def iter_hashes(self) -> Iterator[int]:
         """A generator over the hashes in the quotient filter
@@ -189,6 +192,25 @@ class QuotientFilter:
         Returns:
             list(int): The hash values stored in the quotient filter"""
         return list(self.iter_hashes())
+
+    def resize(self, quotient: int) -> None:
+        """Resize the quotient filter to use the new quotient size
+
+        Args:
+            int: The new quotient to use
+        Raises:
+            ValueError: When the new quotient will not accommodate the elements already added"""
+        if self.elements_added >= (1 << quotient):
+            raise ValueError("Unable to shrink since there will be too many elements in the quotient filter")
+        hashes = self.get_hashes()
+
+        for i in range(self._size):
+            self._filter[i] = 0
+
+        self.__set_params(quotient, self._hash_func)
+
+        for _h in hashes:
+            self.add_alt(_h)
 
     def _shift_insert(self, k, v, start, j, flag):
         if self._is_occupied[j] == 0 and self._is_continuation[j] == 0 and self._is_shifted[j] == 0:
