@@ -15,6 +15,7 @@ keywords = [
     "bloom-filter",
     "count-min-sketch",
     "cuckoo-filter",
+    "quotient-filter",
 ]
 readme = "README.rst"
 classifiers = [

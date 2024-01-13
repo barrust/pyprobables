@@ -38,14 +38,16 @@ class TestQuotientFilter(unittest.TestCase):
         self.assertEqual(qf.remainder, 24)
         self.assertEqual(qf.elements_added, 0)
         self.assertEqual(qf.num_elements, 256)  # 2**qf.quotient
+        self.assertTrue(qf.auto_expand)
 
-        qf = QuotientFilter(quotient=24)
+        qf = QuotientFilter(quotient=24, auto_expand=False)
 
         self.assertEqual(qf.bits_per_elm, 8)
         self.assertEqual(qf.quotient, 24)
         self.assertEqual(qf.remainder, 8)
         self.assertEqual(qf.elements_added, 0)
         self.assertEqual(qf.num_elements, 16777216)  # 2**qf.quotient
+        self.assertFalse(qf.auto_expand)
 
     def test_qf_add_check(self):
         "test that the qf is able to add and check elements"
@@ -54,7 +56,7 @@ class TestQuotientFilter(unittest.TestCase):
         for i in range(0, 200, 2):
             qf.add(str(i))
         self.assertEqual(qf.elements_added, 100)
-
+        self.assertEqual(qf.load_factor, 100 / qf.size)
         found_no = False
         for i in range(0, 200, 2):
             if not qf.check(str(i)):
@@ -87,6 +89,102 @@ class TestQuotientFilter(unittest.TestCase):
 
         self.assertEqual(qf.elements_added, 100)
 
-    def test_qf_errors(self):
+    def test_qf_init_errors(self):
+        """test quotient filter initialization errors"""
         self.assertRaises(ValueError, lambda: QuotientFilter(quotient=2))
         self.assertRaises(ValueError, lambda: QuotientFilter(quotient=32))
+
+    def test_retrieve_hashes(self):
+        """test retrieving hashes back from the quotient filter"""
+        qf = QuotientFilter(quotient=8, auto_expand=False)
+        hashes = []
+        for i in range(255):
+            hashes.append(qf._hash_func(str(i), 0))  # use the private function here..
+            qf.add(str(i))
+        self.assertEqual(qf.size, 256)
+        self.assertEqual(qf.load_factor, 255 / qf.size)
+        out_hashes = qf.get_hashes()
+        self.assertEqual(qf.elements_added, len(out_hashes))
+        self.assertEqual(set(hashes), set(out_hashes))
+
+    def test_resize(self):
+        """test resizing the quotient filter"""
+        qf = QuotientFilter(quotient=8, auto_expand=False)
+        for i in range(200):
+            qf.add(str(i))
+
+        self.assertEqual(qf.elements_added, 200)
+        self.assertEqual(qf.load_factor, 200 / qf.size)
+        self.assertEqual(qf.quotient, 8)
+        self.assertEqual(qf.remainder, 24)
+        self.assertEqual(qf.bits_per_elm, 32)
+        self.assertFalse(qf.auto_expand)
+
+        self.assertRaises(ValueError, lambda: qf.resize(7))  # should be too small to fit
+
+        qf.resize(17)
+        self.assertEqual(qf.elements_added, 200)
+        self.assertEqual(qf.load_factor, 200 / qf.size)
+        self.assertEqual(qf.quotient, 17)
+        self.assertEqual(qf.remainder, 15)
+        self.assertEqual(qf.bits_per_elm, 16)
+        # ensure everything is still accessable
+        for i in range(200):
+            self.assertTrue(qf.check(str(i)))
+
+    def test_auto_resize(self):
+        """test resizing the quotient filter automatically"""
+        qf = QuotientFilter(quotient=8, auto_expand=True)
+        self.assertEqual(qf.max_load_factor, 0.85)
+        self.assertEqual(qf.elements_added, 0)
+        self.assertEqual(qf.load_factor, 0 / qf.size)
+        self.assertEqual(qf.quotient, 8)
+        self.assertEqual(qf.remainder, 24)
+        self.assertEqual(qf.bits_per_elm, 32)
+        self.assertTrue(qf.auto_expand)
+
+        for i in range(220):
+            qf.add(str(i))
+
+        self.assertEqual(qf.max_load_factor, 0.85)
+        self.assertEqual(qf.elements_added, 220)
+        self.assertEqual(qf.load_factor, 220 / qf.size)
+        self.assertEqual(qf.quotient, 9)
+        self.assertEqual(qf.remainder, 23)
+        self.assertEqual(qf.bits_per_elm, 32)
+
+    def test_auto_resize_changed_max_load_factor(self):
+        """test resizing the quotient filter with a different load factor"""
+        qf = QuotientFilter(quotient=8, auto_expand=True)
+        self.assertEqual(qf.max_load_factor, 0.85)
+        self.assertTrue(qf.auto_expand)
+        qf.max_load_factor = 0.65
+        self.assertEqual(qf.max_load_factor, 0.65)
+
+        self.assertEqual(qf.elements_added, 0)
+        self.assertEqual(qf.load_factor, 0 / qf.size)
+        self.assertEqual(qf.quotient, 8)
+        self.assertEqual(qf.remainder, 24)
+        self.assertEqual(qf.bits_per_elm, 32)
+        self.assertTrue(qf.auto_expand)
+
+        for i in range(200):
+            qf.add(str(i))
+
+        self.assertEqual(qf.max_load_factor, 0.85)
+        self.assertEqual(qf.elements_added, 200)
+        self.assertEqual(qf.load_factor, 200 / qf.size)
+        self.assertEqual(qf.quotient, 9)
+        self.assertEqual(qf.remainder, 23)
+        self.assertEqual(qf.bits_per_elm, 32)
+
+    def test_resize_errors(self):
+        """test resizing errors"""
+
+        qf = QuotientFilter(quotient=8, auto_expand=True)
+        for i in range(200):
+            qf.add(str(i))
+
+        self.assertRaises(ValueError, lambda: qf.resize(quotient=2))
+        self.assertRaises(ValueError, lambda: qf.resize(quotient=32))
+        self.assertRaises(ValueError, lambda: qf.resize(quotient=6))
