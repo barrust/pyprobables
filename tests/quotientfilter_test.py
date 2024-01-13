@@ -118,6 +118,7 @@ class TestQuotientFilter(unittest.TestCase):
         self.assertEqual(qf.quotient, 8)
         self.assertEqual(qf.remainder, 24)
         self.assertEqual(qf.bits_per_elm, 32)
+        self.assertFalse(qf.auto_expand)
 
         self.assertRaises(ValueError, lambda: qf.resize(7))  # should be too small to fit
 
@@ -132,7 +133,7 @@ class TestQuotientFilter(unittest.TestCase):
             self.assertTrue(qf.check(str(i)))
 
     def test_auto_resize(self):
-        """test resizing the quotient filter"""
+        """test resizing the quotient filter automatically"""
         qf = QuotientFilter(quotient=8, auto_expand=True)
         self.assertEqual(qf.max_load_factor, 0.85)
         self.assertEqual(qf.elements_added, 0)
@@ -140,6 +141,7 @@ class TestQuotientFilter(unittest.TestCase):
         self.assertEqual(qf.quotient, 8)
         self.assertEqual(qf.remainder, 24)
         self.assertEqual(qf.bits_per_elm, 32)
+        self.assertTrue(qf.auto_expand)
 
         for i in range(220):
             qf.add(str(i))
@@ -150,3 +152,39 @@ class TestQuotientFilter(unittest.TestCase):
         self.assertEqual(qf.quotient, 9)
         self.assertEqual(qf.remainder, 23)
         self.assertEqual(qf.bits_per_elm, 32)
+
+    def test_auto_resize_changed_max_load_factor(self):
+        """test resizing the quotient filter with a different load factor"""
+        qf = QuotientFilter(quotient=8, auto_expand=True)
+        self.assertEqual(qf.max_load_factor, 0.85)
+        self.assertTrue(qf.auto_expand)
+        qf.max_load_factor = 0.65
+        self.assertEqual(qf.max_load_factor, 0.65)
+
+        self.assertEqual(qf.elements_added, 0)
+        self.assertEqual(qf.load_factor, 0 / qf.size)
+        self.assertEqual(qf.quotient, 8)
+        self.assertEqual(qf.remainder, 24)
+        self.assertEqual(qf.bits_per_elm, 32)
+        self.assertTrue(qf.auto_expand)
+
+        for i in range(200):
+            qf.add(str(i))
+
+        self.assertEqual(qf.max_load_factor, 0.85)
+        self.assertEqual(qf.elements_added, 200)
+        self.assertEqual(qf.load_factor, 200 / qf.size)
+        self.assertEqual(qf.quotient, 9)
+        self.assertEqual(qf.remainder, 23)
+        self.assertEqual(qf.bits_per_elm, 32)
+
+    def test_resize_errors(self):
+        """test resizing errors"""
+
+        qf = QuotientFilter(quotient=8, auto_expand=True)
+        for i in range(200):
+            qf.add(str(i))
+
+        self.assertRaises(ValueError, lambda: qf.resize(quotient=2))
+        self.assertRaises(ValueError, lambda: qf.resize(quotient=32))
+        self.assertRaises(ValueError, lambda: qf.resize(quotient=6))
