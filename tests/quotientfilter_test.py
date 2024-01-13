@@ -51,6 +51,10 @@ class TestQuotientFilter(unittest.TestCase):
         self.assertEqual(qf.num_elements, 16777216)  # 2**qf.quotient
         self.assertFalse(qf.auto_expand)
 
+        # reset auto_expand
+        qf.auto_expand = True
+        self.assertTrue(qf.auto_expand)
+
     def test_qf_add_check(self):
         "test that the qf is able to add and check elements"
         qf = QuotientFilter(quotient=8)
