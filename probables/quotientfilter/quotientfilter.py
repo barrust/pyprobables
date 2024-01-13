@@ -4,7 +4,7 @@
 """
 
 from array import array
-from typing import Optional
+from typing import Iterator, List, Optional
 
 from probables.hashes import KeyT, SimpleHashT, fnv_1a_32
 from probables.utilities import Bitarray
@@ -93,17 +93,35 @@ class QuotientFilter:
         """int: The number of bits used per element"""
         return self._bits_per_elm
 
+    @property
+    def size(self) -> int:
+        """int: The number of bins available in the filter
+
+        Note:
+            same as `num_elements`"""
+        return self._size
+
+    @property
+    def load_factor(self) -> float:
+        """float: The load factor of the filter"""
+        return self._elements_added / self._size
+
     def add(self, key: KeyT) -> None:
         """Add key to the quotient filter
 
         Args:
             key (str|bytes): The element to add"""
         _hash = self._hash_func(key, 0)
+        self.add_alt(_hash)
+
+    def add_alt(self, _hash: int) -> None:
+        """Add the pre-hashed value to the quotient filter
+
+        Args:
+            _hash (int): The element to add"""
         key_quotient = _hash >> self._r
         key_remainder = _hash & ((1 << self._r) - 1)
-
         if not self._contains(key_quotient, key_remainder):
-            # TODO, add it here
             self._add(key_quotient, key_remainder)
 
     def check(self, key: KeyT) -> bool:
@@ -114,9 +132,56 @@ class QuotientFilter:
         Return:
             bool: True if likely encountered, False if definately not"""
         _hash = self._hash_func(key, 0)
+        return self.check_alt(_hash)
+
+    def check_alt(self, _hash: int) -> bool:
+        """Check to see if the pre-calculated hash is likely in the quotient filter
+
+        Args:
+            _hash (int): The element to add
+        Return:
+            bool: True if likely encountered, False if definately not"""
         key_quotient = _hash >> self._r
         key_remainder = _hash & ((1 << self._r) - 1)
         return self._contains(key_quotient, key_remainder)
+
+    def iter_hashes(self) -> Iterator[int]:
+        queue: List[int] = []
+
+        # find first empty location
+        start = 0
+        while True:
+            is_occupied = self._is_occupied.check_bit(start)
+            is_continuation = self._is_continuation.check_bit(start)
+            is_shifted = self._is_shifted.check_bit(start)
+            if is_occupied + is_continuation + is_shifted == 0:
+                break
+            start += 1
+
+        print(f"start: {start}")
+        cur_quot = 0
+        for i in range(start, self._size + start):  # this will allow for wrap-arounds
+            idx = i % self._size
+            is_occupied = self._is_occupied.check_bit(idx)
+            is_continuation = self._is_continuation.check_bit(idx)
+            is_shifted = self._is_shifted.check_bit(idx)
+            # Nothing here, keep going
+            if is_occupied + is_continuation + is_shifted == 0:
+                assert len(queue) == 0
+                continue
+
+            if is_occupied == 1:  # keep track of the indicies that match a hashed quotient
+                queue.append(idx)
+
+            #  run start
+            if not is_continuation and (is_occupied or is_shifted):
+                cur_quot = queue.pop(0)
+
+            if self._filter[idx] != 0:
+                yield (cur_quot << self._r) + self._filter[idx]
+
+    def get_hashes(self) -> List[int]:
+        return [x for x in self.iter_hashes()]
 
     def _shift_insert(self, k, v, start, j, flag):
         if self._is_occupied[j] == 0 and self._is_continuation[j] == 0 and self._is_shifted[j] == 0:

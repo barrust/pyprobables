@@ -54,7 +54,7 @@ class TestQuotientFilter(unittest.TestCase):
         for i in range(0, 200, 2):
             qf.add(str(i))
         self.assertEqual(qf.elements_added, 100)
-
+        self.assertEqual(qf.load_factor, 100 / qf.size)
         found_no = False
         for i in range(0, 200, 2):
             if not qf.check(str(i)):
@@ -90,3 +90,15 @@ class TestQuotientFilter(unittest.TestCase):
     def test_qf_errors(self):
         self.assertRaises(ValueError, lambda: QuotientFilter(quotient=2))
         self.assertRaises(ValueError, lambda: QuotientFilter(quotient=32))
+
+    def test_retrieve_hashes(self):
+        qf = QuotientFilter(quotient=8)
+        hashes = []
+        for i in range(255):
+            hashes.append(qf._hash_func(str(i), 0))  # use the private function here..
+            qf.add(str(i))
+        self.assertEqual(qf.size, 256)
+        self.assertEqual(qf.load_factor, 255 / qf.size)
+        out_hashes = qf.get_hashes()
+        self.assertEqual(qf.elements_added, len(out_hashes))
+        self.assertEqual(set(hashes), set(out_hashes))
