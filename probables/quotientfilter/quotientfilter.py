@@ -265,6 +265,8 @@ class QuotientFilter:
             The hashing function between the two filters should match
         Note:
             Errors can occur if the quotient filter being inserted into does not expand (i.e., auto_expand=False)"""
+        if self._hash_func("test", 0) != second._hash_func("test", 0):
+            raise QuotientFilterError("Hash functions do not match")
 
         for _h in second.hashes():
             self.add_alt(_h)

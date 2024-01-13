@@ -227,3 +227,12 @@ class TestQuotientFilter(unittest.TestCase):
             fq.add(str(i))
 
         self.assertRaises(QuotientFilterError, lambda: qf.merge(fq))
+
+        # test mismatch hashes
+        def useless_hash(key, seed) -> int:
+            return 99999999
+
+        qq = QuotientFilter(quotient=8, hash_function=useless_hash)
+        qq.add("999")
+
+        self.assertRaises(QuotientFilterError, lambda: fq.merge(qq))
