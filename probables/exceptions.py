@@ -68,3 +68,14 @@ class CountMinSketchError(ProbablesBaseException):
     def __init__(self, message: str) -> None:
         self.message = message
         super().__init__(self.message)
+
+
+class QuotientFilterError(ProbablesBaseException):
+    """Quotient Filter Exception
+
+    Args:
+        message (str): The error message to be reported"""
+
+    def __init__(self, message: str) -> None:
+        self.message = message
+        super().__init__(self.message)

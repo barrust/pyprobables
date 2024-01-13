@@ -6,6 +6,7 @@
 from array import array
 from typing import Iterator, List, Optional
 
+from probables.exceptions import QuotientFilterError
 from probables.hashes import KeyT, SimpleHashT, fnv_1a_32
 from probables.utilities import Bitarray
 
@@ -20,7 +21,7 @@ class QuotientFilter:
     Returns:
         QuotientFilter: The initialized filter
     Raises:
-        ValueError:
+        QuotientFilterError: Raised when unable to initialize
     Note:
         The size of the QuotientFilter will be 2**q"""
 
@@ -44,8 +45,8 @@ class QuotientFilter:
         self, quotient: int = 20, auto_expand: bool = True, hash_function: Optional[SimpleHashT] = None
     ):  # needs to be parameterized
         if quotient < 3 or quotient > 31:
-            raise ValueError(
-                f"Quotient filter: Invalid quotient setting; quotient must be between 3 and 31; {quotient} was provided"
+            raise QuotientFilterError(
+                f"Invalid quotient setting; quotient must be between 3 and 31; {quotient} was provided"
             )
         self.__set_params(quotient, auto_expand, hash_function)
 
@@ -140,7 +141,9 @@ class QuotientFilter:
         """Add key to the quotient filter
 
         Args:
-            key (str|bytes): The element to add"""
+            key (str|bytes): The element to add
+        Raises:
+            QuotientFilterError: Raised when no locations are available in which to insert"""
         _hash = self._hash_func(key, 0)
         self.add_alt(_hash)
 
@@ -148,12 +151,14 @@ class QuotientFilter:
         """Add the pre-hashed value to the quotient filter
 
         Args:
-            _hash (int): The element to add"""
+            _hash (int): The element to add
+        Raises:
+            QuotientFilterError: Raised when no locations are available in which to insert"""
+        if self._auto_resize and self.load_factor >= self._max_load_factor:
+            self.resize()
         key_quotient = _hash >> self._r
         key_remainder = _hash & ((1 << self._r) - 1)
         if self._contained_at_loc(key_quotient, key_remainder) == -1:
-            if self._auto_resize and self.load_factor >= self._max_load_factor:
-                self.resize()
             self._add(key_quotient, key_remainder)
 
     def check(self, key: KeyT) -> bool:
@@ -177,7 +182,7 @@ class QuotientFilter:
         key_remainder = _hash & ((1 << self._r) - 1)
         return not self._contained_at_loc(key_quotient, key_remainder) == -1
 
-    def iter_hashes(self) -> Iterator[int]:
+    def hashes(self) -> Iterator[int]:
         """A generator over the hashes in the quotient filter
 
         Yields:
@@ -220,25 +225,25 @@ class QuotientFilter:
 
         Returns:
             list(int): The hash values stored in the quotient filter"""
-        return list(self.iter_hashes())
+        return list(self.hashes())
 
     def resize(self, quotient: Optional[int] = None) -> None:
         """Resize the quotient filter to use the new quotient size
 
         Args:
-            int: The new quotient to use
+            quotient (int): The new quotient to use
         Note:
             If `None` is provided, the quotient filter will double in size (quotient + 1)
         Raises:
-            ValueError: When the new quotient will not accommodate the elements already added"""
+            QuotientFilterError: When the new quotient will not accommodate the elements already added"""
         if quotient is None:
             quotient = self._q + 1
 
         if self.elements_added >= (1 << quotient):
-            raise ValueError("Unable to shrink since there will be too many elements in the quotient filter")
+            raise QuotientFilterError("Unable to shrink since there will be too many elements in the quotient filter")
         if quotient < 3 or quotient > 31:
-            raise ValueError(
-                f"Quotient filter: Invalid quotient setting; quotient must be between 3 and 31; {quotient} was provided"
+            raise QuotientFilterError(
+                f"Invalid quotient setting; quotient must be between 3 and 31; {quotient} was provided"
             )
 
         hashes = self.get_hashes()
@@ -249,6 +254,19 @@ class QuotientFilter:
         self.__set_params(quotient, self._auto_resize, self._hash_func)
 
         for _h in hashes:
+            self.add_alt(_h)
+
+    def merge(self, second: "QuotientFilter") -> None:
+        """Merge the `second` quotient filter into the first
+
+        Args:
+            second (QuotientFilter): The quotient filter to merge
+        Note:
+            The hashing function between the two filters should match
+        Note:
+            Errors can occur if the quotient filter being inserted into does not expand (i.e., auto_expand=False)"""
+
+        for _h in second.hashes():
             self.add_alt(_h)
 
     def _shift_insert(self, k, v, start, j, flag):
@@ -311,6 +329,8 @@ class QuotientFilter:
         return j
 
     def _add(self, q: int, r: int):
+        if self._size == self._elements_added:
+            raise QuotientFilterError("Unable to insert the element due to insufficient space")
         if self._is_occupied[q] == 0 and self._is_continuation[q] == 0 and self._is_shifted[q] == 0:
             self._filter[q] = r
             self._is_occupied[q] = 1
