@@ -1,5 +1,13 @@
 # PyProbables Changelog
 
+### Version 0.6.1
+
+* Quotient Filter:
+  * Add ability to get hashes from the filter either as a list, or as a generator
+  * Add quotient filter expand capability, auto and on request
+  * Add QuotientFilterError exception
+  * Add merge functionality
+
 ### Version 0.6.0
 
 * Add `QuotientFilter` implementation; [see issue #37](https://github.com/barrust/pyprobables/issues/37)

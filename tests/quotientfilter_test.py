@@ -9,6 +9,8 @@ import unittest
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
+from probables.exceptions import QuotientFilterError
+
 this_dir = Path(__file__).parent
 sys.path.insert(0, str(this_dir))
 sys.path.insert(0, str(this_dir.parent))
@@ -48,6 +50,10 @@ class TestQuotientFilter(unittest.TestCase):
         self.assertEqual(qf.elements_added, 0)
         self.assertEqual(qf.num_elements, 16777216)  # 2**qf.quotient
         self.assertFalse(qf.auto_expand)
+
+        # reset auto_expand
+        qf.auto_expand = True
+        self.assertTrue(qf.auto_expand)
 
     def test_qf_add_check(self):
         "test that the qf is able to add and check elements"
@@ -91,10 +97,10 @@ class TestQuotientFilter(unittest.TestCase):
 
     def test_qf_init_errors(self):
         """test quotient filter initialization errors"""
-        self.assertRaises(ValueError, lambda: QuotientFilter(quotient=2))
-        self.assertRaises(ValueError, lambda: QuotientFilter(quotient=32))
+        self.assertRaises(QuotientFilterError, lambda: QuotientFilter(quotient=2))
+        self.assertRaises(QuotientFilterError, lambda: QuotientFilter(quotient=32))
 
-    def test_retrieve_hashes(self):
+    def test_qf_retrieve_hashes(self):
         """test retrieving hashes back from the quotient filter"""
         qf = QuotientFilter(quotient=8, auto_expand=False)
         hashes = []
@@ -107,7 +113,7 @@ class TestQuotientFilter(unittest.TestCase):
         self.assertEqual(qf.elements_added, len(out_hashes))
         self.assertEqual(set(hashes), set(out_hashes))
 
-    def test_resize(self):
+    def test_qf_resize(self):
         """test resizing the quotient filter"""
         qf = QuotientFilter(quotient=8, auto_expand=False)
         for i in range(200):
@@ -120,7 +126,7 @@ class TestQuotientFilter(unittest.TestCase):
         self.assertEqual(qf.bits_per_elm, 32)
         self.assertFalse(qf.auto_expand)
 
-        self.assertRaises(ValueError, lambda: qf.resize(7))  # should be too small to fit
+        self.assertRaises(QuotientFilterError, lambda: qf.resize(7))  # should be too small to fit
 
         qf.resize(17)
         self.assertEqual(qf.elements_added, 200)
@@ -132,7 +138,7 @@ class TestQuotientFilter(unittest.TestCase):
         for i in range(200):
             self.assertTrue(qf.check(str(i)))
 
-    def test_auto_resize(self):
+    def test_qf_auto_resize(self):
         """test resizing the quotient filter automatically"""
         qf = QuotientFilter(quotient=8, auto_expand=True)
         self.assertEqual(qf.max_load_factor, 0.85)
@@ -153,7 +159,7 @@ class TestQuotientFilter(unittest.TestCase):
         self.assertEqual(qf.remainder, 23)
         self.assertEqual(qf.bits_per_elm, 32)
 
-    def test_auto_resize_changed_max_load_factor(self):
+    def test_qf_auto_resize_changed_max_load_factor(self):
         """test resizing the quotient filter with a different load factor"""
         qf = QuotientFilter(quotient=8, auto_expand=True)
         self.assertEqual(qf.max_load_factor, 0.85)
@@ -178,13 +184,46 @@ class TestQuotientFilter(unittest.TestCase):
         self.assertEqual(qf.remainder, 23)
         self.assertEqual(qf.bits_per_elm, 32)
 
-    def test_resize_errors(self):
+    def test_qf_resize_errors(self):
         """test resizing errors"""
 
         qf = QuotientFilter(quotient=8, auto_expand=True)
         for i in range(200):
             qf.add(str(i))
 
-        self.assertRaises(ValueError, lambda: qf.resize(quotient=2))
-        self.assertRaises(ValueError, lambda: qf.resize(quotient=32))
-        self.assertRaises(ValueError, lambda: qf.resize(quotient=6))
+        self.assertRaises(QuotientFilterError, lambda: qf.resize(quotient=2))
+        self.assertRaises(QuotientFilterError, lambda: qf.resize(quotient=32))
+        self.assertRaises(QuotientFilterError, lambda: qf.resize(quotient=6))
+
+    def test_qf_merge(self):
+        """test merging two quotient filters together"""
+        qf = QuotientFilter(quotient=8, auto_expand=True)
+        for i in range(200):
+            qf.add(str(i))
+
+        fq = QuotientFilter(quotient=8)
+        for i in range(300, 500):
+            fq.add(str(i))
+
+        qf.merge(fq)
+
+        for i in range(200):
+            self.assertTrue(qf.check(str(i)))
+        for i in range(200, 300):
+            self.assertFalse(qf.check(str(i)))
+        for i in range(300, 500):
+            self.assertTrue(qf.check(str(i)))
+
+        self.assertEqual(qf.elements_added, 400)
+
+    def test_qf_merge_error(self):
+        """test unable to merge due to inability to grow"""
+        qf = QuotientFilter(quotient=8, auto_expand=False)
+        for i in range(200):
+            qf.add(str(i))
+
+        fq = QuotientFilter(quotient=8)
+        for i in range(300, 400):
+            fq.add(str(i))
+
+        self.assertRaises(QuotientFilterError, lambda: qf.merge(fq))
