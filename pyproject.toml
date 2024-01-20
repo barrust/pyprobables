@@ -35,7 +35,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
-requires-python = ">=3.6"
+requires-python = ">=3.8"
 
 [tool.setuptools.dynamic]
 version = { attr = "probables.__version__" }

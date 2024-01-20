@@ -1,5 +1,12 @@
 # PyProbables Changelog
 
+### Version 0.6.2
+
+* Quotient Filter:
+  * Add retrieve hashes from the filter
+  * Add resize filter, automatically or programatically
+  * Add merging two filters into one
+
 ### Version 0.6.1
 
 * Quotient Filter:
