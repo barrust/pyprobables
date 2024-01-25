@@ -322,6 +322,7 @@ class TestCountMinSketch(unittest.TestCase):
         self.assertEqual(189 * 2, cms1.check("this is another test"))
         self.assertEqual(16 * 2, cms1.check("this is also a test"))
         self.assertEqual(5 * 2, cms1.check("this is something to test"))
+        self.assertEqual(cms1.elements_added, (255 + 189 + 16 + 5) * 2)
 
     def test_cms_join_overflow(self):
         """test count-min sketch overflow"""

@@ -391,7 +391,7 @@ class CountMinSketch:
                 self._bins[i] = tmp_els
 
         # handle adding and removing elements added including handling overflow
-        self.__elements_added += self.elements_added
+        self.__elements_added += second.elements_added
 
         if self.elements_added > INT64_T_MAX:
             self.__elements_added = INT64_T_MAX
