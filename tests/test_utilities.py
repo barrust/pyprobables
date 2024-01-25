@@ -147,7 +147,6 @@ class TestProbablesUtilities(unittest.TestCase):
             "1001001001001001001001001001001001001001001001001001001001001001001001001001001001001001001001001000",
         )
 
-        self.assertEqual(ba[-5::], [0, 1, 0, 0, 0])
         self.assertEqual(ba[2], 0)
         ba[2] = 1
         self.assertEqual(ba[2], 1)

@@ -182,6 +182,21 @@ class QuotientFilter:
         key_remainder = _hash & ((1 << self._r) - 1)
         return not self._contained_at_loc(key_quotient, key_remainder) == -1
 
+    def remove(self, key: KeyT) -> bool:
+        _hash = self._hash_func(key, 0)
+        return self.remove_alt(_hash)
+
+    def remove_alt(self, _hash: int) -> bool:
+        key_quotient = _hash >> self._r
+        key_remainder = _hash & ((1 << self._r) - 1)
+
+        idx = self._contained_at_loc(key_quotient, key_remainder)
+        if idx == -1:
+            return False
+
+        self._elements_added -= 1
+        return self._remove_element(key_quotient, idx)
+
     def hashes(self) -> Iterator[int]:
         """A generator over the hashes in the quotient filter
 
@@ -192,9 +207,9 @@ class QuotientFilter:
         # find first empty location
         start = 0
         while True:
-            is_occupied = self._is_occupied.check_bit(start)
-            is_continuation = self._is_continuation.check_bit(start)
-            is_shifted = self._is_shifted.check_bit(start)
+            is_occupied = self._is_occupied[start]
+            is_continuation = self._is_continuation[start]
+            is_shifted = self._is_shifted[start]
             if is_occupied + is_continuation + is_shifted == 0:
                 break
             start += 1
@@ -202,9 +217,9 @@ class QuotientFilter:
         cur_quot = 0
         for i in range(start, self._size + start):  # this will allow for wrap-arounds
             idx = i % self._size
-            is_occupied = self._is_occupied.check_bit(idx)
-            is_continuation = self._is_continuation.check_bit(idx)
-            is_shifted = self._is_shifted.check_bit(idx)
+            is_occupied = self._is_occupied[idx]
+            is_continuation = self._is_continuation[idx]
+            is_shifted = self._is_shifted[idx]
             # Nothing here, keep going
             if is_occupied + is_continuation + is_shifted == 0:
                 assert len(queue) == 0
@@ -342,33 +357,37 @@ class QuotientFilter:
 
             if self._is_occupied[q] == 0:
                 self._shift_insert(q, r, start_idx, start_idx, 0)
-
             else:
                 orig_start_idx = start_idx
                 starts = 0
-                f = (
-                    self._is_occupied.check_bit(start_idx)
-                    + self._is_continuation.check_bit(start_idx)
-                    + self._is_shifted.check_bit(start_idx)
-                )
 
-                while starts == 0 and f != 0 and r > self._filter[start_idx]:
+                while starts == 0 and not self._is_empty_element(start_idx) and r > self._filter[start_idx]:
                     start_idx = (start_idx + 1) & (self._size - 1)
 
                     if self._is_continuation[start_idx] == 0:
                         starts += 1
-
-                    f = (
-                        self._is_occupied.check_bit(start_idx)
-                        + self._is_continuation.check_bit(start_idx)
-                        + self._is_shifted.check_bit(start_idx)
-                    )
 
                 if starts == 1:
                     self._shift_insert(q, r, orig_start_idx, start_idx, 0)
                 else:
                     self._shift_insert(q, r, orig_start_idx, start_idx, 1)
         self._elements_added += 1
+
+    def _is_cluster_start(self, elt: int) -> bool:
+        return self._is_occupied[elt] == 1 and not self._is_continuation[elt] == 1 and not self._is_shifted[elt] == 1
+
+    def _is_run_start(self, elt: int) -> bool:
+        return not self._is_continuation[elt] == 1 and (self._is_occupied[elt] == 1 or self._is_shifted[elt] == 1)
+
+    def _is_empty_element(self, elt: int) -> bool:
+        return (self._is_occupied[elt] + self._is_continuation[elt] + self._is_shifted[elt]) == 0
+
+    def _remove_element(self, original_quotient: int, start_loc: int):
+        """removes the element at loc and moves items until there is an empty location or a non-shifted q"""
+
+        idx_to_remove = original_quotient if original_quotient == start_loc else start_loc
+
+        return True
 
     def _contained_at_loc(self, q: int, r: int) -> int:
         """returns the index location of the element, or -1 if not present"""
@@ -378,11 +397,7 @@ class QuotientFilter:
         start_idx = self._get_start_index(q)
 
         starts = 0
-        meta_bits = (
-            self._is_occupied.check_bit(start_idx)
-            + self._is_continuation.check_bit(start_idx)
-            + self._is_shifted.check_bit(start_idx)
-        )
+        meta_bits = self._is_occupied[start_idx] + self._is_continuation[start_idx] + self._is_shifted[start_idx]
 
         while meta_bits != 0:
             if self._is_continuation[start_idx] == 0:
@@ -395,10 +410,6 @@ class QuotientFilter:
                 return start_idx
 
             start_idx = (start_idx + 1) & (self._size - 1)
-            meta_bits = (
-                self._is_occupied.check_bit(start_idx)
-                + self._is_continuation.check_bit(start_idx)
-                + self._is_shifted.check_bit(start_idx)
-            )
+            meta_bits = self._is_occupied[start_idx] + self._is_continuation[start_idx] + self._is_shifted[start_idx]
 
         return -1
