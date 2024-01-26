@@ -1,12 +1,5 @@
 # PyProbables Changelog
 
-### Version 0.6.2
-
-* Quotient Filter:
-  * Add retrieve hashes from the filter
-  * Add resize filter, automatically or programatically
-  * Add merging two filters into one
-
 ### Version 0.6.1
 
 * Quotient Filter:
@@ -14,6 +7,11 @@
   * Add quotient filter expand capability, auto and on request
   * Add QuotientFilterError exception
   * Add merge functionality
+  * Add retrieve hashes from the filter
+  * Add resize filter, automatically or programatically
+  * Add merging two filters into one
+* Count-Min Sketch:
+  * Fix bug in elements added calculation when joining Count-Min Sketches; see [PR #119](https://github.com/barrust/pyprobables/pull/119); Thanks [@cunla](https://github.com/cunla)
 
 ### Version 0.6.0
 
