@@ -191,12 +191,7 @@ class QuotientFilter:
 
         # find first empty location
         start = 0
-        while True:
-            is_occupied = self._is_occupied.check_bit(start)
-            is_continuation = self._is_continuation.check_bit(start)
-            is_shifted = self._is_shifted.check_bit(start)
-            if is_occupied + is_continuation + is_shifted == 0:
-                break
+        while not self._is_empty_element(start):
             start += 1
 
         cur_quot = 0
@@ -214,11 +209,10 @@ class QuotientFilter:
                 queue.append(idx)
 
             #  run start
-            if not is_continuation and (is_occupied or is_shifted):
+            if not is_continuation == 1 and (is_occupied == 1 or is_shifted == 1):
                 cur_quot = queue.pop(0)
 
-            if self._filter[idx] != 0:
-                yield (cur_quot << self._r) + self._filter[idx]
+            yield (cur_quot << self._r) + self._filter[idx]
 
     def get_hashes(self) -> List[int]:
         """Get the hashes from the quotient filter as a list
@@ -271,48 +265,48 @@ class QuotientFilter:
         for _h in second.hashes():
             self.add_alt(_h)
 
-    def _shift_insert(self, k, v, start, j, flag):
-        if self._is_occupied[j] == 0 and self._is_continuation[j] == 0 and self._is_shifted[j] == 0:
-            self._filter[j] = v
-            self._is_occupied[k] = 1
-            self._is_continuation[j] = 1 if j != start else 0
-            self._is_shifted[j] = 1 if j != k else 0
+    def _shift_insert(self, q: int, r: int, orig_idx: int, insert_idx: int, flag: int):
+        if self._is_empty_element(insert_idx):
+            self._filter[insert_idx] = r
+            self._is_occupied[q] = 1
+            self._is_continuation[insert_idx] = 1 if insert_idx != orig_idx else 0
+            self._is_shifted[insert_idx] = 1 if insert_idx != q else 0
 
         else:
-            i = (j + 1) & (self._size - 1)
+            next_idx = (insert_idx + 1) & (self._size - 1)
 
             while True:
-                f = self._is_occupied[i] + self._is_continuation[i] + self._is_shifted[i]
+                was_empty = self._is_empty_element(next_idx)
 
-                temp = self._is_continuation[i]
-                self._is_continuation[i] = self._is_continuation[j]
-                self._is_continuation[j] = temp
+                temp = self._is_continuation[next_idx]
+                self._is_continuation[next_idx] = self._is_continuation[insert_idx]
+                self._is_continuation[insert_idx] = temp
 
-                self._is_shifted[i] = 1
+                self._is_shifted[next_idx] = 1
 
-                temp = self._filter[i]
-                self._filter[i] = self._filter[j]
-                self._filter[j] = temp
+                temp = self._filter[next_idx]
+                self._filter[next_idx] = self._filter[insert_idx]
+                self._filter[insert_idx] = temp
 
-                if f == 0:
+                if was_empty:
                     break
 
-                i = (i + 1) & (self._size - 1)
+                next_idx = (next_idx + 1) & (self._size - 1)
 
-            self._filter[j] = v
-            self._is_occupied[k] = 1
-            self._is_continuation[j] = 1 if j != start else 0
-            self._is_shifted[j] = 1 if j != k else 0
+            self._filter[insert_idx] = r
+            self._is_occupied[q] = 1
+            self._is_continuation[insert_idx] = 1 if insert_idx != orig_idx else 0
+            self._is_shifted[insert_idx] = 1 if insert_idx != q else 0
 
             if flag == 1:
-                self._is_continuation[(j + 1) & (self._size - 1)] = 1
+                self._is_continuation[(insert_idx + 1) & (self._size - 1)] = 1
 
-    def _get_start_index(self, k):
-        j = k
-        cnts = 0
+    def _get_start_index(self, quotient: int) -> int:
+        j = quotient
+        cnts: int = 0
 
         while True:
-            if j == k or self._is_occupied[j] == 1:
+            if j == quotient or self._is_occupied[j] == 1:
                 cnts += 1
 
             if self._is_shifted[j] == 1:
@@ -333,7 +327,7 @@ class QuotientFilter:
     def _add(self, q: int, r: int):
         if self._size == self._elements_added:
             raise QuotientFilterError("Unable to insert the element due to insufficient space")
-        if self._is_occupied[q] == 0 and self._is_continuation[q] == 0 and self._is_shifted[q] == 0:
+        if self._is_empty_element(q):
             self._filter[q] = r
             self._is_occupied[q] = 1
 
@@ -402,3 +396,17 @@ class QuotientFilter:
             )
 
         return -1
+
+    def _is_cluster_start(self, elt: int) -> bool:
+        return self._is_occupied[elt] == 1 and not self._is_continuation[elt] == 1 and not self._is_shifted[elt] == 1
+
+    def _is_run_start(self, elt: int) -> bool:
+        return not self._is_continuation[elt] == 1 and (self._is_occupied[elt] == 1 or self._is_shifted[elt] == 1)
+
+    def _is_canonical_slot(self, elt: int) -> bool:
+        return self._is_occupied[elt] == 1 and self._is_continuation[elt] == 0 and self._is_shifted[elt] == 0
+
+    def _is_empty_element(self, elt: int) -> bool:
+        return (
+            self._is_occupied.check_bit(elt) + self._is_continuation.check_bit(elt) + self._is_shifted.check_bit(elt)
+        ) == 0

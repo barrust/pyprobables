@@ -118,10 +118,7 @@ class Bitarray:
         """The bitarray"""
         return self._bitarray
 
-    def __getitem__(self, key: Union[int, slice]) -> Union[int, List[int]]:
-        if isinstance(key, slice):
-            indices = range(*key.indices(self._size))
-            return [self.check_bit(i) for i in indices]
+    def __getitem__(self, key: int) -> int:
         return self.check_bit(key)
 
     def __setitem__(self, idx: int, val: int):
