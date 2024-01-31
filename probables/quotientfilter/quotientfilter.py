@@ -209,7 +209,7 @@ class QuotientFilter:
                 queue.append(idx)
 
             #  run start
-            if not is_continuation == 1 and (is_occupied == 1 or is_shifted == 1):
+            if self._is_run_start(idx):
                 cur_quot = queue.pop(0)
 
             yield (cur_quot << self._r) + self._filter[idx]
@@ -302,6 +302,9 @@ class QuotientFilter:
                 self._is_continuation[(insert_idx + 1) & (self._size - 1)] = 1
 
     def _get_start_index(self, quotient: int) -> int:
+        if self._is_empty_element(quotient):
+            return quotient
+
         j = quotient
         cnts: int = 0
 
@@ -369,42 +372,36 @@ class QuotientFilter:
         if self._is_occupied[q] == 0:
             return -1
 
-        start_idx = self._get_start_index(q)
+        idx = q
+        queue: List[int] = []
 
-        starts = 0
-        meta_bits = (
-            self._is_occupied.check_bit(start_idx)
-            + self._is_continuation.check_bit(start_idx)
-            + self._is_shifted.check_bit(start_idx)
-        )
+        # go back to the beginning of the cluster
+        while not self._is_cluster_start(idx):
+            idx = (idx - 1) & (self._size - 1)
 
-        while meta_bits != 0:
-            if self._is_continuation[start_idx] == 0:
-                starts += 1
+        # find the correct run
+        cur_quot = -1
+        while not self._is_empty_element(idx):  # this will allow for wrap-arounds
+            if self._is_occupied[idx] == 1:  # keep track of the indicies that match a hashed quotient
+                queue.append(idx)
 
-            if starts == 2 or self._filter[start_idx] > r:
-                break
+            # run start
+            if self._is_run_start(idx):
+                if cur_quot == q:
+                    break
+                cur_quot = queue.pop(0)
 
-            if self._filter[start_idx] == r:
-                return start_idx
+            if cur_quot == q and self._filter[idx] == r:
+                return idx
 
-            start_idx = (start_idx + 1) & (self._size - 1)
-            meta_bits = (
-                self._is_occupied.check_bit(start_idx)
-                + self._is_continuation.check_bit(start_idx)
-                + self._is_shifted.check_bit(start_idx)
-            )
-
+            idx = (idx + 1) & (self._size - 1)
         return -1
 
     def _is_cluster_start(self, elt: int) -> bool:
-        return self._is_occupied[elt] == 1 and not self._is_continuation[elt] == 1 and not self._is_shifted[elt] == 1
+        return self._is_occupied[elt] == 1 and self._is_continuation[elt] == 0 and self._is_shifted[elt] == 0
 
     def _is_run_start(self, elt: int) -> bool:
         return not self._is_continuation[elt] == 1 and (self._is_occupied[elt] == 1 or self._is_shifted[elt] == 1)
-
-    def _is_canonical_slot(self, elt: int) -> bool:
-        return self._is_occupied[elt] == 1 and self._is_continuation[elt] == 0 and self._is_shifted[elt] == 0
 
     def _is_empty_element(self, elt: int) -> bool:
         return (
