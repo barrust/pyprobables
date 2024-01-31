@@ -372,29 +372,21 @@ class QuotientFilter:
         if self._is_occupied[q] == 0:
             return -1
 
-        idx = q
-        queue: List[int] = []
+        start_idx = self._get_start_index(q)
+        starts = 0
 
-        # go back to the beginning of the cluster
-        while not self._is_cluster_start(idx):
-            idx = (idx - 1) & (self._size - 1)
+        while self._is_empty_element(start_idx) is False:
+            if self._is_continuation[start_idx] == 0:
+                starts += 1
 
-        # find the correct run
-        cur_quot = -1
-        while not self._is_empty_element(idx):  # this will allow for wrap-arounds
-            if self._is_occupied[idx] == 1:  # keep track of the indicies that match a hashed quotient
-                queue.append(idx)
+            if starts == 2 or self._filter[start_idx] > r:
+                break
 
-            # run start
-            if self._is_run_start(idx):
-                if cur_quot == q:
-                    break
-                cur_quot = queue.pop(0)
+            if self._filter[start_idx] == r:
+                return start_idx
 
-            if cur_quot == q and self._filter[idx] == r:
-                return idx
+            start_idx = (start_idx + 1) & (self._size - 1)
 
-            idx = (idx + 1) & (self._size - 1)
         return -1
 
     def _is_cluster_start(self, elt: int) -> bool:
