@@ -399,3 +399,25 @@ class QuotientFilter:
         return (
             self._is_occupied.check_bit(elt) + self._is_continuation.check_bit(elt) + self._is_shifted.check_bit(elt)
         ) == 0
+
+    def print(self):
+        """show the bits and the run/cluster/continuation/empty status"""
+        for i in range(self._size):
+            # is_a = ""
+            if self._is_empty_element(i):
+                is_a = "Empty"
+            elif self._is_cluster_start(i):
+                is_a = "Cluster Start"
+            elif self._is_run_start(i):
+                is_a = "Run Start"
+            else:
+                is_a = "Continuation"
+            print(f"{i}\t--\t{self._is_occupied[i]}-{self._is_continuation[i]}-{self._is_shifted[i]}\t{is_a}")
+
+    def validate_metadata(self):
+        """check for invalid bit settings"""
+        for i in range(self._size):
+            if self._is_occupied[i] == 0 and self._is_continuation == 1 and self._is_shifted == 0:
+                print(f"Row failed: {i}")
+            if self._is_occupied[i] == 1 and self._is_continuation == 1 and self._is_shifted == 0:
+                print(f"Row failed: {i}")
