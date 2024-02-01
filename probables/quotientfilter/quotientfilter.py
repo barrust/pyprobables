@@ -180,6 +180,7 @@ class QuotientFilter:
             bool: True if likely encountered, False if definately not"""
         key_quotient = _hash >> self._r
         key_remainder = _hash & ((1 << self._r) - 1)
+        # print("looking for: ", key_quotient, key_remainder)
         return not self._contained_at_loc(key_quotient, key_remainder) == -1
 
     def remove(self, key: KeyT) -> bool:
@@ -283,7 +284,9 @@ class QuotientFilter:
                 what_is = "Run Start"
             elif self._is_continuation[i]:
                 what_is = "Continuation"
-            print(f"{i}\t-\t{self._is_occupied[i]}-{self._is_continuation[i]}-{self._is_shifted[i]}\t-\t{what_is}")
+            print(
+                f"{i}\t-\t{self._is_occupied[i]}-{self._is_continuation[i]}-{self._is_shifted[i]}\t-\t{what_is}\t{self._filter[i]}"
+            )
 
     def _shift_insert(self, q: int, r: int, orig_idx: int, insert_idx: int, flag: int):
         if self._is_empty_element(insert_idx):
@@ -388,9 +391,9 @@ class QuotientFilter:
         self._elements_added += 1
 
     def _remove(self, q: int, r: int) -> bool:
+        print(f"remove: {q} - {r}")
         if self._is_occupied[q] == 0:
             return False
-
         idx = q
         queue: List[int] = []
         begin_removal = False
@@ -402,36 +405,45 @@ class QuotientFilter:
         # find the correct run
         cur_quot = -1
         while not self._is_empty_element(idx) or self._is_cluster_start(idx):  # this will allow for wrap-arounds
-            if self._is_occupied[idx] == 1:  # keep track of the indicies that match a hashed quotient
+            # keep track of the indicies that match a hashed quotient and where we are
+            if self._is_occupied[idx] == 1:
                 queue.append(idx)
-
-            # run start
             if self._is_run_start(idx):
                 cur_quot = queue.pop(0)
 
+            # check if we are where we need to be
             if cur_quot == q and self._filter[idx] == r:
                 begin_removal = True
 
             if begin_removal:
-                if self._is_continuation[next_idx] == 1:
-                    self._filter[idx] = self._filter[next_idx]
+                if self._is_cluster_start(idx) and self._is_continuation[next_idx] == 0:
+                    # special case!
+                    self._is_occupied[idx] = 0
+                    self._is_continuation[idx] = 0
+                    self._is_shifted[idx] = 0
+
+                elif self._is_continuation[next_idx] == 1:
+                    self._is_continuation[idx] = self._is_continuation[next_idx]
+                    self._is_shifted[idx] = self._is_shifted[next_idx]
                 elif self._is_run_start(next_idx):
-                    self._filter[idx] = self._filter[next_idx]
+                    if self._is_run_start(next_idx) and self._is_run_start(idx) and cur_quot == q:
+                        self._is_occupied[q] = 0
                     if cur_quot == idx:  # moving into canonical slot
+                        print(f"move into canonical slot: {idx}")
                         self._is_shifted[idx] = 0
                         self._is_continuation[idx] = 0
                     else:
                         self._is_shifted[idx] = self._is_shifted[next_idx]
                         self._is_continuation[idx] = 0
-
+                self._filter[idx] = self._filter[next_idx]
             idx = next_idx
             next_idx = (idx + 1) & (self._size - 1)
-        if begin_removal:
-            prev_idx = (idx - 1) & (self._size - 1)
-            self._filter[prev_idx] = 0
-            self._is_continuation[prev_idx] = 0
-            self._is_occupied[prev_idx] = 0
-            self._is_shifted[prev_idx] = 0
+
+        prev_idx = (idx - 1) & (self._size - 1)
+        self._filter[prev_idx] = 0
+        self._is_continuation[prev_idx] = 0
+        self._is_occupied[prev_idx] = 0
+        self._is_shifted[prev_idx] = 0
         return begin_removal
 
     def _contained_at_loc(self, q: int, r: int) -> int:
