@@ -1,10 +1,11 @@
-""" BloomFilter and BloomFiter on Disk, python implementation
+""" Quotient Filter, python implementation
     License: MIT
     Author: Tyler Barrus (barrust@gmail.com)
 """
 
+import sys
 from array import array
-from typing import Iterator, List, Optional
+from typing import Iterator, List, Optional, TextIO
 
 from probables.exceptions import QuotientFilterError
 from probables.hashes import KeyT, SimpleHashT, fnv_1a_32
@@ -161,6 +162,26 @@ class QuotientFilter:
         if self._contained_at_loc(key_quotient, key_remainder) == -1:
             self._add(key_quotient, key_remainder)
 
+    def remove(self, key: KeyT) -> None:
+        """Remove key from the quotient filter
+
+        Args:
+            key (str|bytes): The element to remove
+        """
+        _hash = self._hash_func(key, 0)
+        self.remove_alt(_hash)
+
+    def remove_alt(self, _hash: int) -> None:
+        """Remove key from the quotient filter
+
+        Args:
+            _hash (int): The element to remove
+        """
+        key_quotient = _hash >> self._r
+        key_remainder = _hash & ((1 << self._r) - 1)
+        print(key_quotient)
+        self._remove_element(key_quotient, key_remainder)
+
     def check(self, key: KeyT) -> bool:
         """Check to see if key is likely in the quotient filter
 
@@ -266,6 +287,7 @@ class QuotientFilter:
             self.add_alt(_h)
 
     def _shift_insert(self, q: int, r: int, orig_idx: int, insert_idx: int, flag: int):
+        """Insert the element q and r by shifting elements as needed"""
         if self._is_empty_element(insert_idx):
             self._filter[insert_idx] = r
             self._is_occupied[q] = 1
@@ -302,6 +324,7 @@ class QuotientFilter:
                 self._is_continuation[(insert_idx + 1) & (self._size - 1)] = 1
 
     def _get_start_index(self, quotient: int) -> int:
+        """Get the starting index for the quotient"""
         if self._is_empty_element(quotient):
             return quotient
 
@@ -328,6 +351,7 @@ class QuotientFilter:
         return j
 
     def _add(self, q: int, r: int):
+        """Add an quotient into the filter"""
         if self._size == self._elements_added:
             raise QuotientFilterError("Unable to insert the element due to insufficient space")
         if self._is_empty_element(q):
@@ -367,6 +391,34 @@ class QuotientFilter:
                     self._shift_insert(q, r, orig_start_idx, start_idx, 1)
         self._elements_added += 1
 
+    def _remove_element(self, q: int, r: int) -> None:
+        idx = self._contained_at_loc(q, r)
+
+        if idx == -1:  # element not in the filter, exit
+            print("Element doesn't exist; exiting")
+            return
+
+        next_idx = (idx + 1) & (self._size - 1)
+
+        # element is the end of a cluster and the next element is either the beginning of a cluster or empty
+        if self._is_empty_element(next_idx) or self._is_cluster_start(next_idx):
+            print("Element is the last on a cluster; clear everything and exit;")
+            self._filter[idx] = 0
+            self._is_occupied.clear_bit(idx)
+            self._is_continuation.clear_bit(idx)
+            self._is_shifted.clear_bit(idx)
+            return
+
+        # track if this is the only element in this run...
+        remove_orig_idx = False
+        if self._is_run_start(idx) and not self._is_continuation.check_bit(next_idx):
+            remove_orig_idx = True
+
+        # TODO: Figure out how to move everything AND set shifted correctly as needed
+
+        if remove_orig_idx:
+            self._is_occupied[q] = 0
+
     def _contained_at_loc(self, q: int, r: int) -> int:
         """returns the index location of the element, or -1 if not present"""
         if self._is_occupied[q] == 0:
@@ -390,29 +442,38 @@ class QuotientFilter:
         return -1
 
     def _is_cluster_start(self, elt: int) -> bool:
+        """Does this `elt` sit at the beginning of a cluster?"""
         return self._is_occupied[elt] == 1 and self._is_continuation[elt] == 0 and self._is_shifted[elt] == 0
 
     def _is_run_start(self, elt: int) -> bool:
+        """Does `elt` sit at the beginning of a run?"""
         return not self._is_continuation[elt] == 1 and (self._is_occupied[elt] == 1 or self._is_shifted[elt] == 1)
 
-    def _is_empty_element(self, elt: int) -> bool:
-        return (
-            self._is_occupied.check_bit(elt) + self._is_continuation.check_bit(elt) + self._is_shifted.check_bit(elt)
-        ) == 0
+    def _is_run_or_cluster_start(self, elt: int) -> bool:
+        if self._is_cluster_start(elt):
+            return True
+        elif self._is_run_start(elt):
+            return True
+        return False
 
-    def print(self):
-        """show the bits and the run/cluster/continuation/empty status"""
+    def _is_empty_element(self, elt: int) -> bool:
+        """Is this an empty element?"""
+        return (self._is_occupied[elt] + self._is_continuation[elt] + self._is_shifted[elt]) == 0
+
+    def print(self, _file: TextIO = sys.stdout):
+        """show the bits and the run/cluster/continuation/empty status, defaults to `sys.stdout`"""
+        print("idx\t--\tO-C-S\tStatus", file=_file)
         for i in range(self._size):
-            # is_a = ""
+            is_a = "Continuation"
             if self._is_empty_element(i):
                 is_a = "Empty"
             elif self._is_cluster_start(i):
                 is_a = "Cluster Start"
             elif self._is_run_start(i):
                 is_a = "Run Start"
-            else:
-                is_a = "Continuation"
-            print(f"{i}\t--\t{self._is_occupied[i]}-{self._is_continuation[i]}-{self._is_shifted[i]}\t{is_a}")
+            print(
+                f"{i}\t--\t{self._is_occupied[i]}-{self._is_continuation[i]}-{self._is_shifted[i]}\t{is_a}", file=_file
+            )
 
     def validate_metadata(self):
         """check for invalid bit settings"""
