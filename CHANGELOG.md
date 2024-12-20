@@ -10,6 +10,7 @@
   * Add retrieve hashes from the filter
   * Add resize filter, automatically or programatically
   * Add merging two filters into one
+  * Add removal of an element from the filter
 * Count-Min Sketch:
   * Fix bug in elements added calculation when joining Count-Min Sketches; see [PR #119](https://github.com/barrust/pyprobables/pull/119); Thanks [@cunla](https://github.com/cunla)
 
