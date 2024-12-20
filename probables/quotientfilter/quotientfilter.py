@@ -181,7 +181,6 @@ class QuotientFilter:
         """
         key_quotient = _hash >> self._r
         key_remainder = _hash & ((1 << self._r) - 1)
-        print(key_quotient)
         self._remove_element(key_quotient, key_remainder)
 
     def check(self, key: KeyT) -> bool:
@@ -395,6 +394,16 @@ class QuotientFilter:
 
     def _remove_element(self, q: int, r: int) -> None:
         idx = self._contained_at_loc(q, r)
+        print(f"removing {q} at position {idx}")
+
+        # Different scenarios:
+        # 1) idx = cluster start, next_idx empty or cluster start
+        # 2) idx = cluster start, next_idx continuation
+        #
+        # 3) idx = run_start, next_idx empty, cluster start, run start
+        # 4) idx = run_start, next_idx continuation
+        #
+        # 5) idx = continuation, next_idx empty, cluster start, or run start
 
         if idx == -1:  # element not in the filter, exit
             return
@@ -402,45 +411,70 @@ class QuotientFilter:
         orig_idx = idx
         next_idx = (idx + 1) & (self.__mod_size)
 
+        # track if this is the only element in this run...
+        remove_orig_idx = False
+        if self._is_run_or_cluster_start(idx) and self._is_continuation[next_idx] == 0:
+            remove_orig_idx = True
+
         # element is the end of a cluster and the next element is either the beginning of a cluster or empty
         if self._is_empty_element(next_idx) or self._is_cluster_start(next_idx):
             self._filter[idx] = 0
             self._is_occupied.clear_bit(idx)
             self._is_continuation.clear_bit(idx)
             self._is_shifted.clear_bit(idx)
+
+            if remove_orig_idx:
+                self._is_occupied[q] = 0
             return
 
-        # track if this is the only element in this run...
-        remove_orig_idx = False
-        if self._is_run_start(idx) and not self._is_continuation.check_bit(next_idx):
-            remove_orig_idx = True
-
         # TODO: Figure out how to move everything AND set shifted correctly as needed
-        queue: List[int] = []
-        tmp_idx = idx
-        while not self._is_cluster_start(tmp_idx):
-            tmp_idx = (tmp_idx - 1) & (self.__mod_size)
 
-        # From the cluster start, get back to idx but keep track of the queue
-        while not tmp_idx == idx:
-            if self._is_occupied[tmp_idx] == 1:
-                queue.append(tmp_idx)
-            if self._is_run_or_cluster_start(tmp_idx):
-                queue.pop(0)
+        # if self._is_cluster_start(idx):
+        #     queue.append(idx)
 
-            tmp_idx = (tmp_idx + 1) & (self.__mod_size)
+        min_idx = idx
+        while not self._is_cluster_start(min_idx):
+            min_idx = (min_idx - 1) & (self.__mod_size)
 
-        while not self._is_cluster_start(next_idx) and not self._is_empty_element(next_idx):
-            # keep track of the queue!
-            if self._is_occupied[next_idx] == 1:
-                queue.append(next_idx)
+        # this is an edge case for first move...
+        if self._is_run_or_cluster_start(idx) and self._is_continuation[next_idx] == 1:
+            self._filter[idx] = self._filter[next_idx]
+            self._is_continuation[idx] = 0
+            self._is_shifted[idx] = self._is_shifted[next_idx]
 
             idx = next_idx
             next_idx = (idx + 1) & (self.__mod_size)
-        print(queue)
 
-        # if remove_orig_idx:
-        #     self._is_occupied[q] = 0
+        while not self._is_cluster_start(next_idx) and not self._is_empty_element(next_idx):
+            self._filter[idx] = self._filter[next_idx]
+            self._is_continuation[idx] = self._is_continuation[next_idx]
+            self._is_shifted[idx] = self._is_shifted[next_idx]
+
+            idx = next_idx
+            next_idx = (idx + 1) & (self.__mod_size)
+        # clean out the last element
+        self._filter[idx] = 0
+        self._is_continuation[idx] = 0
+        self._is_shifted[idx] = 0
+        self._is_occupied[idx] = 0
+
+        if remove_orig_idx:
+            self._is_occupied[q] = 0
+
+        # now figure out if things are in the correct place....
+        cur_quot = -1
+        queue: List[int] = []
+        while min_idx != next_idx:
+            if self._is_occupied[min_idx] == 1:
+                queue.append(min_idx)
+            if self._is_run_start(min_idx) == 1:
+                cur_quot = queue.pop(0)
+
+            if cur_quot == min_idx:
+                self._is_continuation[min_idx] = 0
+                self._is_shifted[min_idx] = 0
+                self._is_occupied[min_idx] = 1
+            min_idx = (min_idx + 1) & self.__mod_size
 
     def _contained_at_loc(self, q: int, r: int) -> int:
         """returns the index location of the element, or -1 if not present"""
@@ -483,20 +517,14 @@ class QuotientFilter:
         """Is this an empty element?"""
         return (self._is_occupied[elt] + self._is_continuation[elt] + self._is_shifted[elt]) == 0
 
-    def print(self, _file: TextIO = sys.stdout):
+    def print(self, file: TextIO = sys.stdout):
         """show the bits and the run/cluster/continuation/empty status, defaults to `sys.stdout`"""
-        print("idx\t--\tO-C-S\tStatus", file=_file)
-        print("----------------------------------------", file=_file)
+        print("idx\t--\tO-C-S\tStatus", file=file)
+        print("----------------------------------------", file=file)
         for i in range(self._size):
-            is_a = "Continuation"
-            if self._is_empty_element(i):
-                is_a = "Empty"
-            elif self._is_cluster_start(i):
-                is_a = "Cluster Start"
-            elif self._is_run_start(i):
-                is_a = "Run Start"
             print(
-                f"{i}\t--\t{self._is_occupied[i]}-{self._is_continuation[i]}-{self._is_shifted[i]}\t{is_a}", file=_file
+                f"{i}\t--\t{self._is_occupied[i]}-{self._is_continuation[i]}-{self._is_shifted[i]}\t{self._element_is(i)}",
+                file=file,
             )
 
     def validate_metadata(self):
@@ -506,3 +534,13 @@ class QuotientFilter:
                 print(f"Row failed: {i}")
             if self._is_occupied[i] == 1 and self._is_continuation == 1 and self._is_shifted == 0:
                 print(f"Row failed: {i}")
+
+    def _element_is(self, idx):
+        is_a = "Continuation"
+        if self._is_empty_element(idx):
+            is_a = "Empty"
+        elif self._is_cluster_start(idx):
+            is_a = "Cluster Start"
+        elif self._is_run_start(idx):
+            is_a = "Run Start"
+        return is_a
