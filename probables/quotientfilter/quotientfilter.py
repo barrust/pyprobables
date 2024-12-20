@@ -40,6 +40,7 @@ class QuotientFilter:
         "_filter",
         "_max_load_factor",
         "_auto_resize",
+        "__mod_size",
     )
 
     def __init__(
@@ -55,6 +56,7 @@ class QuotientFilter:
         self._q: int = quotient
         self._r: int = 32 - quotient
         self._size: int = 1 << self._q  # same as 2**q
+        self.__mod_size: int = self._size - 1
         self._elements_added: int = 0
         self._auto_resize: bool = auto_expand
         self._hash_func: SimpleHashT = fnv_1a_32 if hash_function is None else hash_function  # type: ignore
@@ -295,7 +297,7 @@ class QuotientFilter:
             self._is_shifted[insert_idx] = 1 if insert_idx != q else 0
 
         else:
-            next_idx = (insert_idx + 1) & (self._size - 1)
+            next_idx = (insert_idx + 1) & (self.__mod_size)
 
             while True:
                 was_empty = self._is_empty_element(next_idx)
@@ -313,7 +315,7 @@ class QuotientFilter:
                 if was_empty:
                     break
 
-                next_idx = (next_idx + 1) & (self._size - 1)
+                next_idx = (next_idx + 1) & (self.__mod_size)
 
             self._filter[insert_idx] = r
             self._is_occupied[q] = 1
@@ -321,7 +323,7 @@ class QuotientFilter:
             self._is_shifted[insert_idx] = 1 if insert_idx != q else 0
 
             if flag == 1:
-                self._is_continuation[(insert_idx + 1) & (self._size - 1)] = 1
+                self._is_continuation[(insert_idx + 1) & (self.__mod_size)] = 1
 
     def _get_start_index(self, quotient: int) -> int:
         """Get the starting index for the quotient"""
@@ -336,7 +338,7 @@ class QuotientFilter:
                 cnts += 1
 
             if self._is_shifted[j] == 1:
-                j = (j - 1) & (self._size - 1)
+                j = (j - 1) & (self.__mod_size)
             else:
                 break
 
@@ -346,7 +348,7 @@ class QuotientFilter:
                     break
                 cnts -= 1
 
-            j = (j + 1) & (self._size - 1)
+            j = (j + 1) & (self.__mod_size)
 
         return j
 
@@ -374,7 +376,7 @@ class QuotientFilter:
                 )
 
                 while starts == 0 and f != 0 and r > self._filter[start_idx]:
-                    start_idx = (start_idx + 1) & (self._size - 1)
+                    start_idx = (start_idx + 1) & (self.__mod_size)
 
                     if self._is_continuation[start_idx] == 0:
                         starts += 1
@@ -395,14 +397,13 @@ class QuotientFilter:
         idx = self._contained_at_loc(q, r)
 
         if idx == -1:  # element not in the filter, exit
-            print("Element doesn't exist; exiting")
             return
 
-        next_idx = (idx + 1) & (self._size - 1)
+        orig_idx = idx
+        next_idx = (idx + 1) & (self.__mod_size)
 
         # element is the end of a cluster and the next element is either the beginning of a cluster or empty
         if self._is_empty_element(next_idx) or self._is_cluster_start(next_idx):
-            print("Element is the last on a cluster; clear everything and exit;")
             self._filter[idx] = 0
             self._is_occupied.clear_bit(idx)
             self._is_continuation.clear_bit(idx)
@@ -415,9 +416,31 @@ class QuotientFilter:
             remove_orig_idx = True
 
         # TODO: Figure out how to move everything AND set shifted correctly as needed
+        queue: List[int] = []
+        tmp_idx = idx
+        while not self._is_cluster_start(tmp_idx):
+            tmp_idx = (tmp_idx - 1) & (self.__mod_size)
 
-        if remove_orig_idx:
-            self._is_occupied[q] = 0
+        # From the cluster start, get back to idx but keep track of the queue
+        while not tmp_idx == idx:
+            if self._is_occupied[tmp_idx] == 1:
+                queue.append(tmp_idx)
+            if self._is_run_or_cluster_start(tmp_idx):
+                queue.pop(0)
+
+            tmp_idx = (tmp_idx + 1) & (self.__mod_size)
+
+        while not self._is_cluster_start(next_idx) and not self._is_empty_element(next_idx):
+            # keep track of the queue!
+            if self._is_occupied[next_idx] == 1:
+                queue.append(next_idx)
+
+            idx = next_idx
+            next_idx = (idx + 1) & (self.__mod_size)
+        print(queue)
+
+        # if remove_orig_idx:
+        #     self._is_occupied[q] = 0
 
     def _contained_at_loc(self, q: int, r: int) -> int:
         """returns the index location of the element, or -1 if not present"""
@@ -437,7 +460,7 @@ class QuotientFilter:
             if self._filter[start_idx] == r:
                 return start_idx
 
-            start_idx = (start_idx + 1) & (self._size - 1)
+            start_idx = (start_idx + 1) & (self.__mod_size)
 
         return -1
 
@@ -463,6 +486,7 @@ class QuotientFilter:
     def print(self, _file: TextIO = sys.stdout):
         """show the bits and the run/cluster/continuation/empty status, defaults to `sys.stdout`"""
         print("idx\t--\tO-C-S\tStatus", file=_file)
+        print("----------------------------------------", file=_file)
         for i in range(self._size):
             is_a = "Continuation"
             if self._is_empty_element(i):
