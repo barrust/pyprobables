@@ -514,13 +514,24 @@ class QuotientFilter:
                 file=file,
             )
 
-    def validate_metadata(self):
-        """check for invalid bit settings"""
+    def validate_metadata(self, verbose=False) -> bool:
+        """Check for invalid bit settings, per the wikipedia documentation
+
+        Args:
+            verbose (str): Print which index in the quotient filter failed
+        Returns:
+            bool: True if the metadata bits are all passing; False otherwise"""
+        is_valid = True
         for i in range(self._size):
             if self._is_occupied[i] == 0 and self._is_continuation == 1 and self._is_shifted == 0:
-                print(f"Row failed: {i}")
+                if verbose:
+                    print(f"Row failed: {i}")
+                is_valid = False
             if self._is_occupied[i] == 1 and self._is_continuation == 1 and self._is_shifted == 0:
-                print(f"Row failed: {i}")
+                if verbose:
+                    print(f"Row failed: {i}")
+                is_valid = False
+        return is_valid
 
     def _element_is(self, idx):
         is_a = "Continuation"
