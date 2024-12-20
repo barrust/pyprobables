@@ -252,6 +252,7 @@ class TestQuotientFilter(unittest.TestCase):
             if not qf.check(a):
                 missing_vals.append(a)
         self.assertListEqual(missing_vals, [])
+        self.assertTrue(qf.validate_metadata())
 
     def test_qf_remove_cluster_start(self):
         """test removing a cluster start followed by empty"""
@@ -267,6 +268,7 @@ class TestQuotientFilter(unittest.TestCase):
             if not qf.check(a):
                 missing_vals.append(a)
         self.assertListEqual(missing_vals, ["."])
+        self.assertTrue(qf.validate_metadata())
 
     def test_qf_remove_cluster_start_cluster(self):
         """test removing a cluster start followed by cluster start"""
@@ -282,6 +284,7 @@ class TestQuotientFilter(unittest.TestCase):
             if not qf.check(a):
                 missing_vals.append(a)
         self.assertListEqual(missing_vals, ["-"])
+        self.assertTrue(qf.validate_metadata())
 
     def test_qf_remove_shifted_run_start_followed_by_empty(self):
         """test removing a shifted run start followed by empty"""
@@ -297,6 +300,7 @@ class TestQuotientFilter(unittest.TestCase):
             if not qf.check(a):
                 missing_vals.append(a)
         self.assertListEqual(missing_vals, ["z"])
+        self.assertTrue(qf.validate_metadata())
 
     def test_qf_remove_shifted_run_start_followed_continuation(self):
         """test removing a shifted run start followed by continuation"""
@@ -312,6 +316,7 @@ class TestQuotientFilter(unittest.TestCase):
             if not qf.check(a):
                 missing_vals.append(a)
         self.assertListEqual(missing_vals, ["y"])
+        self.assertTrue(qf.validate_metadata())
 
     def test_qf_remove_shifted_continuation_followed_run_start(self):
         """test removing a shifted continuation followed by run start"""
@@ -327,6 +332,7 @@ class TestQuotientFilter(unittest.TestCase):
             if not qf.check(a):
                 missing_vals.append(a)
         self.assertListEqual(missing_vals, ["x"])
+        self.assertTrue(qf.validate_metadata())
 
     def test_qf_remove_shifted_run_start_followed_run_start(self):
         """test removing a shifted run start followed by run start"""
@@ -342,6 +348,7 @@ class TestQuotientFilter(unittest.TestCase):
             if not qf.check(a):
                 missing_vals.append(a)
         self.assertListEqual(missing_vals, ["a"])
+        self.assertTrue(qf.validate_metadata())
 
     def test_qf_remove_cluster_start_followed_continuation_follow_run_start(self):
         """test removing a cluster start followed by continuation putting a run start into a cluster start position"""
@@ -357,6 +364,7 @@ class TestQuotientFilter(unittest.TestCase):
             if not qf.check(a):
                 missing_vals.append(a)
         self.assertListEqual(missing_vals, ["d"])
+        self.assertTrue(qf.validate_metadata())
 
     def test_qf_remove_full(self):
         """Test removing all elements, but find each one after each removal"""
@@ -379,6 +387,7 @@ class TestQuotientFilter(unittest.TestCase):
                 if not qf.check(a):
                     missing_vals.append(a)
             self.assertListEqual(missing_vals, [])
+            self.assertTrue(qf.validate_metadata())
 
     def test_qf_remove_full_random(self):
         """Test removing all elements, but in a random order"""
@@ -389,6 +398,7 @@ class TestQuotientFilter(unittest.TestCase):
 
         for l in alpha:
             self.assertTrue(qf.check(l), "failed to insert")
+            self.assertTrue(qf.validate_metadata())
 
         while alpha:
             missing_vals = []
@@ -400,6 +410,7 @@ class TestQuotientFilter(unittest.TestCase):
                 if not qf.check(a):
                     missing_vals.append(a)
             self.assertListEqual(missing_vals, [])
+            self.assertTrue(qf.validate_metadata())
 
     def test_qf_remove_full_random_take_2(self):
         """Test removing all elements, but in a random order - take 2"""
@@ -421,3 +432,4 @@ class TestQuotientFilter(unittest.TestCase):
                 if not qf.check(a):
                     missing_vals.append(a)
             self.assertListEqual(missing_vals, [])
+            self.assertTrue(qf.validate_metadata())
