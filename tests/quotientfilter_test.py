@@ -4,6 +4,7 @@
 
 import hashlib
 import os
+import random
 import sys
 import unittest
 from pathlib import Path
@@ -236,3 +237,187 @@ class TestQuotientFilter(unittest.TestCase):
         qq.add("999")
 
         self.assertRaises(QuotientFilterError, lambda: fq.merge(qq))
+
+    def test_qf_remove_missing_elm(self):
+        """test removing a missing element"""
+        alpha = [a for a in "abcd.efghij;klm-nopqrs=tuvwxyz"]
+        qf = QuotientFilter(quotient=7)
+        for l in alpha:
+            qf.add(l)
+
+        qf.remove("~")
+
+        missing_vals = []
+        for a in alpha:
+            if not qf.check(a):
+                missing_vals.append(a)
+        self.assertListEqual(missing_vals, [])
+
+    def test_qf_remove_cluster_start(self):
+        """test removing a cluster start followed by empty"""
+        alpha = [a for a in "abcd.efghij;klm-nopqrs=tuvwxyz"]
+        qf = QuotientFilter(quotient=7)
+        for l in alpha:
+            qf.add(l)
+
+        qf.remove(".")
+
+        missing_vals = []
+        for a in alpha:
+            if not qf.check(a):
+                missing_vals.append(a)
+        self.assertListEqual(missing_vals, ["."])
+
+    def test_qf_remove_cluster_start_cluster(self):
+        """test removing a cluster start followed by cluster start"""
+        alpha = [a for a in "abcd.efghij;klm-nopqrs=tuvwxyz"]
+        qf = QuotientFilter(quotient=7)
+        for l in alpha:
+            qf.add(l)
+
+        qf.remove("-")
+
+        missing_vals = []
+        for a in alpha:
+            if not qf.check(a):
+                missing_vals.append(a)
+        self.assertListEqual(missing_vals, ["-"])
+
+    def test_qf_remove_shifted_run_start_followed_by_empty(self):
+        """test removing a shifted run start followed by empty"""
+        alpha = [a for a in "abcd.efghij;klm-nopqrs=tuvwxyz"]
+        qf = QuotientFilter(quotient=7)
+        for l in alpha:
+            qf.add(l)
+
+        qf.remove("z")
+
+        missing_vals = []
+        for a in alpha:
+            if not qf.check(a):
+                missing_vals.append(a)
+        self.assertListEqual(missing_vals, ["z"])
+
+    def test_qf_remove_shifted_run_start_followed_continuation(self):
+        """test removing a shifted run start followed by continuation"""
+        alpha = [a for a in "abcd.efghij;klm-nopqrs=tuvwxyz"]
+        qf = QuotientFilter(quotient=7)
+        for l in alpha:
+            qf.add(l)
+
+        qf.remove("y")
+
+        missing_vals = []
+        for a in alpha:
+            if not qf.check(a):
+                missing_vals.append(a)
+        self.assertListEqual(missing_vals, ["y"])
+
+    def test_qf_remove_shifted_continuation_followed_run_start(self):
+        """test removing a shifted continuation followed by run start"""
+        alpha = [a for a in "abcd.efghij;klm-nopqrs=tuvwxyz"]
+        qf = QuotientFilter(quotient=7)
+        for l in alpha:
+            qf.add(l)
+
+        qf.remove("x")
+
+        missing_vals = []
+        for a in alpha:
+            if not qf.check(a):
+                missing_vals.append(a)
+        self.assertListEqual(missing_vals, ["x"])
+
+    def test_qf_remove_shifted_run_start_followed_run_start(self):
+        """test removing a shifted run start followed by run start"""
+        alpha = [a for a in "abcd.efghij;klm-nopqrs=tuvwxyz"]
+        qf = QuotientFilter(quotient=7)
+        for l in alpha:
+            qf.add(l)
+
+        qf.remove("a")
+
+        missing_vals = []
+        for a in alpha:
+            if not qf.check(a):
+                missing_vals.append(a)
+        self.assertListEqual(missing_vals, ["a"])
+
+    def test_qf_remove_cluster_start_followed_continuation_follow_run_start(self):
+        """test removing a cluster start followed by continuation putting a run start into a cluster start position"""
+        alpha = [a for a in "abcd.efghij;klm-nopqrs=tuvwxyz"]
+        qf = QuotientFilter(quotient=7)
+        for l in alpha:
+            qf.add(l)
+
+        qf.remove("d")
+
+        missing_vals = []
+        for a in alpha:
+            if not qf.check(a):
+                missing_vals.append(a)
+        self.assertListEqual(missing_vals, ["d"])
+
+    def test_qf_remove_full(self):
+        """Test removing all elements, but find each one after each removal"""
+        alpha = [a for a in "abcd.efghij;klm-nopqrs=tuvwxyz"]
+        qf = QuotientFilter(quotient=7)
+        for l in alpha:
+            _hash = qf._hash_func(l, 0)
+            print(l, _hash >> qf._r, _hash & ((1 << qf._r) - 1))
+            qf.add(l)
+
+        for l in alpha:
+            self.assertTrue(qf.check(l), "failed to insert")
+
+        while alpha:
+            missing_vals = []
+            val = alpha.pop(0)
+            qf.remove(val)
+            missing_vals = []
+            for a in alpha:
+                if not qf.check(a):
+                    missing_vals.append(a)
+            self.assertListEqual(missing_vals, [])
+
+    def test_qf_remove_full_random(self):
+        """Test removing all elements, but in a random order"""
+        alpha = [a for a in "abcd.efghij;klm-nopqrs=tuvwxyz"]
+        qf = QuotientFilter(quotient=7)
+        for l in alpha:
+            qf.add(l)
+
+        for l in alpha:
+            self.assertTrue(qf.check(l), "failed to insert")
+
+        while alpha:
+            missing_vals = []
+            idx = random.randrange(len(alpha))
+            val = alpha.pop(idx)
+            qf.remove(val)
+            missing_vals = []
+            for a in alpha:
+                if not qf.check(a):
+                    missing_vals.append(a)
+            self.assertListEqual(missing_vals, [])
+
+    def test_qf_remove_full_random_take_2(self):
+        """Test removing all elements, but in a random order - take 2"""
+        alpha = [a for a in "abcd.efghij;klm-nopqrs=tuvwxyz"]
+        qf = QuotientFilter(quotient=7)
+        for l in alpha:
+            qf.add(l)
+
+        for l in alpha:
+            self.assertTrue(qf.check(l), "failed to insert")
+
+        while alpha:
+            missing_vals = []
+            idx = random.randrange(len(alpha))
+            val = alpha.pop(idx)
+            qf.remove(val)
+            missing_vals = []
+            for a in alpha:
+                if not qf.check(a):
+                    missing_vals.append(a)
+            self.assertListEqual(missing_vals, [])
