@@ -495,7 +495,7 @@ class QuotientFilter:
     def _is_run_or_cluster_start(self, elt: int) -> bool:
         if self._is_cluster_start(elt):
             return True
-        elif self._is_run_start(elt):
+        if self._is_run_start(elt):
             return True
         return False
 
@@ -509,7 +509,8 @@ class QuotientFilter:
         print("----------------------------------------", file=file)
         for i in range(self._size):
             print(
-                f"{i}\t--\t{self._is_occupied[i]}-{self._is_continuation[i]}-{self._is_shifted[i]}\t{self._element_is(i)}",
+                f"{i}\t--\t{self._is_occupied[i]}-{self._is_continuation[i]}-{self._is_shifted[i]}"
+                f"\t{self._element_is(i)}",
                 file=file,
             )
 
