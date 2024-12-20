@@ -296,7 +296,7 @@ class QuotientFilter:
             self._is_shifted[insert_idx] = 1 if insert_idx != q else 0
 
         else:
-            next_idx = (insert_idx + 1) & (self.__mod_size)
+            next_idx = (insert_idx + 1) & self.__mod_size
 
             while True:
                 was_empty = self._is_empty_element(next_idx)
@@ -314,7 +314,7 @@ class QuotientFilter:
                 if was_empty:
                     break
 
-                next_idx = (next_idx + 1) & (self.__mod_size)
+                next_idx = (next_idx + 1) & self.__mod_size
 
             self._filter[insert_idx] = r
             self._is_occupied[q] = 1
@@ -322,7 +322,7 @@ class QuotientFilter:
             self._is_shifted[insert_idx] = 1 if insert_idx != q else 0
 
             if flag == 1:
-                self._is_continuation[(insert_idx + 1) & (self.__mod_size)] = 1
+                self._is_continuation[(insert_idx + 1) & self.__mod_size] = 1
 
     def _get_start_index(self, quotient: int) -> int:
         """Get the starting index for the quotient"""
@@ -337,7 +337,7 @@ class QuotientFilter:
                 cnts += 1
 
             if self._is_shifted[j] == 1:
-                j = (j - 1) & (self.__mod_size)
+                j = (j - 1) & self.__mod_size
             else:
                 break
 
@@ -347,7 +347,7 @@ class QuotientFilter:
                     break
                 cnts -= 1
 
-            j = (j + 1) & (self.__mod_size)
+            j = (j + 1) & self.__mod_size
 
         return j
 
@@ -375,7 +375,7 @@ class QuotientFilter:
                 )
 
                 while starts == 0 and f != 0 and r > self._filter[start_idx]:
-                    start_idx = (start_idx + 1) & (self.__mod_size)
+                    start_idx = (start_idx + 1) & self.__mod_size
 
                     if self._is_continuation[start_idx] == 0:
                         starts += 1
@@ -394,22 +394,12 @@ class QuotientFilter:
 
     def _remove_element(self, q: int, r: int) -> None:
         idx = self._contained_at_loc(q, r)
-        print(f"removing {q} at position {idx}")
 
-        # Different scenarios:
-        # 1) idx = cluster start, next_idx empty or cluster start
-        # 2) idx = cluster start, next_idx continuation
-        #
-        # 3) idx = run_start, next_idx empty, cluster start, run start
-        # 4) idx = run_start, next_idx continuation
-        #
-        # 5) idx = continuation, next_idx empty, cluster start, or run start
-
-        if idx == -1:  # element not in the filter, exit
+        # element not in the filter, exit
+        if idx == -1:
             return
 
-        orig_idx = idx
-        next_idx = (idx + 1) & (self.__mod_size)
+        next_idx = (idx + 1) & self.__mod_size
 
         # track if this is the only element in this run...
         remove_orig_idx = False
@@ -427,14 +417,10 @@ class QuotientFilter:
                 self._is_occupied[q] = 0
             return
 
-        # TODO: Figure out how to move everything AND set shifted correctly as needed
-
-        # if self._is_cluster_start(idx):
-        #     queue.append(idx)
-
+        # find the minimum idx for the cluster; will be needed to determine if elements are in cluster start positions.
         min_idx = idx
         while not self._is_cluster_start(min_idx):
-            min_idx = (min_idx - 1) & (self.__mod_size)
+            min_idx = (min_idx - 1) & self.__mod_size
 
         # this is an edge case for first move...
         if self._is_run_or_cluster_start(idx) and self._is_continuation[next_idx] == 1:
@@ -443,7 +429,7 @@ class QuotientFilter:
             self._is_shifted[idx] = self._is_shifted[next_idx]
 
             idx = next_idx
-            next_idx = (idx + 1) & (self.__mod_size)
+            next_idx = (idx + 1) & self.__mod_size
 
         while not self._is_cluster_start(next_idx) and not self._is_empty_element(next_idx):
             self._filter[idx] = self._filter[next_idx]
@@ -451,7 +437,7 @@ class QuotientFilter:
             self._is_shifted[idx] = self._is_shifted[next_idx]
 
             idx = next_idx
-            next_idx = (idx + 1) & (self.__mod_size)
+            next_idx = (idx + 1) & self.__mod_size
         # clean out the last element
         self._filter[idx] = 0
         self._is_continuation[idx] = 0
@@ -494,7 +480,7 @@ class QuotientFilter:
             if self._filter[start_idx] == r:
                 return start_idx
 
-            start_idx = (start_idx + 1) & (self.__mod_size)
+            start_idx = (start_idx + 1) & self.__mod_size
 
         return -1
 
