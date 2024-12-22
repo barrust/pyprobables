@@ -15,7 +15,7 @@ sys.path.insert(0, str(this_dir.parent))
 
 from probables import ExpandingBloomFilter, RotatingBloomFilter
 from probables.exceptions import RotatingBloomFilterError
-from tests.utilities import calc_file_md5
+from tests.utilities import calc_file_md5, different_hash
 
 DELETE_TEMP_FILES = True
 
@@ -34,6 +34,13 @@ class TestExpandingBloomFilter(unittest.TestCase):
     def test_ebf_add_lots(self):
         """test adding "lots" of elements to force the expansion"""
         blm = ExpandingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        for i in range(100):
+            blm.add("{}".format(i), True)
+        self.assertEqual(blm.expansions, 9)
+
+    def test_ebf_add_lots_diff_hash(self):
+        """test adding "lots" of elements to force the expansion using a different hash"""
+        blm = ExpandingBloomFilter(est_elements=10, false_positive_rate=0.05, hash_function=different_hash)
         for i in range(100):
             blm.add("{}".format(i), True)
         self.assertEqual(blm.expansions, 9)
