@@ -433,3 +433,41 @@ class TestQuotientFilter(unittest.TestCase):
                     missing_vals.append(a)
             self.assertListEqual(missing_vals, [])
             self.assertTrue(qf.validate_metadata())
+
+    def test_quotient_filter_print_empty(self):
+        """Test printing the data of a quotient filter in a manner to be read through"""
+        qf = QuotientFilter(quotient=7)
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".txt", delete=DELETE_TEMP_FILES, mode="wt") as fobj:
+            qf.print(file=fobj.file)
+            fobj.flush()
+
+            with open(fobj.name, "r") as fobj:
+                data = fobj.readlines()
+        data = [x.strip() for x in data]
+        self.assertEqual(data[0], "idx\t--\tO-C-S\tStatus")
+        for i in range(2, len(data)):
+            self.assertEqual(data[i], f"{i-2}\t--\t0-0-0\tEmpty")
+
+    def test_quotient_filter_print(self):
+        """Test printing the data of a quotient filter in a manner to be read through not empty"""
+        alpha = [a for a in "abcd.efghij;klm-nopqrs=tuvwxyz"]
+        qf = QuotientFilter(quotient=7)
+        for l in alpha:
+            qf.add(l)
+
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".txt", delete=DELETE_TEMP_FILES, mode="wt") as fobj:
+            qf.print(file=fobj.file)
+            fobj.flush()
+
+            with open(fobj.name, "r") as fobj:
+                data = fobj.readlines()
+        data = [x.strip() for x in data]
+        self.assertEqual(data[0], "idx\t--\tO-C-S\tStatus")
+        self.assertEqual(data[22], "20\t--\t1-0-0\tCluster Start")
+        self.assertEqual(data[23], "21\t--\t1-0-0\tCluster Start")
+
+        self.assertEqual(data[114], "112\t--\t1-0-0\tCluster Start")
+        self.assertEqual(data[115], "113\t--\t1-1-1\tContinuation")
+        self.assertEqual(data[116], "114\t--\t1-0-1\tRun Start")
+        self.assertEqual(data[10], "8\t--\t0-1-1\tContinuation")
+        self.assertEqual(data[11], "9\t--\t0-0-1\tRun Start")
