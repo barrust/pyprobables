@@ -3,15 +3,15 @@
 from functools import wraps
 from hashlib import md5, sha256
 from struct import unpack
-from typing import Callable, List, Union
+from typing import Callable, List, TypeAlias, Union
 
 from probables.constants import UINT32_T_MAX, UINT64_T_MAX
 
-KeyT = Union[str, bytes]
-SimpleHashT = Callable[[KeyT, int], int]
-HashResultsT = List[int]
-HashFuncT = Callable[[KeyT, int], HashResultsT]
-HashFuncBytesT = Callable[[KeyT, int], bytes]
+KeyT: TypeAlias = Union[str, bytes]
+SimpleHashT: TypeAlias = Callable[[KeyT, int], int]
+HashResultsT: TypeAlias = List[int]
+HashFuncT: TypeAlias = Callable[[KeyT, int], HashResultsT]
+HashFuncBytesT: TypeAlias = Callable[[KeyT, int], bytes]
 
 
 def hash_with_depth_bytes(func: HashFuncBytesT) -> HashFuncT:
