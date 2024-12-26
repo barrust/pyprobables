@@ -249,7 +249,7 @@ class TestRotatingBloomFilter(unittest.TestCase):
         except RotatingBloomFilterError as ex:
             msg = "Popping a Bloom Filter will result in an unusable system!"
             self.assertEqual(str(ex), msg)
-        except:
+        except:  # noqa: E722
             self.assertEqual(True, False)
 
     def test_rfb_basic_export(self):
