@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-""" Unittest class """
+"""Unittest class"""
 
 import hashlib
 import os
@@ -13,11 +13,11 @@ this_dir = Path(__file__).parent
 sys.path.insert(0, str(this_dir))
 sys.path.insert(0, str(this_dir.parent))
 
-from probables import BloomFilter, BloomFilterOnDisk
-from probables.constants import UINT64_T_MAX
-from probables.exceptions import InitializationError, NotSupportedError
-from probables.hashes import hash_with_depth_int
-from tests.utilities import calc_file_md5, different_hash
+from probables import BloomFilter, BloomFilterOnDisk  # noqa: E402
+from probables.constants import UINT64_T_MAX  # noqa: E402
+from probables.exceptions import InitializationError, NotSupportedError  # noqa: E402
+from probables.hashes import hash_with_depth_int  # noqa: E402
+from tests.utilities import calc_file_md5, different_hash  # noqa: E402
 
 DELETE_TEMP_FILES = True
 
@@ -714,7 +714,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
             blm.add("this is a test")
             del blm
             try:
-                self.assertEqual(True, blm)
+                self.assertEqual(True, blm)  # noqa: F821
             except UnboundLocalError as ex:
                 msg1 = "local variable 'blm' referenced before assignment"
                 msg2 = "cannot access local variable 'blm' where it is not associated with a value"

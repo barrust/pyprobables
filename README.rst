@@ -56,7 +56,7 @@ To install `pyprobables`, simply clone the `repository on GitHub
 
     $ python setup.py install
 
-`pyprobables` supports python 3.6 - 3.11+
+`pyprobables` supports python 3.8 - 3.13+
 
 For *python 2.7* support, install `release 0.3.2 <https://github.com/barrust/pyprobables/releases/tag/v0.3.2>`__
 

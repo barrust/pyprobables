@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-""" Unittest class """
+"""Unittest class"""
 
 import hashlib
 import os
@@ -13,9 +13,9 @@ this_dir = Path(__file__).parent
 sys.path.insert(0, str(this_dir))
 sys.path.insert(0, str(this_dir.parent))
 
-from probables import CountingBloomFilter
-from probables.exceptions import InitializationError
-from tests.utilities import calc_file_md5, different_hash
+from probables import CountingBloomFilter  # noqa: E402
+from probables.exceptions import InitializationError  # noqa: E402
+from tests.utilities import calc_file_md5, different_hash  # noqa: E402
 
 DELETE_TEMP_FILES = True
 
