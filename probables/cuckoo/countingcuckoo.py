@@ -99,9 +99,7 @@ class CountingCuckooFilter(CuckooFilter):
         return cku
 
     @classmethod
-    def load_error_rate(
-        cls, error_rate: float, filepath: str | Path, hash_function: SimpleHashT | None = None
-    ):
+    def load_error_rate(cls, error_rate: float, filepath: str | Path, hash_function: SimpleHashT | None = None):
         """Initialize a previously exported Cuckoo Filter based on error rate
 
         Args:
