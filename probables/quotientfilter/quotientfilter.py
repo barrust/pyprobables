@@ -3,10 +3,12 @@ License: MIT
 Author: Tyler Barrus (barrust@gmail.com)
 """
 
+from __future__ import annotations
+
 import sys
 from array import array
 from collections.abc import Iterator
-from typing import Optional, TextIO
+from typing import TextIO
 
 from probables.exceptions import QuotientFilterError
 from probables.hashes import KeyT, SimpleHashT, fnv_1a_32
@@ -45,7 +47,7 @@ class QuotientFilter:
     )
 
     def __init__(
-        self, quotient: int = 20, auto_expand: bool = True, hash_function: Optional[SimpleHashT] = None
+        self, quotient: int = 20, auto_expand: bool = True, hash_function: SimpleHashT | None = None
     ):  # needs to be parameterized
         if quotient < 3 or quotient > 31:
             raise QuotientFilterError(
@@ -53,7 +55,7 @@ class QuotientFilter:
             )
         self.__set_params(quotient, auto_expand, hash_function)
 
-    def __set_params(self, quotient: int, auto_expand: bool, hash_function: Optional[SimpleHashT]):
+    def __set_params(self, quotient: int, auto_expand: bool, hash_function: SimpleHashT | None):
         self._q: int = quotient
         self._r: int = 32 - quotient
         self._size: int = 1 << self._q  # same as 2**q
@@ -244,7 +246,7 @@ class QuotientFilter:
             list(int): The hash values stored in the quotient filter"""
         return list(self.hashes())
 
-    def resize(self, quotient: Optional[int] = None) -> None:
+    def resize(self, quotient: int | None = None) -> None:
         """Resize the quotient filter to use the new quotient size
 
         Args:
@@ -273,7 +275,7 @@ class QuotientFilter:
         for _h in hashes:
             self.add_alt(_h)
 
-    def merge(self, second: "QuotientFilter") -> None:
+    def merge(self, second: QuotientFilter) -> None:
         """Merge the `second` quotient filter into the first
 
         Args:

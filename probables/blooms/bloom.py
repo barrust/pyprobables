@@ -4,6 +4,8 @@ Author: Tyler Barrus (barrust@gmail.com)
 URL: https://github.com/barrust/bloom
 """
 
+from __future__ import annotations
+
 import math
 import os
 from array import array
@@ -68,11 +70,11 @@ class BloomFilter:
 
     def __init__(
         self,
-        est_elements: Union[int, None] = None,
-        false_positive_rate: Union[float, None] = None,
-        filepath: Union[str, Path, None] = None,
-        hex_string: Union[str, None] = None,
-        hash_function: Union[HashFuncT, None] = None,
+        est_elements: int | None = None,
+        false_positive_rate: float | None = None,
+        filepath: str | Path | None = None,
+        hex_string: str | None = None,
+        hash_function: HashFuncT | None = None,
     ):
         # set some things up
         self._on_disk = False
@@ -110,7 +112,7 @@ class BloomFilter:
     _FPR_STRUCT = Struct("f")
     _IMPT_STRUCT = Struct("B")
 
-    def __contains__(self, key: KeyT) -> Union[int, bool]:
+    def __contains__(self, key: KeyT) -> int | bool:
         """setup the `in` keyword"""
         return self.check(key)
 
@@ -220,7 +222,7 @@ class BloomFilter:
         for idx in range(self._bloom_length):
             self._bloom[idx] = 0
 
-    def hashes(self, key: KeyT, depth: Union[int, None] = None) -> HashResultsT:
+    def hashes(self, key: KeyT, depth: int | None = None) -> HashResultsT:
         """Return the hashes based on the provided key
 
         Args:
@@ -284,7 +286,7 @@ class BloomFilter:
         bytes_string = hexlify(bytearray(self._bloom[: self.bloom_length])) + hexlify(footer_bytes)
         return str(bytes_string, "utf-8")
 
-    def export(self, file: Union[Path, str, IOBase, mmap]) -> None:
+    def export(self, file: Path | str | IOBase | mmap) -> None:
         """Export the Bloom Filter to disk
 
         Args:
@@ -303,7 +305,7 @@ class BloomFilter:
                 )
             )
 
-    def export_c_header(self, filename: Union[str, Path]) -> None:
+    def export_c_header(self, filename: str | Path) -> None:
         """Export the Bloom Filter to disk as a C header file.
 
         Args:
@@ -322,7 +324,7 @@ class BloomFilter:
             print("const unsigned char bloom[] = {", *data, "};", sep="\n", file=file)
 
     @classmethod
-    def frombytes(cls, b: ByteString, hash_function: Union[HashFuncT, None] = None) -> "BloomFilter":
+    def frombytes(cls, b: ByteString, hash_function: HashFuncT | None = None) -> BloomFilter:
         """
         Args:
             b (ByteString): The bytes to load as a Bloom Filter
@@ -368,7 +370,7 @@ class BloomFilter:
         exp = math.exp(dbl)
         return math.pow((1 - exp), self.number_hashes)
 
-    def intersection(self, second: SimpleBloomT) -> Union[SimpleBloomT, None]:
+    def intersection(self, second: SimpleBloomT) -> SimpleBloomT | None:
         """Return a new Bloom Filter that contains the intersection of the
         two
 
@@ -399,7 +401,7 @@ class BloomFilter:
         res.elements_added = res.estimate_elements()
         return res
 
-    def union(self, second: SimpleBloomT) -> Union["BloomFilter", None]:
+    def union(self, second: SimpleBloomT) -> BloomFilter | None:
         """Return a new Bloom Filter that contains the union of the two
 
         Args:
@@ -429,7 +431,7 @@ class BloomFilter:
         res.elements_added = res.estimate_elements()
         return res
 
-    def jaccard_index(self, second: SimpleBloomT) -> Union[float, None]:
+    def jaccard_index(self, second: SimpleBloomT) -> float | None:
         """Calculate the jaccard similarity score between two Bloom Filters
 
         Args:
@@ -491,7 +493,7 @@ class BloomFilter:
         fpr: float,
         n_hashes: int,
         n_bits: int,
-        hash_func: Union[HashFuncT, None],
+        hash_func: HashFuncT | None,
     ) -> None:
         self._est_elements = est_els
         self._fpr = fpr
@@ -504,7 +506,7 @@ class BloomFilter:
         self._number_hashes = n_hashes
         self._num_bits = n_bits
 
-    def _load_hex(self, hex_string: str, hash_function: Union[HashFuncT, None] = None) -> None:
+    def _load_hex(self, hex_string: str, hash_function: HashFuncT | None = None) -> None:
         """placeholder for loading from hex string"""
         offset = self._FOOTER_STRUCT_BE.size * 2
         est_els, els_added, fpr, n_hashes, n_bits = self._parse_footer(
@@ -516,8 +518,8 @@ class BloomFilter:
 
     def _load(
         self,
-        file: Union[Path, str, IOBase, mmap, ByteString],
-        hash_function: Union[HashFuncT, None] = None,
+        file: Path | str | IOBase | mmap | ByteString,
+        hash_function: HashFuncT | None = None,
     ) -> None:
         """load the Bloom Filter from file or bytes"""
         if not isinstance(file, (IOBase, mmap, bytes, bytearray, memoryview)):
@@ -597,11 +599,11 @@ class BloomFilterOnDisk(BloomFilter):
 
     def __init__(
         self,
-        filepath: Union[str, Path],
-        est_elements: Union[int, None] = None,
-        false_positive_rate: Union[float, None] = None,
-        hex_string: Union[str, None] = None,
-        hash_function: Union[HashFuncT, None] = None,
+        filepath: str | Path,
+        est_elements: int | None = None,
+        false_positive_rate: float | None = None,
+        hex_string: str | None = None,
+        hash_function: HashFuncT | None = None,
     ) -> None:
         # set some things up
         self._filepath = resolve_path(filepath)
@@ -644,7 +646,7 @@ class BloomFilterOnDisk(BloomFilter):
             self.__file_pointer.close()
             self.__file_pointer = None
 
-    def export(self, file: Union[str, Path]) -> None:  # type: ignore
+    def export(self, file: str | Path) -> None:  # type: ignore
         """Export to disk if a different location
 
         Args:
@@ -656,7 +658,7 @@ class BloomFilterOnDisk(BloomFilter):
             copyfile(self._filepath.name, str(file))
         # otherwise, nothing to do!
 
-    def _load(self, file: Union[str, Path], hash_function: Union[HashFuncT, None] = None):  # type: ignore
+    def _load(self, file: str | Path, hash_function: HashFuncT | None = None):  # type: ignore
         """load the Bloom Filter on disk"""
         # read the file, set the optimal params
         # mmap everything
@@ -678,7 +680,7 @@ class BloomFilterOnDisk(BloomFilter):
         self.__update()
 
     @classmethod
-    def frombytes(cls, b: ByteString, hash_function: Union[HashFuncT, None] = None) -> "BloomFilterOnDisk":
+    def frombytes(cls, b: ByteString, hash_function: HashFuncT | None = None) -> BloomFilterOnDisk:
         """
         Raises: NotSupportedError
         """

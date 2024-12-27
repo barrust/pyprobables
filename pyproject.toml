@@ -73,7 +73,12 @@ target-version = ['py38']
 include = '\.pyi?$'
 
 [tool.ruff]
-include = ["pyproject.toml", "probables/**/*.py", "scripts/**/*.py"]
+include = [
+    "pyproject.toml",
+    "probables/**/*.py",
+    "probables/*.py",
+    "scripts/**/*.py",
+]
 exclude = [
     ".bzr",
     ".direnv",

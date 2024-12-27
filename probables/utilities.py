@@ -1,28 +1,29 @@
-""" Utility Functions """
+"""Utility Functions"""
+
+from __future__ import annotations
 
 import math
 import mmap
 import string
 from array import array
 from pathlib import Path
-from typing import Union
 
 
-def is_hex_string(hex_string: Union[str, None]) -> bool:
+def is_hex_string(hex_string: str | None) -> bool:
     """check if the passed in string is really hex"""
     if hex_string is None:
         return False
     return all(c in string.hexdigits for c in hex_string)
 
 
-def is_valid_file(filepath: Union[str, Path, None]) -> bool:
+def is_valid_file(filepath: str | Path | None) -> bool:
     """check if the passed filepath points to a real file"""
     if filepath is None:
         return False
     return Path(filepath).exists()
 
 
-def resolve_path(filepath: Union[str, Path]) -> Path:
+def resolve_path(filepath: str | Path) -> Path:
     """fully resolve the path by expanding user and resolving"""
     return Path(filepath).expanduser().resolve()
 
@@ -39,7 +40,7 @@ class MMap:
 
     __slots__ = ("__p", "__f", "__m", "_closed")
 
-    def __init__(self, path: Union[Path, str]):
+    def __init__(self, path: Path | str):
         self.__p = Path(path)
         self.__f = self.path.open("rb")
         self.__m = mmap.mmap(self.__f.fileno(), 0, access=mmap.ACCESS_READ)

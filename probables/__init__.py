@@ -1,5 +1,7 @@
 """pyprobables module"""
 
+from __future__ import annotations
+
 from probables.blooms import (
     BloomFilter,
     BloomFilterOnDisk,

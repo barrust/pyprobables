@@ -4,13 +4,14 @@ Author: Tyler Barrus (barrust@gmail.com)
 URL: https://github.com/barrust/pyprobables
 """
 
+from __future__ import annotations
+
 from array import array
 from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from pathlib import Path
 from struct import Struct
-from typing import Union
 
 from probables.blooms.bloom import BloomFilter
 from probables.exceptions import RotatingBloomFilterError
@@ -46,10 +47,10 @@ class ExpandingBloomFilter:
 
     def __init__(
         self,
-        est_elements: Union[int, None] = None,
-        false_positive_rate: Union[float, None] = None,
-        filepath: Union[str, Path, None] = None,
-        hash_function: Union[HashFuncT, None] = None,
+        est_elements: int | None = None,
+        false_positive_rate: float | None = None,
+        filepath: str | Path | None = None,
+        hash_function: HashFuncT | None = None,
     ):
         """initialize"""
         self._blooms = []  # type: ignore
@@ -74,7 +75,7 @@ class ExpandingBloomFilter:
     _BLOOM_ELEMENT_SIZE = Struct("B").size
 
     @classmethod
-    def frombytes(cls, b: ByteString, hash_function: Union[HashFuncT, None] = None) -> "ExpandingBloomFilter":
+    def frombytes(cls, b: ByteString, hash_function: HashFuncT | None = None) -> ExpandingBloomFilter:
         """
         Args:
             b (ByteString): The bytes to load as a Expanding Bloom Filter
@@ -184,7 +185,7 @@ class ExpandingBloomFilter:
         if self._blooms[-1].elements_added >= self.__est_elements:
             self.__add_bloom_filter()
 
-    def export(self, file: Union[Path, str, IOBase, mmap]) -> None:
+    def export(self, file: Path | str | IOBase | mmap) -> None:
         """Export an expanding Bloom Filter, or subclass, to disk
 
         Args:
@@ -208,7 +209,7 @@ class ExpandingBloomFilter:
                 )
             )
 
-    def __load(self, file: Union[Path, str, IOBase, mmap]):
+    def __load(self, file: Path | str | IOBase | mmap):
         """load a file"""
         if not isinstance(file, (IOBase, mmap)):
             file = resolve_path(file)
@@ -273,11 +274,11 @@ class RotatingBloomFilter(ExpandingBloomFilter):
 
     def __init__(
         self,
-        est_elements: Union[int, None] = None,
-        false_positive_rate: Union[float, None] = None,
+        est_elements: int | None = None,
+        false_positive_rate: float | None = None,
         max_queue_size: int = 10,
-        filepath: Union[str, Path, None] = None,
-        hash_function: Union[HashFuncT, None] = None,
+        filepath: str | Path | None = None,
+        hash_function: HashFuncT | None = None,
     ) -> None:
         """initialize"""
         super().__init__(
@@ -290,8 +291,8 @@ class RotatingBloomFilter(ExpandingBloomFilter):
 
     @classmethod
     def frombytes(  # type:ignore
-        cls, b: ByteString, max_queue_size: int, hash_function: Union[HashFuncT, None] = None
-    ) -> "RotatingBloomFilter":
+        cls, b: ByteString, max_queue_size: int, hash_function: HashFuncT | None = None
+    ) -> RotatingBloomFilter:
         """
         Args:
             b (ByteString): The bytes to load as a Expanding Bloom Filter
