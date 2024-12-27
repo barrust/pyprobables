@@ -7,7 +7,7 @@ PyProbables
 .. image:: https://img.shields.io/github/release/barrust/pyprobables.svg
     :target: https://github.com/barrust/pyprobables/releases
     :alt: GitHub release
-.. image:: https://github.com/barrust/pyprobables/actions?query=workflow%3A%22Python+package%22+branch%3Amaster/badge.svg
+.. image:: https://github.com/barrust/pyprobables/workflows/Python%20package/badge.svg?branch=master
     :target: https://github.com/barrust/pyprobables/actions?query=workflow%3A%22Python+package%22+branch%3Amaster
     :alt: Build Status
 .. image:: https://codecov.io/gh/barrust/pyprobables/branch/master/graph/badge.svg?token=OdETiNgz9k
