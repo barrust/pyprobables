@@ -1,17 +1,19 @@
-""" Cuckoo Filter, python implementation
-    License: MIT
-    Author: Tyler Barrus (barrust@gmail.com)
+"""Cuckoo Filter, python implementation
+License: MIT
+Author: Tyler Barrus (barrust@gmail.com)
 """
+
+from __future__ import annotations
 
 import math
 import random
 from array import array
+from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from numbers import Number
 from pathlib import Path
 from struct import Struct
-from typing import ByteString, List, Tuple, Union
 
 from probables.exceptions import CuckooFilterFullError, InitializationError
 from probables.hashes import KeyT, SimpleHashT, fnv_1a
@@ -56,8 +58,8 @@ class CuckooFilter:
         expansion_rate: int = 2,
         auto_expand: bool = True,
         finger_size: int = 4,
-        filepath: Union[str, Path, None] = None,
-        hash_function: Union[SimpleHashT, None] = None,
+        filepath: str | Path | None = None,
+        hash_function: SimpleHashT | None = None,
     ):
         """setup the data structure"""
         valid_prms = (
@@ -108,7 +110,7 @@ class CuckooFilter:
         max_swaps: int = 500,
         expansion_rate: int = 2,
         auto_expand: bool = True,
-        hash_function: Union[SimpleHashT, None] = None,
+        hash_function: SimpleHashT | None = None,
     ):
         """Initialize a simple Cuckoo Filter based on error rate
 
@@ -138,8 +140,8 @@ class CuckooFilter:
     def load_error_rate(
         cls,
         error_rate: float,
-        filepath: Union[str, Path],
-        hash_function: Union[SimpleHashT, None] = None,
+        filepath: str | Path,
+        hash_function: SimpleHashT | None = None,
     ):
         """Initialize a previously exported Cuckoo Filter based on error rate
 
@@ -158,9 +160,9 @@ class CuckooFilter:
     def frombytes(
         cls,
         b: ByteString,
-        error_rate: Union[float, None] = None,
-        hash_function: Union[SimpleHashT, None] = None,
-    ) -> "CuckooFilter":
+        error_rate: float | None = None,
+        hash_function: SimpleHashT | None = None,
+    ) -> CuckooFilter:
         """
         Args:
             b (ByteString): The bytes to load as a Expanding Bloom Filter
@@ -226,7 +228,7 @@ class CuckooFilter:
         return self._bucket_size
 
     @property
-    def buckets(self) -> List[List[int]]:
+    def buckets(self) -> list[list[int]]:
         """list(list): The buckets holding the fingerprints
 
         Note:
@@ -312,9 +314,7 @@ class CuckooFilter:
             bool: True if likely present, False if definately not"""
         idx_1, idx_2, fingerprint = self._generate_fingerprint_info(key)
         is_present = self._check_if_present(idx_1, idx_2, fingerprint)
-        if is_present is not None:
-            return True
-        return False
+        return is_present is not None
 
     def remove(self, key: KeyT) -> bool:
         """Remove an element from the filter
@@ -331,7 +331,7 @@ class CuckooFilter:
         self._inserted_elements -= 1
         return True
 
-    def export(self, file: Union[Path, str, IOBase, mmap]) -> None:
+    def export(self, file: Path | str | IOBase | mmap) -> None:
         """Export cuckoo filter to file
 
         Args:
@@ -393,7 +393,7 @@ class CuckooFilter:
         # if we got here we have an error... we might need to know what is left
         return fingerprint
 
-    def _load(self, file: Union[Path, str, IOBase, mmap, bytes]) -> None:
+    def _load(self, file: Path | str | IOBase | mmap | bytes) -> None:
         """load a cuckoo filter from file"""
         if not isinstance(file, (IOBase, mmap, bytes)):
             file = resolve_path(file)
@@ -432,7 +432,7 @@ class CuckooFilter:
         self._inserted_elements += len(bucket)
         return bucket
 
-    def _set_error_rate(self, error_rate: Union[float, None]) -> None:
+    def _set_error_rate(self, error_rate: float | None) -> None:
         """set error rate correctly"""
         # if error rate is provided, use it
         if error_rate is not None:
@@ -491,7 +491,7 @@ class CuckooFilter:
         idx_2 = self.__hash_func(str(fingerprint)) % self.capacity
         return idx_1, idx_2
 
-    def _generate_fingerprint_info(self, key: KeyT) -> Tuple[int, int, int]:
+    def _generate_fingerprint_info(self, key: KeyT) -> tuple[int, int, int]:
         """Generate the fingerprint and indicies using the provided key
 
         Args:
