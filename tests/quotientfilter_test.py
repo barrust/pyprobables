@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Unittest class"""
 
 import os
@@ -439,7 +438,7 @@ class TestQuotientFilter(unittest.TestCase):
             qf.print(file=fobj.file)
             fobj.flush()
 
-            with open(fobj.name, "r") as fobj:
+            with open(fobj.name) as fobj:
                 data = fobj.readlines()
         data = [x.strip() for x in data]
         self.assertEqual(data[0], "idx\t--\tO-C-S\tStatus")
@@ -457,7 +456,7 @@ class TestQuotientFilter(unittest.TestCase):
             qf.print(file=fobj.file)
             fobj.flush()
 
-            with open(fobj.name, "r") as fobj:
+            with open(fobj.name) as fobj:
                 data = fobj.readlines()
         data = [x.strip() for x in data]
         self.assertEqual(data[0], "idx\t--\tO-C-S\tStatus")

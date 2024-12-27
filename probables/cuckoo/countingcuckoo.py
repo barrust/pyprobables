@@ -1,15 +1,16 @@
-""" Counting Cuckoo Filter, python implementation
-    License: MIT
-    Author: Tyler Barrus (barrust@gmail.com)
+"""Counting Cuckoo Filter, python implementation
+License: MIT
+Author: Tyler Barrus (barrust@gmail.com)
 """
 
 import random
 from array import array
+from collections.abc import ByteString
 from io import IOBase
 from mmap import mmap
 from pathlib import Path
 from struct import Struct
-from typing import ByteString, List, Union
+from typing import Union
 
 from probables.cuckoo.cuckoo import CuckooFilter
 from probables.exceptions import CuckooFilterFullError
@@ -135,9 +136,7 @@ class CountingCuckooFilter(CuckooFilter):
 
     def __contains__(self, val: KeyT) -> bool:
         """setup the `in` keyword"""
-        if self.check(val) > 0:
-            return True
-        return False
+        return self.check(val) > 0
 
     @property
     def unique_elements(self) -> int:
@@ -145,7 +144,7 @@ class CountingCuckooFilter(CuckooFilter):
         return self.__unique_elements
 
     @property
-    def buckets(self) -> List[List["CountingCuckooBin"]]:  # type: ignore
+    def buckets(self) -> list[list["CountingCuckooBin"]]:  # type: ignore
         """list(list): The buckets holding the fingerprints
 
         Note:

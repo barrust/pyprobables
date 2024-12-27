@@ -1,11 +1,12 @@
-""" Quotient Filter, python implementation
-    License: MIT
-    Author: Tyler Barrus (barrust@gmail.com)
+"""Quotient Filter, python implementation
+License: MIT
+Author: Tyler Barrus (barrust@gmail.com)
 """
 
 import sys
 from array import array
-from typing import Iterator, List, Optional, TextIO
+from collections.abc import Iterator
+from typing import Optional, TextIO
 
 from probables.exceptions import QuotientFilterError
 from probables.hashes import KeyT, SimpleHashT, fnv_1a_32
@@ -202,14 +203,14 @@ class QuotientFilter:
             bool: True if likely encountered, False if definately not"""
         key_quotient = _hash >> self._r
         key_remainder = _hash & ((1 << self._r) - 1)
-        return not self._contained_at_loc(key_quotient, key_remainder) == -1
+        return self._contained_at_loc(key_quotient, key_remainder) != -1
 
     def hashes(self) -> Iterator[int]:
         """A generator over the hashes in the quotient filter
 
         Yields:
             int: The next hash stored in the quotient filter"""
-        queue: List[int] = []
+        queue: list[int] = []
 
         # find first empty location
         start = 0
@@ -236,7 +237,7 @@ class QuotientFilter:
 
             yield (cur_quot << self._r) + self._filter[idx]
 
-    def get_hashes(self) -> List[int]:
+    def get_hashes(self) -> list[int]:
         """Get the hashes from the quotient filter as a list
 
         Returns:
@@ -449,7 +450,7 @@ class QuotientFilter:
 
         # now figure out if things are in the correct place....
         cur_quot = -1
-        queue: List[int] = []
+        queue: list[int] = []
         while min_idx != next_idx:
             if self._is_occupied[min_idx] == 1:
                 queue.append(min_idx)
@@ -490,14 +491,12 @@ class QuotientFilter:
 
     def _is_run_start(self, elt: int) -> bool:
         """Does `elt` sit at the beginning of a run?"""
-        return not self._is_continuation[elt] == 1 and (self._is_occupied[elt] == 1 or self._is_shifted[elt] == 1)
+        return self._is_continuation[elt] != 1 and (self._is_occupied[elt] == 1 or self._is_shifted[elt] == 1)
 
     def _is_run_or_cluster_start(self, elt: int) -> bool:
         if self._is_cluster_start(elt):
             return True
-        if self._is_run_start(elt):
-            return True
-        return False
+        return bool(self._is_run_start(elt))
 
     def _is_empty_element(self, elt: int) -> bool:
         """Is this an empty element?"""

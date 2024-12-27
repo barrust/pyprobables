@@ -1,20 +1,22 @@
-""" BloomFilter and BloomFiter on Disk, python implementation
-    License: MIT
-    Author: Tyler Barrus (barrust@gmail.com)
-    URL: https://github.com/barrust/bloom
+"""BloomFilter and BloomFiter on Disk, python implementation
+License: MIT
+Author: Tyler Barrus (barrust@gmail.com)
+URL: https://github.com/barrust/bloom
 """
+
 import math
 import os
 from array import array
 from binascii import hexlify, unhexlify
-from io import BytesIO, IOBase
+from collections.abc import ByteString
+from io import BufferedRandom, BytesIO, IOBase
 from mmap import mmap
 from numbers import Number
 from pathlib import Path
 from shutil import copyfile
 from struct import Struct
 from textwrap import wrap
-from typing import ByteString, Tuple, Union
+from typing import Union
 
 from probables.exceptions import InitializationError, NotSupportedError
 from probables.hashes import HashFuncT, HashResultsT, KeyT, default_fnv_1a
@@ -307,10 +309,7 @@ class BloomFilter:
         Args:
             filename (str): The filename to which the Bloom Filter will be written."""
         data = ("  " + line for line in wrap(", ".join(f"0x{e:02x}" for e in bytearray.fromhex(self.export_hex())), 80))
-        if self._type in ["regular", "regular-on-disk"]:
-            bloom_type = "standard BloomFilter"
-        else:
-            bloom_type = "CountingBloomFilter"
+        bloom_type = "standard BloomFilter" if self._type in {"regular", "regular-on-disk"} else "CountingBloomFilter"
 
         with open(filename, "w", encoding="utf-8") as file:
             print(f"/* BloomFilter Export of a {bloom_type} */", file=file)
@@ -465,7 +464,7 @@ class BloomFilter:
 
     # More private functions
     @classmethod
-    def _get_optimized_params(cls, estimated_elements: int, false_positive_rate: float) -> Tuple[float, int, int]:
+    def _get_optimized_params(cls, estimated_elements: int, false_positive_rate: float) -> tuple[float, int, int]:
         valid_prms = isinstance(estimated_elements, Number) and estimated_elements > 0
         if not valid_prms:
             msg = "Bloom: estimated elements must be greater than 0"
@@ -528,7 +527,8 @@ class BloomFilter:
         else:
             offset = self._FOOTER_STRUCT.size
             est_els, els_added, fpr, n_hashes, n_bits = self._parse_footer(
-                self._FOOTER_STRUCT, file[-1 * offset :]  # type: ignore
+                self._FOOTER_STRUCT,
+                file[-1 * offset :],  # type: ignore
             )
             self._set_values(est_els, fpr, n_hashes, n_bits, hash_function)
             # now read in the bit array!
@@ -536,7 +536,7 @@ class BloomFilter:
             self._els_added = els_added
 
     @classmethod
-    def _parse_footer(cls, stct: Struct, d: ByteString) -> Tuple[int, int, float, int, int]:
+    def _parse_footer(cls, stct: Struct, d: ByteString) -> tuple[int, int, float, int, int]:
         """parse footer returning the data: estimated elements, elements added,
         false positive rate, hash function, number hashes, number bits"""
         e_elms, e_added, fpr = stct.unpack_from(bytearray(d))
@@ -568,9 +568,7 @@ class BloomFilter:
         hash_match = self.number_hashes != second.number_hashes
         same_bits = self.number_bits != second.number_bits
         next_hash = self.hashes("test") != second.hashes("test")
-        if hash_match or same_bits or next_hash:
-            return False
-        return True
+        return not (hash_match or same_bits or next_hash)
 
 
 class BloomFilterOnDisk(BloomFilter):
@@ -607,7 +605,7 @@ class BloomFilterOnDisk(BloomFilter):
     ) -> None:
         # set some things up
         self._filepath = resolve_path(filepath)
-        self.__file_pointer = None
+        self.__file_pointer: BufferedRandom | None = None
         super().__init__(est_elements, false_positive_rate, filepath, hex_string, hash_function)
 
     def _load_init(self, filepath, hash_function, hex_string, est_elements, false_positive_rate):
@@ -642,7 +640,7 @@ class BloomFilterOnDisk(BloomFilter):
         """Clean up the BloomFilterOnDisk object"""
         if self.__file_pointer is not None and not self.__file_pointer.closed:
             self.__update()
-            self._bloom.close()
+            self._bloom.close()  # type: ignore
             self.__file_pointer.close()
             self.__file_pointer = None
 
@@ -671,7 +669,7 @@ class BloomFilterOnDisk(BloomFilter):
             fpr, n_hashes, n_bits = self._get_optimized_params(est_els, fpr)
             self._set_values(est_els, fpr, n_hashes, n_bits, hash_function)
         # setup a few additional items
-        self.__file_pointer = open(file, "r+b")  # type: ignore
+        self.__file_pointer = open(file, "r+b")  # noqa: SIM115
         self._bloom = mmap(self.__file_pointer.fileno(), 0)  # type: ignore
         self._on_disk = True
 

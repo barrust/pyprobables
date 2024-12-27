@@ -1,17 +1,18 @@
-""" Cuckoo Filter, python implementation
-    License: MIT
-    Author: Tyler Barrus (barrust@gmail.com)
+"""Cuckoo Filter, python implementation
+License: MIT
+Author: Tyler Barrus (barrust@gmail.com)
 """
 
 import math
 import random
 from array import array
+from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from numbers import Number
 from pathlib import Path
 from struct import Struct
-from typing import ByteString, List, Tuple, Union
+from typing import Union
 
 from probables.exceptions import CuckooFilterFullError, InitializationError
 from probables.hashes import KeyT, SimpleHashT, fnv_1a
@@ -226,7 +227,7 @@ class CuckooFilter:
         return self._bucket_size
 
     @property
-    def buckets(self) -> List[List[int]]:
+    def buckets(self) -> list[list[int]]:
         """list(list): The buckets holding the fingerprints
 
         Note:
@@ -312,9 +313,7 @@ class CuckooFilter:
             bool: True if likely present, False if definately not"""
         idx_1, idx_2, fingerprint = self._generate_fingerprint_info(key)
         is_present = self._check_if_present(idx_1, idx_2, fingerprint)
-        if is_present is not None:
-            return True
-        return False
+        return is_present is not None
 
     def remove(self, key: KeyT) -> bool:
         """Remove an element from the filter
@@ -491,7 +490,7 @@ class CuckooFilter:
         idx_2 = self.__hash_func(str(fingerprint)) % self.capacity
         return idx_1, idx_2
 
-    def _generate_fingerprint_info(self, key: KeyT) -> Tuple[int, int, int]:
+    def _generate_fingerprint_info(self, key: KeyT) -> tuple[int, int, int]:
         """Generate the fingerprint and indicies using the provided key
 
         Args:

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Unittest class"""
 
 import hashlib
@@ -252,7 +251,7 @@ class TestBloomFilter(unittest.TestCase):
         )
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         for i in range(0, 10):
-            tmp = "this is a test {0}".format(i)
+            tmp = f"this is a test {i}"
             blm.add(tmp)
         stats = str(blm)
         self.assertEqual(stats, msg)
@@ -262,7 +261,7 @@ class TestBloomFilter(unittest.TestCase):
         hex_val = "6da491461a6bba4d000000000000000a000000000000000a3d4ccccd"
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         for i in range(0, 10):
-            tmp = "this is a test {0}".format(i)
+            tmp = f"this is a test {i}"
             blm.add(tmp)
         hex_out = blm.export_hex()
 
@@ -295,23 +294,23 @@ class TestBloomFilter(unittest.TestCase):
         hex_val = "6da491461a6bba4d000000000000000a000000000000000a3d4ccccd"
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         for i in range(0, 10):
-            tmp = "this is a test {0}".format(i)
+            tmp = f"this is a test {i}"
             blm.add(tmp)
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
             blm.export_c_header(fobj.name)
 
             # now load the file, parse it and do some tests!
-            with open(fobj.name, "r") as fobj:
+            with open(fobj.name) as fobj:
                 data = fobj.readlines()
         data = [x.strip() for x in data]
 
         self.assertEqual("/* BloomFilter Export of a standard BloomFilter */", data[0])
         self.assertEqual("#include <inttypes.h>", data[1])
-        self.assertEqual("const uint64_t estimated_elements = {};".format(blm.estimated_elements), data[2])
-        self.assertEqual("const uint64_t elements_added = {};".format(blm.elements_added), data[3])
-        self.assertEqual("const float false_positive_rate = {};".format(blm.false_positive_rate), data[4])
-        self.assertEqual("const uint64_t number_bits = {};".format(blm.number_bits), data[5])
-        self.assertEqual("const unsigned int number_hashes = {};".format(blm.number_hashes), data[6])
+        self.assertEqual(f"const uint64_t estimated_elements = {blm.estimated_elements};", data[2])
+        self.assertEqual(f"const uint64_t elements_added = {blm.elements_added};", data[3])
+        self.assertEqual(f"const float false_positive_rate = {blm.false_positive_rate};", data[4])
+        self.assertEqual(f"const uint64_t number_bits = {blm.number_bits};", data[5])
+        self.assertEqual(f"const unsigned int number_hashes = {blm.number_hashes};", data[6])
         self.assertEqual("const unsigned char bloom[] = {", data[7])
         self.assertEqual("};", data[-1])
 
@@ -481,7 +480,7 @@ class TestBloomFilter(unittest.TestCase):
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         self.assertEqual(blm.elements_added, 0)
         for i in range(0, 10):
-            tmp = "this is a test {0}".format(i)
+            tmp = f"this is a test {i}"
             blm.add(tmp)
         self.assertEqual(blm.elements_added, 10)
 
@@ -518,13 +517,13 @@ class TestBloomFilter(unittest.TestCase):
         self.assertNotEqual(md5_out, md5_val)
 
         for i in range(0, 10):
-            tmp = "this is a test {0}".format(i)
+            tmp = f"this is a test {i}"
             blm.add(tmp)
 
         self.assertEqual(blm.elements_added, 11)
 
         for i in range(0, 10):
-            tmp = "this is a test {0}".format(i)
+            tmp = f"this is a test {i}"
             self.assertTrue(blm.check(tmp))
 
         self.assertEqual(blm.hashes("this is a test", 5), results)
@@ -563,13 +562,13 @@ class TestBloomFilter(unittest.TestCase):
         self.assertNotEqual(md5_out, md5_val)
 
         for i in range(0, 10):
-            tmp = "this is a test {0}".format(i)
+            tmp = f"this is a test {i}"
             blm.add(tmp)
 
         self.assertEqual(blm.elements_added, 11)
 
         for i in range(0, 10):
-            tmp = "this is a test {0}".format(i)
+            tmp = f"this is a test {i}"
             self.assertTrue(blm.check(tmp))
 
         self.assertEqual(blm.hashes("this is a test", 5), results)
@@ -731,17 +730,19 @@ class TestBloomFilterOnDisk(unittest.TestCase):
     # export to new file
     def test_bfod_export(self):
         """export to on disk to new file"""
-        with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
-            with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj1:
-                blm = BloomFilterOnDisk(fobj.name, 10, 0.05)
-                blm.add("this is a test")
+        with (
+            NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj,
+            NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj1,
+        ):
+            blm = BloomFilterOnDisk(fobj.name, 10, 0.05)
+            blm.add("this is a test")
 
-                blm.export(fobj1.name)
-                blm.close()
+            blm.export(fobj1.name)
+            blm.close()
 
-                md5_1 = calc_file_md5(fobj.name)
-                md5_2 = calc_file_md5(fobj1.name)
-                self.assertEqual(md5_1, md5_2)
+            md5_1 = calc_file_md5(fobj.name)
+            md5_2 = calc_file_md5(fobj1.name)
+            self.assertEqual(md5_1, md5_2)
 
     def test_bfod_bytes(self):
         """test exporting an on disk Bloom Filter to bytes"""
@@ -781,7 +782,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
             blm = BloomFilterOnDisk(fobj.name, est_elements=10, false_positive_rate=0.05)
             for i in range(0, 10):
-                tmp = "this is a test {0}".format(i)
+                tmp = f"this is a test {i}"
                 blm.add(tmp)
             hex_out = blm.export_hex()
             self.assertEqual(hex_out, hex_val)
@@ -813,24 +814,24 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
             blm = BloomFilterOnDisk(fobj.name, est_elements=10, false_positive_rate=0.05)
             for i in range(0, 10):
-                tmp = "this is a test {0}".format(i)
+                tmp = f"this is a test {i}"
                 blm.add(tmp)
             with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
                 blm.export_c_header(fobj.name)
 
                 # now load the file, parse it and do some tests!
-                with open(fobj.name, "r") as fobj:
+                with open(fobj.name) as fobj:
                     data = fobj.readlines()
 
         data = [x.strip() for x in data]
 
         self.assertEqual("/* BloomFilter Export of a standard BloomFilter */", data[0])
         self.assertEqual("#include <inttypes.h>", data[1])
-        self.assertEqual("const uint64_t estimated_elements = {};".format(blm.estimated_elements), data[2])
-        self.assertEqual("const uint64_t elements_added = {};".format(blm.elements_added), data[3])
-        self.assertEqual("const float false_positive_rate = {};".format(blm.false_positive_rate), data[4])
-        self.assertEqual("const uint64_t number_bits = {};".format(blm.number_bits), data[5])
-        self.assertEqual("const unsigned int number_hashes = {};".format(blm.number_hashes), data[6])
+        self.assertEqual(f"const uint64_t estimated_elements = {blm.estimated_elements};", data[2])
+        self.assertEqual(f"const uint64_t elements_added = {blm.elements_added};", data[3])
+        self.assertEqual(f"const float false_positive_rate = {blm.false_positive_rate};", data[4])
+        self.assertEqual(f"const uint64_t number_bits = {blm.number_bits};", data[5])
+        self.assertEqual(f"const unsigned int number_hashes = {blm.number_hashes};", data[6])
         self.assertEqual("const unsigned char bloom[] = {", data[7])
         self.assertEqual("};", data[-1])
 
@@ -844,7 +845,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
             blm = BloomFilterOnDisk(filepath=fobj.name, est_elements=10, false_positive_rate=0.05)
             self.assertEqual(blm.elements_added, 0)
             for i in range(0, 10):
-                tmp = "this is a test {0}".format(i)
+                tmp = f"this is a test {i}"
                 blm.add(tmp)
             self.assertEqual(blm.elements_added, 10)
 

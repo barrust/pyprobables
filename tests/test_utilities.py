@@ -105,7 +105,7 @@ class TestProbablesUtilities(unittest.TestCase):
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".rbf", delete=DELETE_TEMP_FILES) as fobj:
             with open(fobj.name, "w"):
                 pass
-            p2 = resolve_path("./{}".format(fobj.name))
+            p2 = resolve_path(f"./{fobj.name}")
             self.assertTrue(p2.is_absolute())
 
     def test_bitarray(self):

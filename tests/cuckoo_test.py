@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """Unittest class"""
 
 import hashlib
@@ -77,10 +76,10 @@ class TestCuckooFilter(unittest.TestCase):
             hash_function=my_hash,
         )
         for i in range(50):
-            cko.add("this is a test - {}".format(i))
+            cko.add(f"this is a test - {i}")
 
         for i in range(50):
-            self.assertTrue("this is a test - {}".format(i) in cko)
+            self.assertTrue(f"this is a test - {i}" in cko)
 
     def test_cuckoo_filter_remove(self):
         """test removing from the cuckoo filter"""

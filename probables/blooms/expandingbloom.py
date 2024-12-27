@@ -1,15 +1,16 @@
-""" Expanding and Rotating BloomFilter, python implementations
-    License: MIT
-    Author: Tyler Barrus (barrust@gmail.com)
-    URL: https://github.com/barrust/pyprobables
+"""Expanding and Rotating BloomFilter, python implementations
+License: MIT
+Author: Tyler Barrus (barrust@gmail.com)
+URL: https://github.com/barrust/pyprobables
 """
 
 from array import array
+from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from pathlib import Path
 from struct import Struct
-from typing import ByteString, Tuple, Union
+from typing import Union
 
 from probables.blooms.bloom import BloomFilter
 from probables.exceptions import RotatingBloomFilterError
@@ -144,6 +145,7 @@ class ExpandingBloomFilter:
             hashes (list): The hash representation to check for in the Bloom Filter
         Returns:
             bool: `True` if the element is likely present; `False` if definately not present"""
+        # return any(.check_alt(hashes))
         for blm in self._blooms:
             if blm.check_alt(hashes):
                 return True
@@ -224,7 +226,7 @@ class ExpandingBloomFilter:
             self._parse_blooms(file, size)  # type:ignore
 
     @classmethod
-    def _parse_footer(cls, b: ByteString) -> Tuple[int, int, int, float]:
+    def _parse_footer(cls, b: ByteString) -> tuple[int, int, int, float]:
         offset = cls.__FOOTER_STRUCT.size
         size, est_els, els_added, fpr = cls.__FOOTER_STRUCT.unpack(bytes(b[-1 * offset :]))
         return int(size), int(est_els), int(els_added), float(fpr)

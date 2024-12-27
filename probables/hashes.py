@@ -1,15 +1,15 @@
-""" Probables Hashing Utilities """
+"""Probables Hashing Utilities"""
 
 from functools import wraps
 from hashlib import md5, sha256
 from struct import unpack
-from typing import Callable, List, Union
+from typing import Callable, Union
 
 from probables.constants import UINT32_T_MAX, UINT64_T_MAX
 
 KeyT = Union[str, bytes]
 SimpleHashT = Callable[[KeyT, int], int]
-HashResultsT = List[int]
+HashResultsT = list[int]
 HashFuncT = Callable[[KeyT, int], HashResultsT]
 HashFuncBytesT = Callable[[KeyT, int], bytes]
 
@@ -67,14 +67,14 @@ def hash_with_depth_int(func: HashFuncT) -> HashFuncT:
     return hashing_func
 
 
-def default_fnv_1a(key: KeyT, depth: int = 1) -> List[int]:
+def default_fnv_1a(key: KeyT, depth: int = 1) -> list[int]:
     """The default fnv-1a hashing routine
 
     Args:
         key (str): The element to be hashed
         depth (int): The number of hash permutations to compute
     Returns:
-        list(int): List of size depth hashes"""
+        list(int): list of size depth hashes"""
 
     res = []
     for idx in range(depth):
@@ -129,7 +129,7 @@ def default_md5(key: KeyT, *args, **kwargs) -> bytes:
         key (str): The element to be hashed
         depth (int): The number of hash permutations to compute
     Returns:
-        list(int): List of 64-bit hashed representation of key hashes
+        list(int): list of 64-bit hashed representation of key hashes
     Note:
         Returns the upper-most 64 bits"""
     return md5(key).digest()  # type: ignore
@@ -143,7 +143,7 @@ def default_sha256(key: KeyT, *args, **kwargs) -> bytes:
         key (str): The element to be hashed
         depth (int): The number of hash permutations to compute
     Returns:
-        list(int): List of 64-bit hashed representation of key hashes
+        list(int): list of 64-bit hashed representation of key hashes
     Note:
         Returns the upper-most 64 bits"""
     return sha256(key).digest()  # type: ignore
