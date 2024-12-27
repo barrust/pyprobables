@@ -146,10 +146,7 @@ class ExpandingBloomFilter:
         Returns:
             bool: `True` if the element is likely present; `False` if definately not present"""
         # return any(.check_alt(hashes))
-        for blm in self._blooms:
-            if blm.check_alt(hashes):
-                return True
-        return False
+        return any(blm.check_alt(hashes) for blm in self._blooms)
 
     def add(self, key: KeyT, force: bool = False) -> None:
         """Add the key to the Bloom Filter
