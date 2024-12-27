@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Unittest class"""
 
+from __future__ import annotations
+
 import hashlib
 import sys
 import unittest

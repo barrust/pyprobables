@@ -1,14 +1,15 @@
 """utility functions"""
 
+from __future__ import annotations
+
 from hashlib import md5
 from pathlib import Path
-from typing import Union
 
 from probables.constants import UINT64_T_MAX
 from probables.hashes import KeyT
 
 
-def calc_file_md5(filename: Union[str, Path]) -> str:
+def calc_file_md5(filename: str | Path) -> str:
     """calc the md5 of a file"""
     with open(filename, "rb") as filepointer:
         res = filepointer.read()
