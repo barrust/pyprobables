@@ -7,8 +7,8 @@ PyProbables
 .. image:: https://img.shields.io/github/release/barrust/pyprobables.svg
     :target: https://github.com/barrust/pyprobables/releases
     :alt: GitHub release
-.. image:: https://github.com/barrust/pyprobables/workflows/Python%20package/badge.svg
-    :target: https://github.com/barrust/pyprobables/actions?query=workflow%3A%22Python+package%22
+.. image:: https://github.com/barrust/pyprobables/actions?query=workflow%3A%22Python+package%22+branch%3Amaster/badge.svg
+    :target: https://github.com/barrust/pyprobables/actions?query=workflow%3A%22Python+package%22+branch%3Amaster
     :alt: Build Status
 .. image:: https://codecov.io/gh/barrust/pyprobables/branch/master/graph/badge.svg?token=OdETiNgz9k
     :target: https://codecov.io/gh/barrust/pyprobables
@@ -56,7 +56,7 @@ To install `pyprobables`, simply clone the `repository on GitHub
 
     $ python setup.py install
 
-`pyprobables` supports python 3.8 - 3.13+
+`pyprobables` supports python 3.9 - 3.13+
 
 For *python 2.7* support, install `release 0.3.2 <https://github.com/barrust/pyprobables/releases/tag/v0.3.2>`__
 
