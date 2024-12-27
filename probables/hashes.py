@@ -5,11 +5,11 @@ from __future__ import annotations
 from functools import wraps
 from hashlib import md5, sha256
 from struct import unpack
-from typing import Callable, Union
+from typing import Callable, TypeAlias
 
 from probables.constants import UINT32_T_MAX, UINT64_T_MAX
 
-KeyT = Union[str, bytes]
+KeyT: TypeAlias = str | bytes
 SimpleHashT = Callable[[KeyT, int], int]
 HashResultsT = list[int]
 HashFuncT = Callable[[KeyT, int], HashResultsT]
