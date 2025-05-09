@@ -627,7 +627,7 @@ class BloomFilterOnDisk(BloomFilter):
                 filepointer.flush()
             self._load(self._filepath, hash_function)
         elif is_valid_file(self._filepath):
-            self._load(self._filepath.name, hash_function)  # need .name for python 3.5
+            self._load(self._filepath, hash_function)
         else:
             raise InitializationError("Insufecient parameters to set up the On Disk Bloom Filter")
 
@@ -655,7 +655,7 @@ class BloomFilterOnDisk(BloomFilter):
             Only exported if the filename is not the original filename"""
         self.__update()
         if file and Path(file) != self._filepath:
-            copyfile(self._filepath.name, str(file))
+            copyfile(self._filepath, str(file))
         # otherwise, nothing to do!
 
     def _load(self, file: Union[str, Path], hash_function: Union[HashFuncT, None] = None):  # type: ignore
