@@ -1,4 +1,6 @@
-""" PyProbables Exceptions """
+"""PyProbables Exceptions"""
+
+from __future__ import annotations
 
 
 class ProbablesBaseException(Exception):
