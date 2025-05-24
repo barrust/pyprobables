@@ -5,11 +5,12 @@
 """
 
 from array import array
+from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from pathlib import Path
 from struct import Struct
-from typing import ByteString, Tuple, Union
+from typing import Union
 
 from probables.blooms.bloom import BloomFilter
 from probables.exceptions import RotatingBloomFilterError
@@ -224,7 +225,7 @@ class ExpandingBloomFilter:
             self._parse_blooms(file, size)  # type:ignore
 
     @classmethod
-    def _parse_footer(cls, b: ByteString) -> Tuple[int, int, int, float]:
+    def _parse_footer(cls, b: ByteString) -> tuple[int, int, int, float]:
         offset = cls.__FOOTER_STRUCT.size
         size, est_els, els_added, fpr = cls.__FOOTER_STRUCT.unpack(bytes(b[-1 * offset :]))
         return int(size), int(est_els), int(els_added), float(fpr)

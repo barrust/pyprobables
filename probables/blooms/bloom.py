@@ -7,6 +7,7 @@ import math
 import os
 from array import array
 from binascii import hexlify, unhexlify
+from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from numbers import Number
@@ -14,7 +15,7 @@ from pathlib import Path
 from shutil import copyfile
 from struct import Struct
 from textwrap import wrap
-from typing import ByteString, Tuple, Union
+from typing import Union
 
 from probables.exceptions import InitializationError, NotSupportedError
 from probables.hashes import HashFuncT, HashResultsT, KeyT, default_fnv_1a
@@ -465,7 +466,7 @@ class BloomFilter:
 
     # More private functions
     @classmethod
-    def _get_optimized_params(cls, estimated_elements: int, false_positive_rate: float) -> Tuple[float, int, int]:
+    def _get_optimized_params(cls, estimated_elements: int, false_positive_rate: float) -> tuple[float, int, int]:
         valid_prms = isinstance(estimated_elements, Number) and estimated_elements > 0
         if not valid_prms:
             msg = "Bloom: estimated elements must be greater than 0"
@@ -527,16 +528,14 @@ class BloomFilter:
                 self._load(filepointer, hash_function)
         else:
             offset = self._FOOTER_STRUCT.size
-            est_els, els_added, fpr, n_hashes, n_bits = self._parse_footer(
-                self._FOOTER_STRUCT, file[-1 * offset :]  # type: ignore
-            )
+            est_els, els_added, fpr, n_hashes, n_bits = self._parse_footer(self._FOOTER_STRUCT, file[-1 * offset :])  # type: ignore
             self._set_values(est_els, fpr, n_hashes, n_bits, hash_function)
             # now read in the bit array!
             self._parse_bloom_array(file, self._IMPT_STRUCT.size * self.bloom_length)  # type: ignore
             self._els_added = els_added
 
     @classmethod
-    def _parse_footer(cls, stct: Struct, d: ByteString) -> Tuple[int, int, float, int, int]:
+    def _parse_footer(cls, stct: Struct, d: ByteString) -> tuple[int, int, float, int, int]:
         """parse footer returning the data: estimated elements, elements added,
         false positive rate, hash function, number hashes, number bits"""
         e_elms, e_added, fpr = stct.unpack_from(bytearray(d))

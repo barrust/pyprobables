@@ -5,11 +5,12 @@
 
 import random
 from array import array
+from collections.abc import ByteString
 from io import IOBase
 from mmap import mmap
 from pathlib import Path
 from struct import Struct
-from typing import ByteString, List, Union
+from typing import Union
 
 from probables.cuckoo.cuckoo import CuckooFilter
 from probables.exceptions import CuckooFilterFullError
@@ -145,7 +146,7 @@ class CountingCuckooFilter(CuckooFilter):
         return self.__unique_elements
 
     @property
-    def buckets(self) -> List[List["CountingCuckooBin"]]:  # type: ignore
+    def buckets(self) -> list[list["CountingCuckooBin"]]:  # type: ignore
         """list(list): The buckets holding the fingerprints
 
         Note:
