@@ -9,7 +9,13 @@ from probables.blooms import (
     ExpandingBloomFilter,
     RotatingBloomFilter,
 )
-from probables.countminsketch import CountMeanMinSketch, CountMeanSketch, CountMinSketch, HeavyHitters, StreamThreshold
+from probables.countminsketch import (
+    CountMeanMinSketch,
+    CountMeanSketch,
+    CountMinSketch,
+    HeavyHitters,
+    StreamThreshold,
+)
 from probables.cuckoo import CountingCuckooFilter, CuckooFilter
 from probables.exceptions import (
     CuckooFilterFullError,
@@ -26,7 +32,7 @@ __maintainer__ = "Tyler Barrus"
 __email__ = "barrust@gmail.com"
 __license__ = "MIT"
 __version__ = "0.6.1"
-__credits__: List[str] = []
+__credits__: list[str] = []
 __url__ = "https://github.com/barrust/pyprobables"
 __bugtrack_url__ = "https://github.com/barrust/pyprobables/issues"
 

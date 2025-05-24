@@ -6,12 +6,13 @@
 import math
 import random
 from array import array
+from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from numbers import Number
 from pathlib import Path
 from struct import Struct
-from typing import ByteString, List, Tuple, Union
+from typing import Union
 
 from probables.exceptions import CuckooFilterFullError, InitializationError
 from probables.hashes import KeyT, SimpleHashT, fnv_1a
@@ -226,7 +227,7 @@ class CuckooFilter:
         return self._bucket_size
 
     @property
-    def buckets(self) -> List[List[int]]:
+    def buckets(self) -> list[list[int]]:
         """list(list): The buckets holding the fingerprints
 
         Note:
@@ -491,7 +492,7 @@ class CuckooFilter:
         idx_2 = self.__hash_func(str(fingerprint)) % self.capacity
         return idx_1, idx_2
 
-    def _generate_fingerprint_info(self, key: KeyT) -> Tuple[int, int, int]:
+    def _generate_fingerprint_info(self, key: KeyT) -> tuple[int, int, int]:
         """Generate the fingerprint and indicies using the provided key
 
         Args:
