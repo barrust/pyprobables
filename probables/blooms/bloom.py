@@ -528,7 +528,10 @@ class BloomFilter:
                 self._load(filepointer, hash_function)
         else:
             offset = self._FOOTER_STRUCT.size
-            est_els, els_added, fpr, n_hashes, n_bits = self._parse_footer(self._FOOTER_STRUCT, file[-1 * offset :])  # type: ignore
+            est_els, els_added, fpr, n_hashes, n_bits = self._parse_footer(
+                self._FOOTER_STRUCT,
+                file[-1 * offset :],  # type: ignore
+            )
             self._set_values(est_els, fpr, n_hashes, n_bits, hash_function)
             # now read in the bit array!
             self._parse_bloom_array(file, self._IMPT_STRUCT.size * self.bloom_length)  # type: ignore
