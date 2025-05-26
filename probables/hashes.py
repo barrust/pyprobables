@@ -3,13 +3,13 @@
 from functools import wraps
 from hashlib import md5, sha256
 from struct import unpack
-from typing import Callable, List, Union
+from typing import Callable, Union
 
 from probables.constants import UINT32_T_MAX, UINT64_T_MAX
 
 KeyT = Union[str, bytes]
 SimpleHashT = Callable[[KeyT, int], int]
-HashResultsT = List[int]
+HashResultsT = list[int]
 HashFuncT = Callable[[KeyT, int], HashResultsT]
 HashFuncBytesT = Callable[[KeyT, int], bytes]
 
@@ -67,7 +67,7 @@ def hash_with_depth_int(func: HashFuncT) -> HashFuncT:
     return hashing_func
 
 
-def default_fnv_1a(key: KeyT, depth: int = 1) -> List[int]:
+def default_fnv_1a(key: KeyT, depth: int = 1) -> list[int]:
     """The default fnv-1a hashing routine
 
     Args:

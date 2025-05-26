@@ -6,12 +6,13 @@
 
 import math
 from array import array
+from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from numbers import Number
 from pathlib import Path
 from struct import Struct
-from typing import ByteString, Dict, Tuple, Union
+from typing import Union
 
 from probables.constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN
 from probables.exceptions import CountMinSketchError, InitializationError, NotSupportedError
@@ -408,7 +409,7 @@ class CountMinSketch:
             self._parse_bytes(file)  # type: ignore
 
     @classmethod
-    def _parse_footer(cls, file: ByteString) -> Tuple[int, int, int]:
+    def _parse_footer(cls, file: ByteString) -> tuple[int, int, int]:
         """return width, depth and elements added, in that order"""
         offset = cls.__FOOTER_STRUCT.size
         width, depth, elements_added = cls.__FOOTER_STRUCT.unpack_from(bytes(file[-1 * offset :]))
@@ -599,7 +600,7 @@ class HeavyHitters(CountMinSketch):
         )
 
     @property
-    def heavy_hitters(self) -> Dict[str, int]:
+    def heavy_hitters(self) -> dict[str, int]:
         """dict: Return the heavy hitters, or most common elements
 
         Note:
@@ -758,7 +759,7 @@ class StreamThreshold(CountMinSketch):
         )
 
     @property
-    def meets_threshold(self) -> Dict[str, int]:
+    def meets_threshold(self) -> dict[str, int]:
         """dict: Those keys that meet the required threshold (with value)"""
         return self.__meets_threshold
 
