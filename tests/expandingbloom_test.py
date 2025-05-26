@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """ Unittest class """
 
 import hashlib
@@ -13,9 +12,9 @@ this_dir = Path(__file__).parent
 sys.path.insert(0, str(this_dir))
 sys.path.insert(0, str(this_dir.parent))
 
-from probables import ExpandingBloomFilter, RotatingBloomFilter
-from probables.exceptions import RotatingBloomFilterError
-from tests.utilities import calc_file_md5, different_hash
+from probables import ExpandingBloomFilter, RotatingBloomFilter  # noqa: E402
+from probables.exceptions import RotatingBloomFilterError  # noqa: E402
+from tests.utilities import calc_file_md5, different_hash  # noqa: E402
 
 DELETE_TEMP_FILES = True
 
@@ -35,14 +34,14 @@ class TestExpandingBloomFilter(unittest.TestCase):
         """test adding "lots" of elements to force the expansion"""
         blm = ExpandingBloomFilter(est_elements=10, false_positive_rate=0.05)
         for i in range(100):
-            blm.add("{}".format(i), True)
+            blm.add(f"{i}", True)
         self.assertEqual(blm.expansions, 9)
 
     def test_ebf_add_lots_diff_hash(self):
         """test adding "lots" of elements to force the expansion using a different hash"""
         blm = ExpandingBloomFilter(est_elements=10, false_positive_rate=0.05, hash_function=different_hash)
         for i in range(100):
-            blm.add("{}".format(i), True)
+            blm.add(f"{i}", True)
         self.assertEqual(blm.expansions, 9)
 
     def test_ebf_add_lots_without_force(self):
@@ -50,7 +49,7 @@ class TestExpandingBloomFilter(unittest.TestCase):
         blm = ExpandingBloomFilter(est_elements=10, false_positive_rate=0.05)
         # simulate false positives... notice it didn't grow a few...
         for i in range(120):
-            blm.add("{}".format(i))
+            blm.add(f"{i}")
         self.assertEqual(blm.expansions, 8)
         self.assertEqual(blm.elements_added, 120)
 
@@ -59,7 +58,7 @@ class TestExpandingBloomFilter(unittest.TestCase):
         blm = ExpandingBloomFilter(est_elements=30, false_positive_rate=0.05)
         # expand it out some first!
         for i in range(100):
-            blm.add("{}".format(i))
+            blm.add(f"{i}")
         blm.add("this is a test")
         blm.add("this is another test")
         self.assertGreater(blm.expansions, 1)
@@ -74,7 +73,7 @@ class TestExpandingBloomFilter(unittest.TestCase):
         blm = ExpandingBloomFilter(est_elements=30, false_positive_rate=0.05)
         # expand it out some first!
         for i in range(100):
-            blm.add("{}".format(i))
+            blm.add(f"{i}")
         blm.add("this is a test")
         blm.add("this is another test")
         self.assertGreater(blm.expansions, 1)
@@ -142,7 +141,7 @@ class TestExpandingBloomFilter(unittest.TestCase):
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".ebf", delete=DELETE_TEMP_FILES) as fobj:
             blm = ExpandingBloomFilter(est_elements=25, false_positive_rate=0.05)
             for i in range(15):
-                blm.add("{}".format(i))
+                blm.add(f"{i}")
                 blm.push()
 
             blm.export(fobj.name)
@@ -150,11 +149,11 @@ class TestExpandingBloomFilter(unittest.TestCase):
             blm2 = ExpandingBloomFilter(filepath=fobj.name)
             self.assertEqual(blm2.expansions, 15)
             for i in range(15):
-                self.assertEqual("{}".format(i) in blm2, True)
+                self.assertEqual(f"{i}" in blm2, True)
 
             # check for things that are not there!
             for i in range(99, 125):
-                self.assertEqual("{}".format(i) in blm2, False)
+                self.assertEqual(f"{i}" in blm2, False)
 
 
 class TestRotatingBloomFilter(unittest.TestCase):
@@ -173,28 +172,28 @@ class TestRotatingBloomFilter(unittest.TestCase):
         blm.add("test")
         self.assertEqual(blm.expansions, 0)
         for i in range(10):
-            blm.add("{}".format(i), force=True)
+            blm.add(f"{i}", force=True)
         self.assertEqual(blm.expansions, 1)
         self.assertEqual(blm.current_queue_size, 2)
         self.assertEqual(blm.check("test"), True)
 
         for i in range(10, 20):
-            blm.add("{}".format(i), force=True)
+            blm.add(f"{i}", force=True)
         self.assertEqual(blm.check("test"), True)
         self.assertEqual(blm.current_queue_size, 3)
 
         for i in range(20, 30):
-            blm.add("{}".format(i), force=True)
+            blm.add(f"{i}", force=True)
         self.assertEqual(blm.check("test"), True)
         self.assertEqual(blm.current_queue_size, 4)
 
         for i in range(30, 40):
-            blm.add("{}".format(i), force=True)
+            blm.add(f"{i}", force=True)
         self.assertEqual(blm.check("test"), True)
         self.assertEqual(blm.current_queue_size, 5)
 
         for i in range(40, 50):
-            blm.add("{}".format(i), force=True)
+            blm.add(f"{i}", force=True)
         self.assertEqual(blm.check("test"), False)  # it should roll off
         self.assertEqual(blm.current_queue_size, 5)
 
@@ -249,7 +248,7 @@ class TestRotatingBloomFilter(unittest.TestCase):
         except RotatingBloomFilterError as ex:
             msg = "Popping a Bloom Filter will result in an unusable system!"
             self.assertEqual(str(ex), msg)
-        except:
+        except:  # noqa: E722
             self.assertEqual(True, False)
 
     def test_rfb_basic_export(self):
@@ -297,17 +296,17 @@ class TestRotatingBloomFilter(unittest.TestCase):
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".rbf", delete=DELETE_TEMP_FILES) as fobj:
             blm = RotatingBloomFilter(est_elements=25, false_positive_rate=0.05)
             for i in range(15):
-                blm.add("{}".format(i))
+                blm.add(f"{i}")
                 blm.push()
             blm.export(fobj.name)
 
             blm2 = RotatingBloomFilter(filepath=fobj.name)
             # test those that should be popped off...
             for i in range(5):
-                self.assertEqual("{}".format(i) in blm2, False)
+                self.assertEqual(f"{i}" in blm2, False)
             # test things that would not be popped
             for i in range(6, 15):
-                self.assertEqual("{}".format(i) in blm2, True)
+                self.assertEqual(f"{i}" in blm2, True)
             self.assertEqual(blm2.current_queue_size, 10)
             self.assertEqual(blm2.expansions, 9)
             self.assertEqual(blm2.elements_added, 15)

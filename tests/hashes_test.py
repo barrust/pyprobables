@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """ Unittest class """
 
 import hashlib
@@ -11,13 +10,13 @@ this_dir = Path(__file__).parent
 sys.path.insert(0, str(this_dir))
 sys.path.insert(0, str(this_dir.parent))
 
-from probables.constants import UINT64_T_MAX
+from probables.constants import UINT64_T_MAX  # noqa: E402
 from probables.hashes import (
-    default_fnv_1a,
-    default_md5,
-    default_sha256,
-    fnv_1a_32,
-    hash_with_depth_bytes,
+    default_fnv_1a,  # noqa: E402
+    default_md5,  # noqa: E402
+    default_sha256,  # noqa: E402
+    fnv_1a_32,  # noqa: E402
+    hash_with_depth_bytes,  # noqa: E402
     hash_with_depth_int,
 )
 

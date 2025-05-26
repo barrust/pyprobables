@@ -313,9 +313,7 @@ class CuckooFilter:
             bool: True if likely present, False if definately not"""
         idx_1, idx_2, fingerprint = self._generate_fingerprint_info(key)
         is_present = self._check_if_present(idx_1, idx_2, fingerprint)
-        if is_present is not None:
-            return True
-        return False
+        return is_present is not None
 
     def remove(self, key: KeyT) -> bool:
         """Remove an element from the filter

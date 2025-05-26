@@ -1,7 +1,7 @@
 """ utility functions """
 from hashlib import md5
 from pathlib import Path
-from typing import List, Union
+from typing import Union
 
 from probables.constants import UINT64_T_MAX
 from probables.hashes import KeyT
@@ -14,7 +14,7 @@ def calc_file_md5(filename: Union[str, Path]) -> str:
     return md5(res).hexdigest()
 
 
-def different_hash(key: KeyT, depth: int) -> List[int]:
+def different_hash(key: KeyT, depth: int) -> list[int]:
     """the default fnv-1a hashing routine, but different"""
 
     def __fnv_1a(key: KeyT) -> int:

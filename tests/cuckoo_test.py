@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """ Unittest class """
 
 import hashlib
@@ -13,8 +12,8 @@ this_dir = Path(__file__).parent
 sys.path.insert(0, str(this_dir))
 sys.path.insert(0, str(this_dir.parent))
 
-from probables import CuckooFilter, CuckooFilterFullError, InitializationError
-from tests.utilities import calc_file_md5
+from probables import CuckooFilter, CuckooFilterFullError, InitializationError  # noqa: E402
+from tests.utilities import calc_file_md5  # noqa: E402
 
 DELETE_TEMP_FILES = True
 
@@ -77,10 +76,10 @@ class TestCuckooFilter(unittest.TestCase):
             hash_function=my_hash,
         )
         for i in range(50):
-            cko.add("this is a test - {}".format(i))
+            cko.add(f"this is a test - {i}")
 
         for i in range(50):
-            self.assertTrue("this is a test - {}".format(i) in cko)
+            self.assertTrue(f"this is a test - {i}" in cko)
 
     def test_cuckoo_filter_remove(self):
         """test removing from the cuckoo filter"""
