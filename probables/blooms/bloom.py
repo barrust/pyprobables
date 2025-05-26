@@ -9,7 +9,7 @@ import os
 from array import array
 from binascii import hexlify, unhexlify
 from collections.abc import ByteString
-from io import BytesIO, IOBase
+from io import BufferedRandom, BytesIO, IOBase
 from mmap import mmap
 from numbers import Number
 from pathlib import Path
@@ -605,7 +605,7 @@ class BloomFilterOnDisk(BloomFilter):
     ) -> None:
         # set some things up
         self._filepath = resolve_path(filepath)
-        self.__file_pointer = None
+        self.__file_pointer: Union[BufferedRandom, None] = None
         super().__init__(est_elements, false_positive_rate, filepath, hex_string, hash_function)
 
     def _load_init(self, filepath, hash_function, hex_string, est_elements, false_positive_rate):
@@ -640,7 +640,7 @@ class BloomFilterOnDisk(BloomFilter):
         """Clean up the BloomFilterOnDisk object"""
         if self.__file_pointer is not None and not self.__file_pointer.closed:
             self.__update()
-            self._bloom.close()
+            self._bloom.close()  # type: ignore
             self.__file_pointer.close()
             self.__file_pointer = None
 
@@ -669,7 +669,7 @@ class BloomFilterOnDisk(BloomFilter):
             fpr, n_hashes, n_bits = self._get_optimized_params(est_els, fpr)
             self._set_values(est_els, fpr, n_hashes, n_bits, hash_function)
         # setup a few additional items
-        self.__file_pointer = open(file, "r+b")  # type: ignore  # noqa: SIM115
+        self.__file_pointer = open(file, "r+b")  # noqa: SIM115
         self._bloom = mmap(self.__file_pointer.fileno(), 0)  # type: ignore
         self._on_disk = True
 
