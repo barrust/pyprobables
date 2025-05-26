@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-""" probables utilitites tests """
+"""probables utilitites tests"""
 
 import os
 import sys
@@ -11,8 +11,8 @@ this_dir = Path(__file__).parent
 sys.path.insert(0, str(this_dir))
 sys.path.insert(0, str(this_dir.parent))
 
-from probables.utilities import Bitarray, MMap, get_x_bits, is_hex_string, is_valid_file, resolve_path
-from tests.utilities import different_hash
+from probables.utilities import Bitarray, MMap, get_x_bits, is_hex_string, is_valid_file, resolve_path  # noqa: E402
+from tests.utilities import different_hash  # noqa: E402
 
 DELETE_TEMP_FILES = True
 
@@ -105,7 +105,7 @@ class TestProbablesUtilities(unittest.TestCase):
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".rbf", delete=DELETE_TEMP_FILES) as fobj:
             with open(fobj.name, "w"):
                 pass
-            p2 = resolve_path("./{}".format(fobj.name))
+            p2 = resolve_path(f"./{fobj.name}")
             self.assertTrue(p2.is_absolute())
 
     def test_bitarray(self):

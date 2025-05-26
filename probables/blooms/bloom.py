@@ -1,14 +1,15 @@
-""" BloomFilter and BloomFiter on Disk, python implementation
-    License: MIT
-    Author: Tyler Barrus (barrust@gmail.com)
-    URL: https://github.com/barrust/bloom
+"""BloomFilter and BloomFiter on Disk, python implementation
+License: MIT
+Author: Tyler Barrus (barrust@gmail.com)
+URL: https://github.com/barrust/bloom
 """
+
 import math
 import os
 from array import array
 from binascii import hexlify, unhexlify
 from collections.abc import ByteString
-from io import BytesIO, IOBase
+from io import BufferedRandom, BytesIO, IOBase
 from mmap import mmap
 from numbers import Number
 from pathlib import Path
@@ -308,10 +309,7 @@ class BloomFilter:
         Args:
             filename (str): The filename to which the Bloom Filter will be written."""
         data = ("  " + line for line in wrap(", ".join(f"0x{e:02x}" for e in bytearray.fromhex(self.export_hex())), 80))
-        if self._type in ["regular", "regular-on-disk"]:
-            bloom_type = "standard BloomFilter"
-        else:
-            bloom_type = "CountingBloomFilter"
+        bloom_type = "standard BloomFilter" if self._type in ["regular", "regular-on-disk"] else "CountingBloomFilter"
 
         with open(filename, "w", encoding="utf-8") as file:
             print(f"/* BloomFilter Export of a {bloom_type} */", file=file)
@@ -570,9 +568,7 @@ class BloomFilter:
         hash_match = self.number_hashes != second.number_hashes
         same_bits = self.number_bits != second.number_bits
         next_hash = self.hashes("test") != second.hashes("test")
-        if hash_match or same_bits or next_hash:
-            return False
-        return True
+        return not (hash_match or same_bits or next_hash)
 
 
 class BloomFilterOnDisk(BloomFilter):
@@ -609,7 +605,7 @@ class BloomFilterOnDisk(BloomFilter):
     ) -> None:
         # set some things up
         self._filepath = resolve_path(filepath)
-        self.__file_pointer = None
+        self.__file_pointer: Union[BufferedRandom, None] = None
         super().__init__(est_elements, false_positive_rate, filepath, hex_string, hash_function)
 
     def _load_init(self, filepath, hash_function, hex_string, est_elements, false_positive_rate):
@@ -644,7 +640,7 @@ class BloomFilterOnDisk(BloomFilter):
         """Clean up the BloomFilterOnDisk object"""
         if self.__file_pointer is not None and not self.__file_pointer.closed:
             self.__update()
-            self._bloom.close()
+            self._bloom.close()  # type: ignore
             self.__file_pointer.close()
             self.__file_pointer = None
 
@@ -673,7 +669,7 @@ class BloomFilterOnDisk(BloomFilter):
             fpr, n_hashes, n_bits = self._get_optimized_params(est_els, fpr)
             self._set_values(est_els, fpr, n_hashes, n_bits, hash_function)
         # setup a few additional items
-        self.__file_pointer = open(file, "r+b")  # type: ignore
+        self.__file_pointer = open(file, "r+b")  # noqa: SIM115
         self._bloom = mmap(self.__file_pointer.fileno(), 0)  # type: ignore
         self._on_disk = True
 

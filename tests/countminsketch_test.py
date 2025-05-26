@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-""" Unittest class """
+"""Unittest class"""
 
 import hashlib
 import os
@@ -13,10 +12,10 @@ this_dir = Path(__file__).parent
 sys.path.insert(0, str(this_dir))
 sys.path.insert(0, str(this_dir.parent))
 
-from probables import CountMeanMinSketch, CountMeanSketch, CountMinSketch, HeavyHitters, StreamThreshold
-from probables.constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN
-from probables.exceptions import CountMinSketchError, InitializationError, NotSupportedError
-from tests.utilities import calc_file_md5, different_hash
+from probables import CountMeanMinSketch, CountMeanSketch, CountMinSketch, HeavyHitters, StreamThreshold  # noqa: E402
+from probables.constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN  # noqa: E402
+from probables.exceptions import CountMinSketchError, InitializationError, NotSupportedError  # noqa: E402
+from tests.utilities import calc_file_md5, different_hash  # noqa: E402
 
 DELETE_TEMP_FILES = True
 

@@ -1,6 +1,4 @@
-""" pyprobables module """
-
-from typing import List
+"""pyprobables module"""
 
 from probables.blooms import (
     BloomFilter,
@@ -9,13 +7,7 @@ from probables.blooms import (
     ExpandingBloomFilter,
     RotatingBloomFilter,
 )
-from probables.countminsketch import (
-    CountMeanMinSketch,
-    CountMeanSketch,
-    CountMinSketch,
-    HeavyHitters,
-    StreamThreshold,
-)
+from probables.countminsketch import CountMeanMinSketch, CountMeanSketch, CountMinSketch, HeavyHitters, StreamThreshold
 from probables.cuckoo import CountingCuckooFilter, CuckooFilter
 from probables.exceptions import (
     CuckooFilterFullError,

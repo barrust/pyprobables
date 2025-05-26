@@ -1,6 +1,6 @@
-""" Counting Cuckoo Filter, python implementation
-    License: MIT
-    Author: Tyler Barrus (barrust@gmail.com)
+"""Counting Cuckoo Filter, python implementation
+License: MIT
+Author: Tyler Barrus (barrust@gmail.com)
 """
 
 import random
@@ -136,9 +136,7 @@ class CountingCuckooFilter(CuckooFilter):
 
     def __contains__(self, val: KeyT) -> bool:
         """setup the `in` keyword"""
-        if self.check(val) > 0:
-            return True
-        return False
+        return self.check(val) > 0
 
     @property
     def unique_elements(self) -> int:

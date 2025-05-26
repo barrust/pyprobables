@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-""" Unittest class """
+"""Unittest class"""
 
-import hashlib
 import os
 import random
 import sys
@@ -15,8 +13,7 @@ from probables.exceptions import QuotientFilterError
 this_dir = Path(__file__).parent
 sys.path.insert(0, str(this_dir))
 sys.path.insert(0, str(this_dir.parent))
-from probables import QuotientFilter
-from tests.utilities import calc_file_md5, different_hash
+from probables import QuotientFilter  # noqa: E402
 
 DELETE_TEMP_FILES = True
 
@@ -242,8 +239,8 @@ class TestQuotientFilter(unittest.TestCase):
         """test removing a missing element"""
         alpha = [a for a in "abcd.efghij;klm-nopqrs=tuvwxyz"]
         qf = QuotientFilter(quotient=7)
-        for l in alpha:
-            qf.add(l)
+        for a in alpha:
+            qf.add(a)
 
         qf.remove("~")
 
@@ -258,8 +255,8 @@ class TestQuotientFilter(unittest.TestCase):
         """test removing a cluster start followed by empty"""
         alpha = [a for a in "abcd.efghij;klm-nopqrs=tuvwxyz"]
         qf = QuotientFilter(quotient=7)
-        for l in alpha:
-            qf.add(l)
+        for a in alpha:
+            qf.add(a)
 
         qf.remove(".")
 
@@ -274,8 +271,8 @@ class TestQuotientFilter(unittest.TestCase):
         """test removing a cluster start followed by cluster start"""
         alpha = [a for a in "abcd.efghij;klm-nopqrs=tuvwxyz"]
         qf = QuotientFilter(quotient=7)
-        for l in alpha:
-            qf.add(l)
+        for a in alpha:
+            qf.add(a)
 
         qf.remove("-")
 
@@ -290,8 +287,8 @@ class TestQuotientFilter(unittest.TestCase):
         """test removing a shifted run start followed by empty"""
         alpha = [a for a in "abcd.efghij;klm-nopqrs=tuvwxyz"]
         qf = QuotientFilter(quotient=7)
-        for l in alpha:
-            qf.add(l)
+        for a in alpha:
+            qf.add(a)
 
         qf.remove("z")
 
@@ -306,8 +303,8 @@ class TestQuotientFilter(unittest.TestCase):
         """test removing a shifted run start followed by continuation"""
         alpha = [a for a in "abcd.efghij;klm-nopqrs=tuvwxyz"]
         qf = QuotientFilter(quotient=7)
-        for l in alpha:
-            qf.add(l)
+        for a in alpha:
+            qf.add(a)
 
         qf.remove("y")
 
@@ -322,8 +319,8 @@ class TestQuotientFilter(unittest.TestCase):
         """test removing a shifted continuation followed by run start"""
         alpha = [a for a in "abcd.efghij;klm-nopqrs=tuvwxyz"]
         qf = QuotientFilter(quotient=7)
-        for l in alpha:
-            qf.add(l)
+        for a in alpha:
+            qf.add(a)
 
         qf.remove("x")
 
@@ -338,8 +335,8 @@ class TestQuotientFilter(unittest.TestCase):
         """test removing a shifted run start followed by run start"""
         alpha = [a for a in "abcd.efghij;klm-nopqrs=tuvwxyz"]
         qf = QuotientFilter(quotient=7)
-        for l in alpha:
-            qf.add(l)
+        for a in alpha:
+            qf.add(a)
 
         qf.remove("a")
 
@@ -354,8 +351,8 @@ class TestQuotientFilter(unittest.TestCase):
         """test removing a cluster start followed by continuation putting a run start into a cluster start position"""
         alpha = [a for a in "abcd.efghij;klm-nopqrs=tuvwxyz"]
         qf = QuotientFilter(quotient=7)
-        for l in alpha:
-            qf.add(l)
+        for a in alpha:
+            qf.add(a)
 
         qf.remove("d")
 
@@ -370,13 +367,13 @@ class TestQuotientFilter(unittest.TestCase):
         """Test removing all elements, but find each one after each removal"""
         alpha = [a for a in "abcd.efghij;klm-nopqrs=tuvwxyz"]
         qf = QuotientFilter(quotient=7)
-        for l in alpha:
-            _hash = qf._hash_func(l, 0)
-            print(l, _hash >> qf._r, _hash & ((1 << qf._r) - 1))
-            qf.add(l)
+        for a in alpha:
+            _hash = qf._hash_func(a, 0)
+            print(a, _hash >> qf._r, _hash & ((1 << qf._r) - 1))
+            qf.add(a)
 
-        for l in alpha:
-            self.assertTrue(qf.check(l), "failed to insert")
+        for a in alpha:
+            self.assertTrue(qf.check(a), "failed to insert")
 
         while alpha:
             missing_vals = []
@@ -393,11 +390,11 @@ class TestQuotientFilter(unittest.TestCase):
         """Test removing all elements, but in a random order"""
         alpha = [a for a in "abcd.efghij;klm-nopqrs=tuvwxyz"]
         qf = QuotientFilter(quotient=7)
-        for l in alpha:
-            qf.add(l)
+        for a in alpha:
+            qf.add(a)
 
-        for l in alpha:
-            self.assertTrue(qf.check(l), "failed to insert")
+        for a in alpha:
+            self.assertTrue(qf.check(a), "failed to insert")
             self.assertTrue(qf.validate_metadata())
 
         while alpha:
@@ -416,11 +413,11 @@ class TestQuotientFilter(unittest.TestCase):
         """Test removing all elements, but in a random order - take 2"""
         alpha = [a for a in "abcd.efghij;klm-nopqrs=tuvwxyz"]
         qf = QuotientFilter(quotient=7)
-        for l in alpha:
-            qf.add(l)
+        for a in alpha:
+            qf.add(a)
 
-        for l in alpha:
-            self.assertTrue(qf.check(l), "failed to insert")
+        for a in alpha:
+            self.assertTrue(qf.check(a), "failed to insert")
 
         while alpha:
             missing_vals = []
@@ -441,7 +438,7 @@ class TestQuotientFilter(unittest.TestCase):
             qf.print(file=fobj.file)
             fobj.flush()
 
-            with open(fobj.name, "r") as fobj:
+            with open(fobj.name) as fobj:
                 data = fobj.readlines()
         data = [x.strip() for x in data]
         self.assertEqual(data[0], "idx\t--\tO-C-S\tStatus")
@@ -452,14 +449,14 @@ class TestQuotientFilter(unittest.TestCase):
         """Test printing the data of a quotient filter in a manner to be read through not empty"""
         alpha = [a for a in "abcd.efghij;klm-nopqrs=tuvwxyz"]
         qf = QuotientFilter(quotient=7)
-        for l in alpha:
-            qf.add(l)
+        for a in alpha:
+            qf.add(a)
 
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".txt", delete=DELETE_TEMP_FILES, mode="wt") as fobj:
             qf.print(file=fobj.file)
             fobj.flush()
 
-            with open(fobj.name, "r") as fobj:
+            with open(fobj.name) as fobj:
                 data = fobj.readlines()
         data = [x.strip() for x in data]
         self.assertEqual(data[0], "idx\t--\tO-C-S\tStatus")

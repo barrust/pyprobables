@@ -1,4 +1,4 @@
-""" PyProbables Exceptions """
+"""PyProbables Exceptions"""
 
 
 class ProbablesBaseException(Exception):

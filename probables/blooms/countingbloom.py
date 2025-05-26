@@ -1,8 +1,9 @@
-""" CountingBloomFilter, python implementation
-    License: MIT
-    Author: Tyler Barrus (barrust@gmail.com)
-    URL: https://github.com/barrust/counting_bloom
+"""CountingBloomFilter, python implementation
+License: MIT
+Author: Tyler Barrus (barrust@gmail.com)
+URL: https://github.com/barrust/counting_bloom
 """
+
 from array import array
 from collections.abc import ByteString
 from pathlib import Path

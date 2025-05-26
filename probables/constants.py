@@ -1,4 +1,5 @@
-""" Project Constants (or basic numerical constants...) """
+"""Project Constants (or basic numerical constants...)"""
+
 INT32_T_MIN = -2147483648
 INT32_T_MAX = 2147483647
 INT64_T_MIN = -9223372036854775808

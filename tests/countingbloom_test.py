@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-""" Unittest class """
+"""Unittest class"""
 
 import hashlib
 import os
@@ -13,9 +12,9 @@ this_dir = Path(__file__).parent
 sys.path.insert(0, str(this_dir))
 sys.path.insert(0, str(this_dir.parent))
 
-from probables import CountingBloomFilter
-from probables.exceptions import InitializationError
-from tests.utilities import calc_file_md5, different_hash
+from probables import CountingBloomFilter  # noqa: E402
+from probables.exceptions import InitializationError  # noqa: E402
+from tests.utilities import calc_file_md5, different_hash  # noqa: E402
 
 DELETE_TEMP_FILES = True
 
@@ -87,7 +86,7 @@ class TestCountingBloomFilter(unittest.TestCase):
         )
         blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
         for i in range(0, 10):
-            blm.add("this is a test {0}".format(i))
+            blm.add(f"this is a test {i}")
         stats = str(blm)
         self.assertEqual(stats, msg)
 
@@ -96,7 +95,7 @@ class TestCountingBloomFilter(unittest.TestCase):
         blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
         self.assertEqual(blm.elements_added, 0)
         for i in range(0, 10):
-            blm.add("this is a test {0}".format(i))
+            blm.add(f"this is a test {i}")
         self.assertEqual(blm.elements_added, 10)
 
         blm.clear()
@@ -215,7 +214,7 @@ class TestCountingBloomFilter(unittest.TestCase):
 
         blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
         for i in range(0, 10):
-            tmp = "this is a test {0}".format(i)
+            tmp = f"this is a test {i}"
             blm.add(tmp)
         hex_out = blm.export_hex()
 
@@ -277,25 +276,25 @@ class TestCountingBloomFilter(unittest.TestCase):
         )
         blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
         for i in range(0, 10):
-            tmp = "this is a test {0}".format(i)
+            tmp = f"this is a test {i}"
             blm.add(tmp)
 
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
             blm.export_c_header(fobj.name)
 
             # now load the file, parse it and do some tests!
-            with open(fobj.name, "r") as fobj:
+            with open(fobj.name) as fobj:
                 data = fobj.readlines()
 
         data = [x.strip() for x in data]
 
         self.assertEqual("/* BloomFilter Export of a CountingBloomFilter */", data[0])
         self.assertEqual("#include <inttypes.h>", data[1])
-        self.assertEqual("const uint64_t estimated_elements = {};".format(blm.estimated_elements), data[2])
-        self.assertEqual("const uint64_t elements_added = {};".format(blm.elements_added), data[3])
-        self.assertEqual("const float false_positive_rate = {};".format(blm.false_positive_rate), data[4])
-        self.assertEqual("const uint64_t number_bits = {};".format(blm.number_bits), data[5])
-        self.assertEqual("const unsigned int number_hashes = {};".format(blm.number_hashes), data[6])
+        self.assertEqual(f"const uint64_t estimated_elements = {blm.estimated_elements};", data[2])
+        self.assertEqual(f"const uint64_t elements_added = {blm.elements_added};", data[3])
+        self.assertEqual(f"const float false_positive_rate = {blm.false_positive_rate};", data[4])
+        self.assertEqual(f"const uint64_t number_bits = {blm.number_bits};", data[5])
+        self.assertEqual(f"const unsigned int number_hashes = {blm.number_hashes};", data[6])
         self.assertEqual("const unsigned char bloom[] = {", data[7])
         self.assertEqual("};", data[-1])
 
@@ -410,7 +409,7 @@ class TestCountingBloomFilter(unittest.TestCase):
         blm = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
         self.assertEqual(blm.elements_added, 0)
         for i in range(0, 5):
-            tmp = "this is a test {0}".format(i)
+            tmp = f"this is a test {i}"
             blm.add(tmp)
         self.assertEqual(blm.elements_added, 5)
         res = blm.remove("this is a test 0")
