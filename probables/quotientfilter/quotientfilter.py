@@ -496,9 +496,7 @@ class QuotientFilter:
     def _is_run_or_cluster_start(self, elt: int) -> bool:
         if self._is_cluster_start(elt):
             return True
-        if self._is_run_start(elt):
-            return True
-        return False
+        return bool(self._is_run_start(elt))
 
     def _is_empty_element(self, elt: int) -> bool:
         """Is this an empty element?"""
