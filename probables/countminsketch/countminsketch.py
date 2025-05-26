@@ -1,7 +1,7 @@
-""" Count-Min Sketch, Heavy Hitters, and Stream Threshold, python implementations
-    License: MIT
-    Author: Tyler Barrus (barrust@gmail.com)
-    URL: https://github.com/barrust/count-min-sketch
+"""Count-Min Sketch, Heavy Hitters, and Stream Threshold, python implementations
+License: MIT
+Author: Tyler Barrus (barrust@gmail.com)
+URL: https://github.com/barrust/count-min-sketch
 """
 
 import math

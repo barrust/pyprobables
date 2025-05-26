@@ -1,4 +1,4 @@
-""" pyprobables module """
+"""pyprobables module"""
 
 from probables.blooms import (
     BloomFilter,

@@ -1,8 +1,9 @@
-""" BloomFilter and BloomFiter on Disk, python implementation
-    License: MIT
-    Author: Tyler Barrus (barrust@gmail.com)
-    URL: https://github.com/barrust/bloom
+"""BloomFilter and BloomFiter on Disk, python implementation
+License: MIT
+Author: Tyler Barrus (barrust@gmail.com)
+URL: https://github.com/barrust/bloom
 """
+
 import math
 import os
 from array import array

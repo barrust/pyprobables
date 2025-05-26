@@ -1,6 +1,6 @@
-""" Counting Cuckoo Filter, python implementation
-    License: MIT
-    Author: Tyler Barrus (barrust@gmail.com)
+"""Counting Cuckoo Filter, python implementation
+License: MIT
+Author: Tyler Barrus (barrust@gmail.com)
 """
 
 import random

@@ -1,4 +1,4 @@
-""" Utility Functions """
+"""Utility Functions"""
 
 import math
 import mmap

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-""" probables utilitites tests """
+"""probables utilitites tests"""
 
 import os
 import sys

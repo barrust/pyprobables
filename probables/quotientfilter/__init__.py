@@ -1,5 +1,4 @@
-""" Quotient Filters """
-
+"""Quotient Filters"""
 
 from probables.quotientfilter.quotientfilter import QuotientFilter
 

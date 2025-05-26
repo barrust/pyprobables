@@ -1,4 +1,4 @@
-""" Bloom Filters """
+"""Bloom Filters"""
 
 from probables.blooms.bloom import BloomFilter, BloomFilterOnDisk
 from probables.blooms.countingbloom import CountingBloomFilter

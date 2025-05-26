@@ -1,4 +1,4 @@
-""" Probables Hashing Utilities """
+"""Probables Hashing Utilities"""
 
 from functools import wraps
 from hashlib import md5, sha256

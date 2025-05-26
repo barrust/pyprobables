@@ -1,6 +1,6 @@
-""" Quotient Filter, python implementation
-    License: MIT
-    Author: Tyler Barrus (barrust@gmail.com)
+"""Quotient Filter, python implementation
+License: MIT
+Author: Tyler Barrus (barrust@gmail.com)
 """
 
 import sys

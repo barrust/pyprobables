@@ -1,6 +1,6 @@
-""" Cuckoo Filter, python implementation
-    License: MIT
-    Author: Tyler Barrus (barrust@gmail.com)
+"""Cuckoo Filter, python implementation
+License: MIT
+Author: Tyler Barrus (barrust@gmail.com)
 """
 
 import math

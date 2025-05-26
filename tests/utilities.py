@@ -1,4 +1,5 @@
-""" utility functions """
+"""utility functions"""
+
 from hashlib import md5
 from pathlib import Path
 from typing import Union

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-""" Unittest class """
+"""Unittest class"""
 
 import hashlib
 import os

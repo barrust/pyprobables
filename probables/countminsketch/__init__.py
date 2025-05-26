@@ -1,4 +1,4 @@
-""" Count-Min Sketchs """
+"""Count-Min Sketchs"""
 
 from probables.countminsketch.countminsketch import (
     CountMeanMinSketch,

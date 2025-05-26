@@ -1,7 +1,7 @@
-""" Expanding and Rotating BloomFilter, python implementations
-    License: MIT
-    Author: Tyler Barrus (barrust@gmail.com)
-    URL: https://github.com/barrust/pyprobables
+"""Expanding and Rotating BloomFilter, python implementations
+License: MIT
+Author: Tyler Barrus (barrust@gmail.com)
+URL: https://github.com/barrust/pyprobables
 """
 
 from array import array
