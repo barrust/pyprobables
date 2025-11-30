@@ -1,5 +1,13 @@
 # PyProbables Changelog
 
+### Version 0.6.2
+
+* `BloomFilterOnDisk`
+  * Fix `FileNotFound` exception; see [issue #131](https://github.com/barrust/pyprobables/issues/131)
+* Additional tests for `QuotientFilter` and `ExpandingBloomFilter`
+* Drop python 3.8 support
+* Add python 3.14 support
+
 ### Version 0.6.1
 
 * Quotient Filter:
