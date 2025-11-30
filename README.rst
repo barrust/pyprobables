@@ -47,6 +47,11 @@ Pip Installation:
 
     $ pip install pyprobables
 
+Conda Installation:
+::
+
+    $ conda install -c conda-forge pyprobables
+
 To install from source:
 
 To install `pyprobables`, simply clone the `repository on GitHub
