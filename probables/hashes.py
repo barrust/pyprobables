@@ -9,12 +9,13 @@ from probables.constants import UINT32_T_MAX, UINT64_T_MAX
 
 KeyT = Union[str, bytes]
 SimpleHashT = Callable[[KeyT, int], int]
+SimpleHashBytesT = Callable[[KeyT, int], bytes]
 HashResultsT = list[int]
 HashFuncT = Callable[[KeyT, int], HashResultsT]
 HashFuncBytesT = Callable[[KeyT, int], bytes]
 
 
-def hash_with_depth_bytes(func: HashFuncBytesT) -> HashFuncT:
+def hash_with_depth_bytes(func: HashFuncBytesT | SimpleHashBytesT) -> HashFuncT:
     """Decorator to turns a function taking a single key and hashes it to
     bytes. Wraps functions to be used in Bloom filters and Count-Min sketch
     data structures.
@@ -40,7 +41,7 @@ def hash_with_depth_bytes(func: HashFuncBytesT) -> HashFuncT:
     return hashing_func
 
 
-def hash_with_depth_int(func: HashFuncT) -> HashFuncT:
+def hash_with_depth_int(func: HashFuncT | SimpleHashT) -> HashFuncT:
     """Decorator to turn a function that takes a single key and hashes it to
     an int. Wraps functions to be used in Bloom filters and Count-Min
     sketch data structures.

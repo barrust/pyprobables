@@ -1,5 +1,16 @@
 # PyProbables Changelog
 
+### Version 0.7.0
+
+***Breaking Changes***
+Minor breaking changes; mismatched Bloom filters raise a `SimilarityError` instead of returning `None`
+
+* `BitArray`
+  * Add ability to read and write as bytes
+  * Add abilitt to export
+* Updated typing to be more consistent and correct
+
+
 ### Version 0.6.2
 
 * `BloomFilterOnDisk`

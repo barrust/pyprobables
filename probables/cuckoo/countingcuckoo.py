@@ -304,7 +304,7 @@ class CountingCuckooFilter(CuckooFilter):
                 start = end
                 end += bin_size
 
-    def _expand_logic(self, extra_fingerprint: "CountingCuckooBin") -> None:
+    def _expand_logic(self, extra_fingerprint: Union["CountingCuckooBin", None]) -> None:
         """the logic to acutally expand the cuckoo filter"""
         # get all the fingerprints
         fingerprints = self._setup_expand(extra_fingerprint)

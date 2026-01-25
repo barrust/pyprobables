@@ -125,7 +125,7 @@ class TestCountMinSketch(unittest.TestCase):
     def test_cms_check_min_called(self):
         """test checking number elements using min algorithm called out"""
         cms = CountMinSketch(width=1000, depth=5)
-        cms.query_type = None
+        cms.query_type = None  # type: ignore
         self.assertEqual(cms.add("this is a test", 255), 255)
         self.assertEqual(cms.add("this is another test", 189), 189)
         self.assertEqual(cms.add("this is also a test", 16), 16)
@@ -425,7 +425,7 @@ class TestCountMinSketch(unittest.TestCase):
         cms = CountMinSketch(width=1000, depth=5)
 
         try:
-            cms.join(1)
+            cms.join(1)  # type: ignore
         except TypeError as ex:
             msg = "Unable to merge a count-min sketch with {}".format("<class 'int'>")
             self.assertEqual(str(ex), msg)
@@ -469,7 +469,7 @@ class TestCountMinSketch(unittest.TestCase):
 
         def runner():
             """runner"""
-            CountMinSketch(width="0.0", depth=5)
+            CountMinSketch(width="0.0", depth=5)  # type: ignore
 
         self.assertRaises(InitializationError, runner)
         msg = "CountMinSketch: width and depth must be greater than 0"
@@ -485,7 +485,7 @@ class TestCountMinSketch(unittest.TestCase):
 
         def runner():
             """runner"""
-            CountMinSketch(width=1000, depth=[])
+            CountMinSketch(width=1000, depth=[])  # type: ignore
 
         self.assertRaises(InitializationError, runner)
         msg = "CountMinSketch: width and depth must be greater than 0"
@@ -533,7 +533,7 @@ class TestCountMinSketch(unittest.TestCase):
 
         def runner():
             """runner"""
-            CountMinSketch(confidence=3.0, error_rate="0.99")
+            CountMinSketch(confidence=3.0, error_rate="0.99")  # type: ignore
 
         self.assertRaises(InitializationError, runner)
         msg = "CountMinSketch: width and depth must be greater than 0"
@@ -549,7 +549,7 @@ class TestCountMinSketch(unittest.TestCase):
 
         def runner():
             """runner"""
-            CountMinSketch(width=1000, depth=[])
+            CountMinSketch(width=1000, depth=[])  # type: ignore
 
         self.assertRaises(InitializationError, runner)
         msg = "CountMinSketch: width and depth must be greater than 0"

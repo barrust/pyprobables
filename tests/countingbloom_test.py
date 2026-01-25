@@ -13,7 +13,7 @@ sys.path.insert(0, str(this_dir))
 sys.path.insert(0, str(this_dir.parent))
 
 from probables import CountingBloomFilter  # noqa: E402
-from probables.exceptions import InitializationError  # noqa: E402
+from probables.exceptions import InitializationError, SimilarityError  # noqa: E402
 from tests.utilities import calc_file_md5, different_hash  # noqa: E402
 
 DELETE_TEMP_FILES = True
@@ -370,7 +370,7 @@ class TestCountingBloomFilter(unittest.TestCase):
         """test jaccard of an mismath of counting bloom filters"""
         blm1 = CountingBloomFilter(est_elements=101, false_positive_rate=0.01)
         blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
-        self.assertEqual(blm1.jaccard_index(blm2), None)
+        self.assertRaises(SimilarityError, lambda: blm1.jaccard_index(blm2))
 
     def test_cbf_jaccard_invalid(self):
         """use an invalid type in a jaccard index"""
@@ -492,7 +492,7 @@ class TestCountingBloomFilter(unittest.TestCase):
         """test union of an mismath of counting bloom filters"""
         blm1 = CountingBloomFilter(est_elements=101, false_positive_rate=0.01)
         blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
-        self.assertEqual(blm1.union(blm2), None)
+        self.assertRaises(SimilarityError, lambda: blm1.union(blm2))
 
     def test_cbf_inter(self):
         """test calculating the intersection between two
@@ -529,7 +529,7 @@ class TestCountingBloomFilter(unittest.TestCase):
         """test intersection of an mismath of counting bloom filters"""
         blm1 = CountingBloomFilter(est_elements=101, false_positive_rate=0.01)
         blm2 = CountingBloomFilter(est_elements=10, false_positive_rate=0.01)
-        self.assertEqual(blm1.intersection(blm2), None)
+        self.assertRaises(SimilarityError, lambda: blm1.intersection(blm2))
 
     def test_cbf_all_bits_set(self):
         """test inserting too many elements so that the all bits are set"""

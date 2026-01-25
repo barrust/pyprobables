@@ -7,6 +7,7 @@ import sys
 import unittest
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from typing import Union
 
 this_dir = Path(__file__).parent
 sys.path.insert(0, str(this_dir))
@@ -62,9 +63,10 @@ class TestCuckooFilter(unittest.TestCase):
     def test_cuckoo_filter_diff_hash(self):
         """test using a different hash function"""
 
-        def my_hash(key):
+        def my_hash(key: Union[str, bytes], depth: int = 1) -> int:
             """fake hash"""
-            return int(hashlib.sha512(key.encode("utf-8")).hexdigest(), 16)
+            k = key if isinstance(key, bytes) else key.encode("utf-8")
+            return int(hashlib.sha512(k).hexdigest(), 16)
 
         cko = CuckooFilter(
             capacity=100,
@@ -402,7 +404,7 @@ class TestCuckooFilter(unittest.TestCase):
 
         def runner():
             """runner"""
-            CuckooFilter(capacity="abc")
+            CuckooFilter(capacity="abc")  # type: ignore
 
         self.assertRaises(InitializationError, runner)
         msg = "CuckooFilter: capacity, bucket_size, and max_swaps must be an integer greater than 0"
@@ -418,7 +420,7 @@ class TestCuckooFilter(unittest.TestCase):
 
         def runner():
             """runner"""
-            CuckooFilter(bucket_size=[0])
+            CuckooFilter(bucket_size=[0])  # type: ignore
 
         self.assertRaises(InitializationError, runner)
         msg = "CuckooFilter: capacity, bucket_size, and max_swaps must be an integer greater than 0"
@@ -434,7 +436,7 @@ class TestCuckooFilter(unittest.TestCase):
 
         def runner():
             """runner"""
-            CuckooFilter(max_swaps=None)
+            CuckooFilter(max_swaps=None)  # type: ignore
 
         self.assertRaises(InitializationError, runner)
         msg = "CuckooFilter: capacity, bucket_size, and max_swaps must be an integer greater than 0"

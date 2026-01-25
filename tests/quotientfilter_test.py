@@ -7,6 +7,7 @@ import sys
 import unittest
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from typing import TextIO, cast
 
 from probables.exceptions import QuotientFilterError
 
@@ -435,7 +436,7 @@ class TestQuotientFilter(unittest.TestCase):
         """Test printing the data of a quotient filter in a manner to be read through"""
         qf = QuotientFilter(quotient=7)
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".txt", delete=DELETE_TEMP_FILES, mode="wt") as fobj:
-            qf.print(file=fobj.file)
+            qf.print(file=cast(TextIO, fobj))
             fobj.flush()
 
             with open(fobj.name) as fobj:
@@ -443,7 +444,7 @@ class TestQuotientFilter(unittest.TestCase):
         data = [x.strip() for x in data]
         self.assertEqual(data[0], "idx\t--\tO-C-S\tStatus")
         for i in range(2, len(data)):
-            self.assertEqual(data[i], f"{i-2}\t--\t0-0-0\tEmpty")
+            self.assertEqual(data[i], f"{i - 2}\t--\t0-0-0\tEmpty")
 
     def test_quotient_filter_print(self):
         """Test printing the data of a quotient filter in a manner to be read through not empty"""
@@ -453,7 +454,7 @@ class TestQuotientFilter(unittest.TestCase):
             qf.add(a)
 
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".txt", delete=DELETE_TEMP_FILES, mode="wt") as fobj:
-            qf.print(file=fobj.file)
+            qf.print(file=cast(TextIO, fobj))
             fobj.flush()
 
             with open(fobj.name) as fobj:
