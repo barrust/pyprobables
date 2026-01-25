@@ -171,9 +171,22 @@ class TestProbablesUtilities(unittest.TestCase):
             print(i)
             self.assertEqual(nba[i], 0 if i % 3 != 0 else 1)
 
+    def test_bitarray_export(self):
+        with NamedTemporaryFile() as tmp:
+            ba = Bitarray(100)
+            for i in range(34):
+                ba.set_bit(i * 3)
+            ba.export(tmp.name)
+            nba = Bitarray.from_bytes(tmp.read())
+            self.assertEqual(nba.as_string(), ba.as_string())
+            for i in range(100):
+                self.assertEqual(ba[i], nba[i])
+                print(i)
+                self.assertEqual(nba[i], 0 if i % 3 != 0 else 1)
+
     def test_bitarray_invalid_idx(self):
         """use an invalid type in a jaccard index"""
-        self.assertRaises(TypeError, lambda: Bitarray("100"))
+        self.assertRaises(TypeError, lambda: Bitarray("100"))  # type: ignore
         self.assertRaises(ValueError, lambda: Bitarray(-100))
         ba = Bitarray(10)
         self.assertRaises(IndexError, lambda: ba.set_bit(12))

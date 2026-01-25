@@ -4,6 +4,7 @@ import math
 import mmap
 import string
 from array import array
+from io import IOBase
 from pathlib import Path
 from struct import Struct
 from typing import Literal, Union
@@ -214,3 +215,15 @@ class Bitarray:
         ba = Bitarray(size)
         ba._bitarray = bitarray
         return ba
+
+    def export(self, file: Union[Path, str, IOBase, mmap.mmap]) -> None:
+        """Export the bitarray to a file
+
+        Args:
+            filename (str): Filename to export to"""
+        if not isinstance(file, (IOBase, mmap.mmap)):
+            file = resolve_path(file)
+            with open(file, "wb") as filepointer:
+                self.export(filepointer)
+        else:
+            file.write(self.to_bytes())
