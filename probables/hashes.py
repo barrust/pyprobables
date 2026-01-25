@@ -15,7 +15,7 @@ HashFuncT = Callable[[KeyT, int], HashResultsT]
 HashFuncBytesT = Callable[[KeyT, int], bytes]
 
 
-def hash_with_depth_bytes(func: HashFuncBytesT | SimpleHashBytesT) -> HashFuncT:
+def hash_with_depth_bytes(func: Union[HashFuncBytesT, SimpleHashBytesT]) -> HashFuncT:
     """Decorator to turns a function taking a single key and hashes it to
     bytes. Wraps functions to be used in Bloom filters and Count-Min sketch
     data structures.
