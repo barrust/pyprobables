@@ -41,7 +41,7 @@ def hash_with_depth_bytes(func: Union[HashFuncBytesT, SimpleHashBytesT]) -> Hash
     return hashing_func
 
 
-def hash_with_depth_int(func: HashFuncT | SimpleHashT) -> HashFuncT:
+def hash_with_depth_int(func: Union[HashFuncT, SimpleHashT]) -> HashFuncT:
     """Decorator to turn a function that takes a single key and hashes it to
     an int. Wraps functions to be used in Bloom filters and Count-Min
     sketch data structures.
