@@ -487,7 +487,7 @@ class CuckooFilter:
         Args:
             fingerprint (int): The fingerprint to use for generating indicies"""
         idx_1 = fingerprint % self.capacity
-        idx_2 = self.__hash_func(str(fingerprint)) % self.capacity
+        idx_2 = self.__hash_func(str(fingerprint)) % self.capacity  # type: ignore
         return idx_1, idx_2
 
     def _generate_fingerprint_info(self, key: KeyT) -> tuple[int, int, int]:
@@ -497,7 +497,7 @@ class CuckooFilter:
             key (str): The element for which information is to be generated
         """
         # generate the fingerprint along with the two possible indecies
-        hash_val = self.__hash_func(key)
+        hash_val = self.__hash_func(key)  # type: ignore
         fingerprint = get_x_bits(hash_val, 64, self.fingerprint_size_bits, True)
         idx_1, idx_2 = self._indicies_from_fingerprint(fingerprint)
 

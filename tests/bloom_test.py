@@ -14,7 +14,7 @@ sys.path.insert(0, str(this_dir.parent))
 
 from probables import BloomFilter, BloomFilterOnDisk  # noqa: E402
 from probables.constants import UINT64_T_MAX  # noqa: E402
-from probables.exceptions import InitializationError, NotSupportedError  # noqa: E402
+from probables.exceptions import InitializationError, NotSupportedError, SimilarityError  # noqa: E402
 from probables.hashes import hash_with_depth_int  # noqa: E402
 from tests.utilities import calc_file_md5, different_hash  # noqa: E402
 
@@ -95,8 +95,7 @@ class TestBloomFilter(unittest.TestCase):
         blm.add("this is a test")
         blm2 = BloomFilter(est_elements=10, false_positive_rate=0.05, hash_function=different_hash)
 
-        blm3 = blm.union(blm2)
-        self.assertEqual(blm3, None)
+        self.assertRaises(SimilarityError, lambda: blm.union(blm2))
 
     def test_bf_intersection(self):
         """test the union of two bloom filters"""
@@ -146,8 +145,7 @@ class TestBloomFilter(unittest.TestCase):
         blm.add("this is a test")
         blm2 = BloomFilter(est_elements=100, false_positive_rate=0.05)
 
-        blm3 = blm.intersection(blm2)
-        self.assertEqual(blm3, None)
+        self.assertRaises(SimilarityError, lambda: blm.intersection(blm2))
 
     def test_bf_jaccard(self):
         """test the jaccard index of two bloom filters"""
@@ -168,14 +166,13 @@ class TestBloomFilter(unittest.TestCase):
         blm.add("this is a test")
         blm2 = BloomFilter(est_elements=100, false_positive_rate=0.05)
 
-        blm3 = blm.jaccard_index(blm2)
-        self.assertEqual(blm3, None)
+        self.assertRaises(SimilarityError, lambda: blm.jaccard_index(blm2))
 
     def test_bf_jaccard_invalid(self):
         """use an invalid type in a jaccard index"""
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         blm.add("this is a test")
-        self.assertRaises(TypeError, lambda: blm.jaccard_index(1))
+        self.assertRaises(TypeError, lambda: blm.jaccard_index(1))  # type: ignore
 
     def test_bf_jaccard_invalid_msg(self):
         """check invalid type in a jaccard index message"""
@@ -183,7 +180,7 @@ class TestBloomFilter(unittest.TestCase):
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         blm.add("this is a test")
         try:
-            blm.jaccard_index(1)
+            blm.jaccard_index(1)  # type: ignore
         except TypeError as ex:
             self.assertEqual(str(ex), msg)
         else:
@@ -193,7 +190,7 @@ class TestBloomFilter(unittest.TestCase):
         """use an invalid type in a union"""
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         blm.add("this is a test")
-        self.assertRaises(TypeError, lambda: blm.jaccard_index(1))
+        self.assertRaises(TypeError, lambda: blm.jaccard_index(1))  # type: ignore
 
     def test_bf_union_invalid_msg(self):
         """check invalid type in a union message"""
@@ -201,7 +198,7 @@ class TestBloomFilter(unittest.TestCase):
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         blm.add("this is a test")
         try:
-            blm.union(1)
+            blm.union(1)  # type: ignore
         except TypeError as ex:
             self.assertEqual(str(ex), msg)
         else:
@@ -211,7 +208,7 @@ class TestBloomFilter(unittest.TestCase):
         """use an invalid type in a intersection"""
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         blm.add("this is a test")
-        self.assertRaises(TypeError, lambda: blm.jaccard_index(1))
+        self.assertRaises(TypeError, lambda: blm.jaccard_index(1))  # type: ignore
 
     def test_bf_intersec_invalid_msg(self):
         """check invalid type in a intersection message"""
@@ -219,7 +216,7 @@ class TestBloomFilter(unittest.TestCase):
         blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
         blm.add("this is a test")
         try:
-            blm.intersection(1)
+            blm.intersection(1)  # type: ignore
         except TypeError as ex:
             self.assertEqual(str(ex), msg)
         else:
@@ -432,7 +429,7 @@ class TestBloomFilter(unittest.TestCase):
 
         def runner():
             """runner"""
-            BloomFilter(est_elements=100, false_positive_rate="1.1")
+            BloomFilter(est_elements=100, false_positive_rate="1.1")  # type: ignore
 
         self.assertRaises(InitializationError, runner)
         try:
@@ -448,7 +445,7 @@ class TestBloomFilter(unittest.TestCase):
 
         def runner():
             """runner"""
-            BloomFilter(est_elements=[0], false_positive_rate=0.1)
+            BloomFilter(est_elements=[0], false_positive_rate=0.1)  # type: ignore
 
         self.assertRaises(InitializationError, runner)
         try:
@@ -713,7 +710,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
             blm.add("this is a test")
             del blm
             try:
-                self.assertEqual(True, blm)  # noqa: F821
+                self.assertEqual(True, blm)  # type: ignore # noqa: F821
             except UnboundLocalError as ex:
                 msg1 = "local variable 'blm' referenced before assignment"
                 msg2 = "cannot access local variable 'blm' where it is not associated with a value"
@@ -859,8 +856,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
             blm.add("this is a test")
             blm2 = BloomFilter(est_elements=10, false_positive_rate=0.05, hash_function=different_hash)
 
-            blm3 = blm.union(blm2)
-            self.assertEqual(blm3, None)
+            self.assertRaises(SimilarityError, lambda: blm.union(blm2))
 
     def test_bfod_intersection_diff(self):
         """make sure checking for different bloom filters on disk works intersection"""
@@ -869,8 +865,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
             blm.add("this is a test")
             blm2 = BloomFilter(est_elements=10, false_positive_rate=0.05, hash_function=different_hash)
 
-            blm3 = blm.intersection(blm2)
-            self.assertEqual(blm3, None)
+            self.assertRaises(SimilarityError, lambda: blm.intersection(blm2))
 
     def test_bfod_jaccard_diff(self):
         """make sure checking for different bloom filters on disk works jaccard"""
@@ -879,15 +874,14 @@ class TestBloomFilterOnDisk(unittest.TestCase):
             blm.add("this is a test")
             blm2 = BloomFilter(est_elements=10, false_positive_rate=0.05, hash_function=different_hash)
 
-            blm3 = blm.jaccard_index(blm2)
-            self.assertEqual(blm3, None)
+            self.assertRaises(SimilarityError, lambda: blm.jaccard_index(blm2))
 
     def test_bfod_jaccard_invalid(self):
         """use an invalid type in a jaccard index cbf"""
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
             blm = BloomFilterOnDisk(fobj.name, est_elements=10, false_positive_rate=0.05)
             blm.add("this is a test")
-            self.assertRaises(TypeError, lambda: blm.jaccard_index(1))
+            self.assertRaises(TypeError, lambda: blm.jaccard_index(1))  # type: ignore
 
     def test_bfod_jaccard_invalid_msg(self):
         """check invalid type in a jaccard index message cbf"""
@@ -896,7 +890,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
             blm = BloomFilterOnDisk(fobj.name, est_elements=10, false_positive_rate=0.05)
             blm.add("this is a test")
             try:
-                blm.jaccard_index(1)
+                blm.jaccard_index(1)  # type: ignore
             except TypeError as ex:
                 self.assertEqual(str(ex), msg)
             else:
@@ -907,7 +901,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
             blm = BloomFilterOnDisk(fobj.name, est_elements=10, false_positive_rate=0.05)
             blm.add("this is a test")
-            self.assertRaises(TypeError, lambda: blm.jaccard_index(1))
+            self.assertRaises(TypeError, lambda: blm.jaccard_index(1))  # type: ignore
 
     def test_bfod_union_invalid_msg(self):
         """check invalid type in a union message cbf"""
@@ -916,7 +910,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
             blm = BloomFilterOnDisk(fobj.name, est_elements=10, false_positive_rate=0.05)
             blm.add("this is a test")
             try:
-                blm.union(1)
+                blm.union(1)  # type: ignore
             except TypeError as ex:
                 self.assertEqual(str(ex), msg)
             else:
@@ -927,7 +921,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
             blm = BloomFilterOnDisk(fobj.name, est_elements=10, false_positive_rate=0.05)
             blm.add("this is a test")
-            self.assertRaises(TypeError, lambda: blm.jaccard_index(1))
+            self.assertRaises(TypeError, lambda: blm.jaccard_index(1))  # type: ignore
 
     def test_cbf_intersec_invalid_msg(self):
         """check invalid type in a intersection message cbf"""
@@ -936,7 +930,7 @@ class TestBloomFilterOnDisk(unittest.TestCase):
             blm = BloomFilterOnDisk(fobj.name, est_elements=10, false_positive_rate=0.05)
             blm.add("this is a test")
             try:
-                blm.intersection(1)
+                blm.intersection(1)  # type: ignore
             except TypeError as ex:
                 self.assertEqual(str(ex), msg)
 

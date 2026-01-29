@@ -12,7 +12,7 @@ from typing import Union
 
 from probables.blooms.bloom import BloomFilter
 from probables.constants import UINT32_T_MAX, UINT64_T_MAX
-from probables.exceptions import InitializationError
+from probables.exceptions import InitializationError, SimilarityError
 from probables.hashes import HashFuncT, HashResultsT, KeyT
 from probables.utilities import is_hex_string, is_valid_file, resolve_path
 
@@ -208,7 +208,7 @@ class CountingBloomFilter(BloomFilter):
         self.elements_added -= to_remove
         return min_val - to_remove
 
-    def intersection(self, second: "CountingBloomFilter") -> Union["CountingBloomFilter", None]:  # type: ignore
+    def intersection(self, second: "CountingBloomFilter") -> "CountingBloomFilter":  # type: ignore
         """Take the intersection of two Counting Bloom Filters
 
         Args:
@@ -217,17 +217,16 @@ class CountingBloomFilter(BloomFilter):
             CountingBloomFilter: The new Counting Bloom Filter containing the union
         Raises:
             TypeError: When second is not a :class:`CountingBloomFilter`
+            SimilarityError: When second is not of the same size (false_positive_rate and est_elements)
         Note:
             The elements_added property will be set to the estimated number of unique elements \
-                added as found in estimate_elements()
-        Note:
-            If `second` is not of the same size (false_positive_rate and est_elements) then \
-                this will return `None`"""
+                added as found in estimate_elements()"""
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
         if self._verify_bloom_similarity(second) is False:
-            return None
+            raise SimilarityError("Counting Bloom Filters are not similar enough to calculate similarity")
+
         res = CountingBloomFilter(
             est_elements=self.estimated_elements,
             false_positive_rate=self.false_positive_rate,
@@ -241,7 +240,7 @@ class CountingBloomFilter(BloomFilter):
         res.elements_added = res.estimate_elements()
         return res
 
-    def jaccard_index(self, second: "CountingBloomFilter") -> Union[float, None]:  # type:ignore
+    def jaccard_index(self, second: "CountingBloomFilter") -> float:  # type: ignore
         """Take the Jaccard Index of two Counting Bloom Filters
 
         Args:
@@ -250,15 +249,14 @@ class CountingBloomFilter(BloomFilter):
             float: A numeric value between 0 and 1 where 1 is identical and 0 means completely different
         Raises:
             TypeError: When second is not a :class:`CountingBloomFilter`
+            SimilarityError: When second is not of the same size (false_positive_rate and est_elements)
         Note:
-            The Jaccard Index is based on the unique set of elements added and not the number of each element added
-        Note:
-            If `second` is not of the same size (false_positive_rate and est_elements) then this will return `None`"""
+            The Jaccard Index is based on the unique set of elements added and not the number of each element added"""
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
         if self._verify_bloom_similarity(second) is False:
-            return None
+            raise SimilarityError("Counting Bloom Filters are not similar enough to calculate similarity")
 
         count_union = 0
         count_inter = 0
@@ -271,7 +269,7 @@ class CountingBloomFilter(BloomFilter):
             return 1.0
         return count_inter / count_union
 
-    def union(self, second: "CountingBloomFilter") -> Union["CountingBloomFilter", None]:  # type:ignore
+    def union(self, second: "CountingBloomFilter") -> "CountingBloomFilter":  # type:ignore
         """Return a new Countiong Bloom Filter that contains the union of
         the two
 
@@ -281,16 +279,16 @@ class CountingBloomFilter(BloomFilter):
             CountingBloomFilter: The new Counting Bloom Filter containing the union
         Raises:
             TypeError: When second is not a :class:`CountingBloomFilter`
+            SimilarityError: When second is not of the same size (false_positive_rate and est_elements)
         Note:
             The elements_added property will be set to the estimated number of unique elements added as \
-                found in estimate_elements()
-        Note:
-            If `second` is not of the same size (false_positive_rate and est_elements) then this will return `None`"""
+                found in estimate_elements()"""
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
         if self._verify_bloom_similarity(second) is False:
-            return None
+            raise SimilarityError("Counting Bloom Filters are not similar enough to calculate similarity")
+
         res = CountingBloomFilter(
             est_elements=self.estimated_elements,
             false_positive_rate=self.false_positive_rate,

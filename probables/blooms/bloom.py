@@ -18,7 +18,7 @@ from struct import Struct
 from textwrap import wrap
 from typing import Union
 
-from probables.exceptions import InitializationError, NotSupportedError
+from probables.exceptions import InitializationError, NotSupportedError, SimilarityError
 from probables.hashes import HashFuncT, HashResultsT, KeyT, default_fnv_1a
 from probables.utilities import MMap, is_hex_string, is_valid_file, resolve_path
 
@@ -368,7 +368,7 @@ class BloomFilter:
         exp = math.exp(dbl)
         return math.pow((1 - exp), self.number_hashes)
 
-    def intersection(self, second: SimpleBloomT) -> Union[SimpleBloomT, None]:
+    def intersection(self, second: SimpleBloomT) -> SimpleBloomT:
         """Return a new Bloom Filter that contains the intersection of the
         two
 
@@ -378,15 +378,14 @@ class BloomFilter:
             BloomFilter: The new Bloom Filter containing the intersection
         Raises:
             TypeError: When second is not either a :class:`BloomFilter` or :class:`BloomFilterOnDisk`
+            SimilarityError: When second is not of the same size (false_positive_rate and est_elements)
         Note:
-            `second` may be a BloomFilterOnDisk object
-        Note:
-            If `second` is not of the same size (false_positive_rate and est_elements) then this will return `None`"""
+            `second` may be a BloomFilterOnDisk object"""
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
         if self._verify_bloom_similarity(second) is False:
-            return None
+            raise SimilarityError("Bloom Filters are not similar")
 
         res = BloomFilter(
             self.estimated_elements,
@@ -399,7 +398,7 @@ class BloomFilter:
         res.elements_added = res.estimate_elements()
         return res
 
-    def union(self, second: SimpleBloomT) -> Union["BloomFilter", None]:
+    def union(self, second: SimpleBloomT) -> "BloomFilter":
         """Return a new Bloom Filter that contains the union of the two
 
         Args:
@@ -408,15 +407,14 @@ class BloomFilter:
             BloomFilter: The new Bloom Filter containing the union
         Raises:
             TypeError: When second is not either a :class:`BloomFilter` or :class:`BloomFilterOnDisk`
+            SimilarityError: When second is not of the same size (false_positive_rate and est_elements)
         Note:
-            `second` may be a BloomFilterOnDisk object
-        Note:
-            If `second` is not of the same size (false_positive_rate and est_elements) then this will return `None`"""
+            `second` may be a BloomFilterOnDisk object"""
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
         if self._verify_bloom_similarity(second) is False:
-            return None
+            raise SimilarityError("Bloom Filters are not similar")
 
         res = BloomFilter(
             self.estimated_elements,
@@ -429,7 +427,7 @@ class BloomFilter:
         res.elements_added = res.estimate_elements()
         return res
 
-    def jaccard_index(self, second: SimpleBloomT) -> Union[float, None]:
+    def jaccard_index(self, second: SimpleBloomT) -> float:
         """Calculate the jaccard similarity score between two Bloom Filters
 
         Args:
@@ -438,15 +436,14 @@ class BloomFilter:
             float: A numeric value between 0 and 1 where 1 is identical and 0 means completely different
         Raises:
             TypeError: When second is not either a :class:`BloomFilter` or :class:`BloomFilterOnDisk`
+            SimilarityError: When second is not of the same size (false_positive_rate and est_elements)
         Note:
-            `second` may be a BloomFilterOnDisk object
-        Note:
-            If `second` is not of the same size (false_positive_rate and est_elements) then this will return `None`"""
+            `second` may be a BloomFilterOnDisk object"""
         if not _verify_not_type_mismatch(second):
             raise TypeError(MISMATCH_MSG)
 
         if self._verify_bloom_similarity(second) is False:
-            return None
+            raise SimilarityError("Bloom Filters are not similar")
 
         count_union = 0
 
@@ -694,7 +691,7 @@ class BloomFilterOnDisk(BloomFilter):
 
     def __update(self):
         """update the on disk Bloom Filter and ensure everything is out to disk"""
-        self._bloom.flush()
-        self.__file_pointer.seek(-1 * self._UPDATE_OFFSET.size, os.SEEK_END)
-        self.__file_pointer.write(self._EXPECTED_ELM_STRUCT.pack(self.elements_added))
-        self.__file_pointer.flush()
+        self._bloom.flush()  # type: ignore
+        self.__file_pointer.seek(-1 * self._UPDATE_OFFSET.size, os.SEEK_END)  # type: ignore
+        self.__file_pointer.write(self._EXPECTED_ELM_STRUCT.pack(self.elements_added))  # type: ignore
+        self.__file_pointer.flush()  # type: ignore

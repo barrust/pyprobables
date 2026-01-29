@@ -15,6 +15,7 @@ from probables.exceptions import (
     NotSupportedError,
     ProbablesBaseException,
     RotatingBloomFilterError,
+    SimilarityError,
 )
 from probables.quotientfilter import QuotientFilter
 from probables.utilities import Bitarray
@@ -48,4 +49,5 @@ __all__ = [
     "RotatingBloomFilterError",
     "QuotientFilter",
     "Bitarray",
+    "SimilarityError",
 ]
