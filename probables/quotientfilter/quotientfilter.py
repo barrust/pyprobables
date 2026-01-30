@@ -395,60 +395,66 @@ class QuotientFilter:
 
     def _remove_element(self, q: int, r: int) -> None:
         idx = self._contained_at_loc(q, r)
-
-        # element not in the filter, exit
         if idx == -1:
             return
 
         next_idx = (idx + 1) & self.__mod_size
+        remove_orig_idx = self._should_remove_orig_idx(idx, next_idx)
 
-        # track if this is the only element in this run...
-        remove_orig_idx = False
-        if self._is_run_or_cluster_start(idx) and self._is_continuation[next_idx] == 0:
-            remove_orig_idx = True
-
-        # element is the end of a cluster and the next element is either the beginning of a cluster or empty
         if self._is_empty_element(next_idx) or self._is_cluster_start(next_idx):
-            self._filter[idx] = 0
-            self._is_occupied.clear_bit(idx)
-            self._is_continuation.clear_bit(idx)
-            self._is_shifted.clear_bit(idx)
-
-            if remove_orig_idx:
-                self._is_occupied[q] = 0
+            self._remove_and_clear_bits(idx, q, remove_orig_idx)
             return
 
-        # find the minimum idx for the cluster; will be needed to determine if elements are in cluster start positions.
+        min_idx = self._find_cluster_start(idx)
+        idx, next_idx = self._handle_first_move(idx, next_idx)
+        idx, next_idx = self._shift_elements(idx, next_idx)
+        self._clear_last_element(idx)
+        if remove_orig_idx:
+            self._is_occupied[q] = 0
+        self._fixup_cluster(min_idx, next_idx)
+
+    def _should_remove_orig_idx(self, idx: int, next_idx: int) -> bool:
+        return self._is_run_or_cluster_start(idx) and self._is_continuation[next_idx] == 0
+
+    def _remove_and_clear_bits(self, idx: int, q: int, remove_orig_idx: bool) -> None:
+        self._filter[idx] = 0
+        self._is_occupied.clear_bit(idx)
+        self._is_continuation.clear_bit(idx)
+        self._is_shifted.clear_bit(idx)
+        if remove_orig_idx:
+            self._is_occupied[q] = 0
+
+    def _find_cluster_start(self, idx: int) -> int:
         min_idx = idx
         while not self._is_cluster_start(min_idx):
             min_idx = (min_idx - 1) & self.__mod_size
+        return min_idx
 
-        # this is an edge case for first move...
+    def _handle_first_move(self, idx: int, next_idx: int):
         if self._is_run_or_cluster_start(idx) and self._is_continuation[next_idx] == 1:
             self._filter[idx] = self._filter[next_idx]
             self._is_continuation[idx] = 0
             self._is_shifted[idx] = self._is_shifted[next_idx]
-
             idx = next_idx
             next_idx = (idx + 1) & self.__mod_size
+        return idx, next_idx
 
+    def _shift_elements(self, idx: int, next_idx: int):
         while not self._is_cluster_start(next_idx) and not self._is_empty_element(next_idx):
             self._filter[idx] = self._filter[next_idx]
             self._is_continuation[idx] = self._is_continuation[next_idx]
             self._is_shifted[idx] = self._is_shifted[next_idx]
-
             idx = next_idx
             next_idx = (idx + 1) & self.__mod_size
-        # clean out the last element
+        return idx, next_idx
+
+    def _clear_last_element(self, idx: int) -> None:
         self._filter[idx] = 0
         self._is_continuation[idx] = 0
         self._is_shifted[idx] = 0
         self._is_occupied[idx] = 0
 
-        if remove_orig_idx:
-            self._is_occupied[q] = 0
-
-        # now figure out if things are in the correct place....
+    def _fixup_cluster(self, min_idx: int, next_idx: int) -> None:
         cur_quot = -1
         queue: list[int] = []
         while min_idx != next_idx:
@@ -456,7 +462,6 @@ class QuotientFilter:
                 queue.append(min_idx)
             if self._is_run_start(min_idx) == 1:
                 cur_quot = queue.pop(0)
-
             if cur_quot == min_idx:
                 self._is_continuation[min_idx] = 0
                 self._is_shifted[min_idx] = 0
