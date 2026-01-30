@@ -12,7 +12,6 @@ from mmap import mmap
 from numbers import Number
 from pathlib import Path
 from struct import Struct
-from typing import Union
 
 from probables.exceptions import CuckooFilterFullError, InitializationError
 from probables.hashes import KeyT, SimpleHashT, fnv_1a
@@ -57,8 +56,8 @@ class CuckooFilter:
         expansion_rate: int = 2,
         auto_expand: bool = True,
         finger_size: int = 4,
-        filepath: Union[str, Path, None] = None,
-        hash_function: Union[SimpleHashT, None] = None,
+        filepath: str | Path | None = None,
+        hash_function: SimpleHashT | None = None,
     ):
         """setup the data structure"""
         valid_prms = (
@@ -109,7 +108,7 @@ class CuckooFilter:
         max_swaps: int = 500,
         expansion_rate: int = 2,
         auto_expand: bool = True,
-        hash_function: Union[SimpleHashT, None] = None,
+        hash_function: SimpleHashT | None = None,
     ):
         """Initialize a simple Cuckoo Filter based on error rate
 
@@ -139,8 +138,8 @@ class CuckooFilter:
     def load_error_rate(
         cls,
         error_rate: float,
-        filepath: Union[str, Path],
-        hash_function: Union[SimpleHashT, None] = None,
+        filepath: str | Path,
+        hash_function: SimpleHashT | None = None,
     ):
         """Initialize a previously exported Cuckoo Filter based on error rate
 
@@ -159,8 +158,8 @@ class CuckooFilter:
     def frombytes(
         cls,
         b: ByteString,
-        error_rate: Union[float, None] = None,
-        hash_function: Union[SimpleHashT, None] = None,
+        error_rate: float | None = None,
+        hash_function: SimpleHashT | None = None,
     ) -> "CuckooFilter":
         """
         Args:
@@ -330,13 +329,13 @@ class CuckooFilter:
         self._inserted_elements -= 1
         return True
 
-    def export(self, file: Union[Path, str, IOBase, mmap]) -> None:
+    def export(self, file: Path | str | IOBase | mmap) -> None:
         """Export cuckoo filter to file
 
         Args:
             file: Path to file to export"""
 
-        if not isinstance(file, (IOBase, mmap)):
+        if not isinstance(file, IOBase | mmap):
             file = resolve_path(file)
             with open(file, "wb") as filepointer:
                 self.export(filepointer)  # type:ignore
@@ -392,9 +391,9 @@ class CuckooFilter:
         # if we got here we have an error... we might need to know what is left
         return fingerprint
 
-    def _load(self, file: Union[Path, str, IOBase, mmap, bytes]) -> None:
+    def _load(self, file: Path | str | IOBase | mmap | bytes) -> None:
         """load a cuckoo filter from file"""
-        if not isinstance(file, (IOBase, mmap, bytes)):
+        if not isinstance(file, IOBase | mmap | bytes):
             file = resolve_path(file)
             with MMap(file) as filepointer:
                 self._load(filepointer)
@@ -431,7 +430,7 @@ class CuckooFilter:
         self._inserted_elements += len(bucket)
         return bucket
 
-    def _set_error_rate(self, error_rate: Union[float, None]) -> None:
+    def _set_error_rate(self, error_rate: float | None) -> None:
         """set error rate correctly"""
         # if error rate is provided, use it
         if error_rate is not None:

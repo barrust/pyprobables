@@ -8,7 +8,6 @@ from array import array
 from collections.abc import ByteString
 from pathlib import Path
 from struct import Struct
-from typing import Union
 
 from probables.blooms.bloom import BloomFilter
 from probables.constants import UINT32_T_MAX, UINT64_T_MAX
@@ -48,11 +47,11 @@ class CountingBloomFilter(BloomFilter):
 
     def __init__(
         self,
-        est_elements: Union[int, None] = None,
-        false_positive_rate: Union[float, None] = None,
-        filepath: Union[str, Path, None] = None,
-        hex_string: Union[str, None] = None,
-        hash_function: Union[HashFuncT, None] = None,
+        est_elements: int | None = None,
+        false_positive_rate: float | None = None,
+        filepath: str | Path | None = None,
+        hex_string: str | None = None,
+        hash_function: HashFuncT | None = None,
     ) -> None:
         """setup the basic values needed"""
         self._filepath = None
@@ -81,7 +80,7 @@ class CountingBloomFilter(BloomFilter):
     _IMPT_STRUCT = Struct("I")
 
     @classmethod
-    def frombytes(cls, b: ByteString, hash_function: Union[HashFuncT, None] = None) -> "CountingBloomFilter":
+    def frombytes(cls, b: ByteString, hash_function: HashFuncT | None = None) -> "CountingBloomFilter":
         """
         Args:
             b (ByteString): the bytes to load as a Counting Bloom Filter

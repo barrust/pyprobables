@@ -7,24 +7,24 @@ from array import array
 from io import IOBase
 from pathlib import Path
 from struct import Struct
-from typing import Literal, Union
+from typing import Literal
 
 
-def is_hex_string(hex_string: Union[str, None]) -> bool:
+def is_hex_string(hex_string: str | None) -> bool:
     """check if the passed in string is really hex"""
     if hex_string is None:
         return False
     return all(c in string.hexdigits for c in hex_string)
 
 
-def is_valid_file(filepath: Union[str, Path, None]) -> bool:
+def is_valid_file(filepath: str | Path | None) -> bool:
     """check if the passed filepath points to a real file"""
     if filepath is None:
         return False
     return Path(filepath).exists()
 
 
-def resolve_path(filepath: Union[str, Path]) -> Path:
+def resolve_path(filepath: str | Path) -> Path:
     """fully resolve the path by expanding user and resolving"""
     return Path(filepath).expanduser().resolve()
 
@@ -41,7 +41,7 @@ class MMap:
 
     __slots__ = ("__p", "__f", "__m", "_closed")
 
-    def __init__(self, path: Union[Path, str]):
+    def __init__(self, path: Path | str):
         self.__p = Path(path)
         self.__f = self.path.open("rb")  # noqa: SIM115
         self.__m = mmap.mmap(self.__f.fileno(), 0, access=mmap.ACCESS_READ)
@@ -216,12 +216,12 @@ class Bitarray:
         ba._bitarray = bitarray
         return ba
 
-    def export(self, file: Union[Path, str, IOBase, mmap.mmap]) -> None:
+    def export(self, file: Path | str | IOBase | mmap.mmap) -> None:
         """Export the bitarray to a file
 
         Args:
             filename (str): Filename to export to"""
-        if not isinstance(file, (IOBase, mmap.mmap)):
+        if not isinstance(file, IOBase | mmap.mmap):
             file = resolve_path(file)
             with open(file, "wb") as filepointer:
                 self.export(filepointer)

@@ -7,7 +7,6 @@ import sys
 import unittest
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Union
 
 this_dir = Path(__file__).parent
 sys.path.insert(0, str(this_dir))
@@ -63,7 +62,7 @@ class TestCuckooFilter(unittest.TestCase):
     def test_cuckoo_filter_diff_hash(self):
         """test using a different hash function"""
 
-        def my_hash(key: Union[str, bytes], depth: int = 1) -> int:
+        def my_hash(key: str | bytes, depth: int = 1) -> int:
             """fake hash"""
             k = key if isinstance(key, bytes) else key.encode("utf-8")
             return int(hashlib.sha512(k).hexdigest(), 16)
