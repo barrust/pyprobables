@@ -27,14 +27,13 @@ classifiers = [
     "Topic :: Utilities",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 [tool.setuptools.dynamic]
 version = { attr = "probables.__version__" }
@@ -65,7 +64,7 @@ profile = "black"
 
 [tool.black]
 line-length = 120
-target-version = ['py39']
+target-version = ['py310']
 include = '\.pyi?$'
 
 [tool.ruff]
@@ -102,7 +101,7 @@ exclude = [
 # Same as Black.
 line-length = 120
 indent-width = 4
-target-version = "py39"
+target-version = "py310"
 
 [tool.ruff.lint]
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.

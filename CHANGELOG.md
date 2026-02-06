@@ -9,6 +9,7 @@ Minor breaking changes; mismatched Bloom filters raise a `SimilarityError` inste
   * Add ability to read and write as bytes
   * Add abilitt to export
 * Updated typing to be more consistent and correct
+* Drop python 3.9 support
 
 
 ### Version 0.6.2

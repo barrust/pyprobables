@@ -44,8 +44,8 @@ class CountingCuckooFilter(CuckooFilter):
         expansion_rate: int = 2,
         auto_expand: bool = True,
         finger_size: int = 4,
-        filepath: Union[str, Path, None] = None,
-        hash_function: Union[SimpleHashT, None] = None,
+        filepath: str | Path | None = None,
+        hash_function: SimpleHashT | None = None,
     ) -> None:
         """setup the data structure"""
         self.__unique_elements = 0
@@ -72,7 +72,7 @@ class CountingCuckooFilter(CuckooFilter):
         max_swaps: int = 500,
         expansion_rate: int = 2,
         auto_expand: bool = True,
-        hash_function: Union[SimpleHashT, None] = None,
+        hash_function: SimpleHashT | None = None,
     ):
         """Initialize a simple Cuckoo Filter based on error rate
 
@@ -98,9 +98,7 @@ class CountingCuckooFilter(CuckooFilter):
         return cku
 
     @classmethod
-    def load_error_rate(
-        cls, error_rate: float, filepath: Union[str, Path], hash_function: Union[SimpleHashT, None] = None
-    ):
+    def load_error_rate(cls, error_rate: float, filepath: str | Path, hash_function: SimpleHashT | None = None):
         """Initialize a previously exported Cuckoo Filter based on error rate
 
         Args:
@@ -118,7 +116,7 @@ class CountingCuckooFilter(CuckooFilter):
 
     @classmethod
     def frombytes(
-        cls, b: ByteString, error_rate: Union[float, None] = None, hash_function: Union[SimpleHashT, None] = None
+        cls, b: ByteString, error_rate: float | None = None, hash_function: SimpleHashT | None = None
     ) -> "CountingCuckooFilter":
         """
         Args:
@@ -215,12 +213,12 @@ class CountingCuckooFilter(CuckooFilter):
         """Expand the cuckoo filter"""
         self._expand_logic(None)
 
-    def export(self, file: Union[Path, str, IOBase, mmap]) -> None:
+    def export(self, file: Path | str | IOBase | mmap) -> None:
         """Export cuckoo filter to file
 
         Args:
             file (str): Path to file to export"""
-        if not isinstance(file, (IOBase, mmap)):
+        if not isinstance(file, IOBase | mmap):
             file = resolve_path(file)
             with open(file, "wb") as filepointer:
                 self.export(filepointer)  # type:ignore
@@ -266,7 +264,7 @@ class CountingCuckooFilter(CuckooFilter):
         # if we got here we have an error... we might need to know what is left
         return prv_bin
 
-    def _check_if_present(self, idx_1: int, idx_2: int, fingerprint: int) -> Union[int, None]:
+    def _check_if_present(self, idx_1: int, idx_2: int, fingerprint: int) -> int | None:
         """wrapper for checking if fingerprint is already inserted"""
         if fingerprint in [x.finger for x in self.buckets[idx_1]]:
             return idx_1
@@ -274,9 +272,9 @@ class CountingCuckooFilter(CuckooFilter):
             return idx_2
         return None
 
-    def _load(self, file: Union[Path, str, IOBase, mmap, bytes, ByteString]) -> None:
+    def _load(self, file: Path | str | IOBase | mmap | bytes | ByteString) -> None:
         """load a cuckoo filter from file"""
-        if not isinstance(file, (IOBase, mmap, bytes, bytearray, memoryview)):
+        if not isinstance(file, IOBase | mmap | bytes | bytearray | memoryview):
             file = resolve_path(file)
             with MMap(file) as filepointer:
                 self._load(filepointer)

@@ -12,7 +12,6 @@ from mmap import mmap
 from numbers import Number
 from pathlib import Path
 from struct import Struct
-from typing import Union
 
 from probables.constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN
 from probables.exceptions import CountMinSketchError, InitializationError, NotSupportedError
@@ -59,12 +58,12 @@ class CountMinSketch:
 
     def __init__(
         self,
-        width: Union[int, None] = None,
-        depth: Union[int, None] = None,
-        confidence: Union[float, None] = None,
-        error_rate: Union[float, None] = None,
-        filepath: Union[str, Path, None] = None,
-        hash_function: Union[HashFuncT, None] = None,
+        width: int | None = None,
+        depth: int | None = None,
+        confidence: float | None = None,
+        error_rate: float | None = None,
+        filepath: str | Path | None = None,
+        hash_function: HashFuncT | None = None,
     ) -> None:
         """default initilization function"""
         # default values
@@ -152,7 +151,7 @@ class CountMinSketch:
             return f.getvalue()
 
     @classmethod
-    def frombytes(cls, b: ByteString, hash_function: Union[HashFuncT, None] = None) -> "CountMinSketch":
+    def frombytes(cls, b: ByteString, hash_function: HashFuncT | None = None) -> "CountMinSketch":
         """
         Args:
             b (ByteString): The bytes to load as a Count-Min Sketch
@@ -244,7 +243,7 @@ class CountMinSketch:
         for i, _ in enumerate(self._bins):
             self._bins[i] = 0
 
-    def hashes(self, key: KeyT, depth: Union[int, None] = None) -> HashResultsT:
+    def hashes(self, key: KeyT, depth: int | None = None) -> HashResultsT:
         """Return the hashes based on the provided key
 
         Args:
@@ -340,12 +339,12 @@ class CountMinSketch:
         bins = [(val % self.width) + (i * self.width) for i, val in enumerate(hashes)]
         return self.__query_method(sorted([self._bins[i] for i in bins]))
 
-    def export(self, file: Union[Path, str, IOBase, mmap]) -> None:
+    def export(self, file: Path | str | IOBase | mmap) -> None:
         """Export the count-min sketch to disk
 
         Args:
             filename (str): The filename to which the count-min sketch will be written."""
-        if not isinstance(file, (IOBase, mmap)):
+        if not isinstance(file, IOBase | mmap):
             file = resolve_path(file)
             with open(file, "wb") as filepointer:
                 self.export(filepointer)  # type: ignore
@@ -399,9 +398,9 @@ class CountMinSketch:
         elif self.elements_added < INT64_T_MIN:
             self.__elements_added = INT64_T_MIN
 
-    def __load(self, file: Union[Path, str, IOBase, mmap]):
+    def __load(self, file: Path | str | IOBase | mmap):
         """load the count-min sketch from file"""
-        if not isinstance(file, (IOBase, mmap)):
+        if not isinstance(file, IOBase | mmap):
             file = resolve_path(file)
             with MMap(file) as filepointer:
                 self.__load(filepointer)
@@ -481,12 +480,12 @@ class CountMeanSketch(CountMinSketch):
 
     def __init__(
         self,
-        width: Union[int, None] = None,
-        depth: Union[int, None] = None,
-        confidence: Union[float, None] = None,
-        error_rate: Union[float, None] = None,
-        filepath: Union[str, Path, None] = None,
-        hash_function: Union[HashFuncT, None] = None,
+        width: int | None = None,
+        depth: int | None = None,
+        confidence: float | None = None,
+        error_rate: float | None = None,
+        filepath: str | Path | None = None,
+        hash_function: HashFuncT | None = None,
     ) -> None:
         super().__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.query_type = "mean"
@@ -519,12 +518,12 @@ class CountMeanMinSketch(CountMinSketch):
 
     def __init__(
         self,
-        width: Union[int, None] = None,
-        depth: Union[int, None] = None,
-        confidence: Union[float, None] = None,
-        error_rate: Union[float, None] = None,
-        filepath: Union[str, Path, None] = None,
-        hash_function: Union[HashFuncT, None] = None,
+        width: int | None = None,
+        depth: int | None = None,
+        confidence: float | None = None,
+        error_rate: float | None = None,
+        filepath: str | Path | None = None,
+        hash_function: HashFuncT | None = None,
     ) -> None:
         super().__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.query_type = "mean-min"
@@ -560,12 +559,12 @@ class HeavyHitters(CountMinSketch):
     def __init__(
         self,
         num_hitters: int = 100,
-        width: Union[int, None] = None,
-        depth: Union[int, None] = None,
-        confidence: Union[float, None] = None,
-        error_rate: Union[float, None] = None,
-        filepath: Union[str, Path, None] = None,
-        hash_function: Union[HashFuncT, None] = None,
+        width: int | None = None,
+        depth: int | None = None,
+        confidence: float | None = None,
+        error_rate: float | None = None,
+        filepath: str | Path | None = None,
+        hash_function: HashFuncT | None = None,
     ) -> None:
         super().__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.__top_x = {}  # type: ignore
@@ -575,7 +574,7 @@ class HeavyHitters(CountMinSketch):
 
     @classmethod
     def frombytes(  # type: ignore
-        cls, b: ByteString, num_hitters: int = 100, hash_function: Union[HashFuncT, None] = None
+        cls, b: ByteString, num_hitters: int = 100, hash_function: HashFuncT | None = None
     ) -> "HeavyHitters":
         """
         Args:
@@ -721,12 +720,12 @@ class StreamThreshold(CountMinSketch):
     def __init__(
         self,
         threshold: int = 100,
-        width: Union[int, None] = None,
-        depth: Union[int, None] = None,
-        confidence: Union[float, None] = None,
-        error_rate: Union[float, None] = None,
-        filepath: Union[str, Path, None] = None,
-        hash_function: Union[HashFuncT, None] = None,
+        width: int | None = None,
+        depth: int | None = None,
+        confidence: float | None = None,
+        error_rate: float | None = None,
+        filepath: str | Path | None = None,
+        hash_function: HashFuncT | None = None,
     ) -> None:
         super().__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.__threshold = threshold
@@ -734,7 +733,7 @@ class StreamThreshold(CountMinSketch):
 
     @classmethod
     def frombytes(  # type: ignore
-        cls, b: ByteString, threshold: int = 100, hash_function: Union[HashFuncT, None] = None
+        cls, b: ByteString, threshold: int = 100, hash_function: HashFuncT | None = None
     ) -> "StreamThreshold":
         """
         Args:
