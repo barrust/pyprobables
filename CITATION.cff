@@ -32,5 +32,5 @@ keywords:
   - Counting Cuckoo Filter
   - Quotient Filter
 license: MIT
-version: 0.6.2
-date-released: '2025-11-29'
+version: 0.7.0
+date-released: '2026-02-08'
