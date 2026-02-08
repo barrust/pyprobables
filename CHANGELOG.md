@@ -11,7 +11,6 @@ Minor breaking changes; mismatched Bloom filters raise a `SimilarityError` inste
 * Updated typing to be more consistent and correct
 * Drop python 3.9 support
 
-
 ### Version 0.6.2
 
 * `BloomFilterOnDisk`
