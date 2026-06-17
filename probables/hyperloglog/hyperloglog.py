@@ -6,7 +6,8 @@ from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from pathlib import Path
-from struct import Struct, error as StructError
+from struct import Struct
+from struct import error as StructError
 
 from probables.constants import UINT64_T_MAX
 from probables.exceptions import InitializationError, NotSupportedError
@@ -159,10 +160,7 @@ class HyperLogLog:
         elif estimate > (1.0 / 30.0) * (UINT64_T_MAX + 1):
             denominator = UINT64_T_MAX + 1
             ratio = estimate / denominator
-            if ratio >= 1.0:
-                estimate = float(denominator)
-            else:
-                estimate = -1.0 * denominator * math.log(1.0 - ratio)
+            estimate = float(denominator) if ratio >= 1.0 else -1.0 * denominator * math.log(1.0 - ratio)
 
         return estimate
 

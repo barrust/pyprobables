@@ -338,9 +338,9 @@ class CuckooFilter:
         if not isinstance(file, IOBase | mmap):
             file = resolve_path(file)
             with open(file, "wb") as filepointer:
-                self.export(filepointer)  # type:ignore
+                self.export(filepointer)  # type: ignore
         else:
-            filepointer = file  # type:ignore
+            filepointer = file  # type: ignore
             for _, val in enumerate(self.buckets):
                 bucket = array(self._CUCKOO_SINGLE_INT_C, val)
                 bucket.extend([0] * (self.bucket_size - len(bucket)))
@@ -410,7 +410,7 @@ class CuckooFilter:
     def _parse_footer(self, d: ByteString, stct: Struct) -> None:
         """parse bytes and set footer information"""
         list_size = len(d) - stct.size
-        self._bucket_size, self.__max_cuckoo_swaps = stct.unpack(d[list_size:])  # type:ignore
+        self._bucket_size, self.__max_cuckoo_swaps = stct.unpack(d[list_size:])  # type: ignore
         self._cuckoo_capacity = list_size // self._CUCKOO_SINGLE_INT_SIZE // self.bucket_size
 
     def _parse_buckets(self, d: ByteString) -> None:

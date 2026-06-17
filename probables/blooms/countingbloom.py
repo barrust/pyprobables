@@ -268,7 +268,7 @@ class CountingBloomFilter(BloomFilter):
             return 1.0
         return count_inter / count_union
 
-    def union(self, second: "CountingBloomFilter") -> "CountingBloomFilter":  # type:ignore
+    def union(self, second: "CountingBloomFilter") -> "CountingBloomFilter":  # type: ignore
         """Return a new Countiong Bloom Filter that contains the union of
         the two
 

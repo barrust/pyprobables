@@ -190,9 +190,9 @@ class ExpandingBloomFilter:
         if not isinstance(file, IOBase | mmap):
             file = resolve_path(file)
             with open(file, "wb") as filepointer:
-                self.export(filepointer)  # type:ignore
+                self.export(filepointer)  # type: ignore
         else:
-            filepointer = file  # type:ignore
+            filepointer = file  # type: ignore
             # add all the different Bloom bit arrays...
             for blm in self._blooms:
                 filepointer.write(self.__S_INT64_STRUCT.pack(blm.elements_added))
@@ -218,7 +218,7 @@ class ExpandingBloomFilter:
             self._added_elements = els_added
             self.__fpr = fpr
             self.__est_elements = est_els
-            self._parse_blooms(file, size)  # type:ignore
+            self._parse_blooms(file, size)  # type: ignore
 
     @classmethod
     def _parse_footer(cls, b: ByteString) -> tuple[int, int, int, float]:
@@ -287,7 +287,7 @@ class RotatingBloomFilter(ExpandingBloomFilter):
         self._queue_size = max_queue_size
 
     @classmethod
-    def frombytes(  # type:ignore
+    def frombytes(  # type: ignore
         cls, b: ByteString, max_queue_size: int, hash_function: HashFuncT | None = None
     ) -> "RotatingBloomFilter":
         """

@@ -66,6 +66,9 @@ profile = "black"
 line-length = 120
 target-version = ['py310']
 include = '\.pyi?$'
+extend-exclude = '''
+    (^|/)probables/hyperloglog/hllpp_bias_data\.py$
+'''
 
 [tool.ruff]
 include = ["pyproject.toml", "probables/**/*.py", "probables/*.py"]
@@ -94,6 +97,7 @@ exclude = [
     "build",
     "dist",
     "node_modules",
+    "probables/hyperloglog/hllpp_bias_data.py",
     "site-packages",
     "venv",
 ]

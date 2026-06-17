@@ -155,6 +155,12 @@ HyperLogLog
 .. autoclass:: probables.HyperLogLog
     :members:
 
+HyperLogLogPlusPlus
+++++++++++++++++++++++++++++++
+
+.. autoclass:: probables.HyperLogLogPlusPlus
+    :members:
+
 QuotientFilter
 ------------------
 
