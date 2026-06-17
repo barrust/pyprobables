@@ -171,7 +171,7 @@ class TestHyperLogLog(unittest.TestCase):
         hll = HyperLogLog(precision=10)
         data = bytes(hll)
         footer = Struct("IQ")
-        corrupt = data[:-footer.size] + footer.pack(2, 0)
+        corrupt = data[: -footer.size] + footer.pack(2, 0)
         self.assertRaises(InitializationError, lambda: HyperLogLog.frombytes(corrupt))
 
     def test_hll_frombytes_register_length_mismatch(self):
@@ -181,7 +181,7 @@ class TestHyperLogLog(unittest.TestCase):
         footer = Struct("IQ")
         precision, elements = footer.unpack(data[-footer.size :])
         broken = data[:-1]  # remove one register byte
-        broken = broken[:-footer.size] + footer.pack(precision, elements)
+        broken = broken[: -footer.size] + footer.pack(precision, elements)
         self.assertRaises(InitializationError, lambda: HyperLogLog.frombytes(broken))
 
     def test_hll_export_load(self):
