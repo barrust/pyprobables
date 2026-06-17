@@ -103,6 +103,39 @@ def fnv_1a(key: KeyT, seed: int = 0) -> int:
     return hval
 
 
+def _fmix64(value: int) -> int:
+    """64-bit finalizer with good avalanche properties"""
+    value &= UINT64_T_MAX
+    value ^= value >> 33
+    value = (value * 0xFF51AFD7ED558CCD) & UINT64_T_MAX
+    value ^= value >> 33
+    value = (value * 0xC4CEB9FE1A85EC53) & UINT64_T_MAX
+    value ^= value >> 33
+    return value & UINT64_T_MAX
+
+
+def hll_hash64(key: KeyT, seed: int = 0) -> int:
+    """64-bit non-cryptographic hash tuned for HLL-style bit splitting.
+
+    Args:
+        key (str|bytes): The element to be hashed
+        seed (int): Seed mixed into the initial state
+    Returns:
+        int: 64-bit hashed representation of key"""
+    return _fmix64(fnv_1a(key, seed))
+
+
+def default_hll_hash(key: KeyT, depth: int = 1) -> list[int]:
+    """Return a list of HLL-appropriate 64-bit hashes.
+
+    Args:
+        key (str|bytes): The element to be hashed
+        depth (int): Number of hashes to generate
+    Returns:
+        list(int): List of size depth hashes"""
+    return [hll_hash64(key, idx) for idx in range(depth)]
+
+
 def fnv_1a_32(key: KeyT, seed: int = 0) -> int:
     """Pure python implementation of the 32 bit fnv-1a hash
     Args:

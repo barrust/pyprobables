@@ -17,6 +17,7 @@ from probables.exceptions import (
     RotatingBloomFilterError,
     SimilarityError,
 )
+from probables.hyperloglog import HyperLogLog
 from probables.quotientfilter import QuotientFilter
 from probables.utilities import Bitarray
 
@@ -40,6 +41,7 @@ __all__ = [
     "StreamThreshold",
     "CuckooFilter",
     "CountingCuckooFilter",
+    "HyperLogLog",
     "InitializationError",
     "NotSupportedError",
     "ProbablesBaseException",
