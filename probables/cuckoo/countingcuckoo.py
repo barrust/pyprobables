@@ -245,10 +245,13 @@ class CountingCuckooFilter(CuckooFilter):
         # either move everything around or hit the maximum number of swaps
         idx = random.choice([idx_1, idx_2])
         prv_bin = CountingCuckooBin(fingerprint, 1)
+        orig_bin = prv_bin
+        swaps = []
         for _ in range(self.max_swaps):
             # select one element to be swapped out...
             swap_elm = random.randint(0, self.bucket_size - 1)
             swap_finger = self.buckets[idx][swap_elm]
+            swaps.append((idx, swap_elm, swap_finger))
             prv_bin, self.buckets[idx][swap_elm] = swap_finger, prv_bin
 
             # now find another place to put this fingerprint
@@ -261,8 +264,13 @@ class CountingCuckooFilter(CuckooFilter):
                 self.__unique_elements += 1
                 return None
 
+        # unable to place the new fingerprint; undo the swaps so that the
+        # failed insertion leaves the filter unchanged
+        for idx, swap_elm, elm in reversed(swaps):
+            self.buckets[idx][swap_elm] = elm
+
         # if we got here we have an error... we might need to know what is left
-        return prv_bin
+        return orig_bin
 
     def _check_if_present(self, idx_1: int, idx_2: int, fingerprint: int) -> int | None:
         """wrapper for checking if fingerprint is already inserted"""
@@ -304,16 +312,30 @@ class CountingCuckooFilter(CuckooFilter):
 
     def _expand_logic(self, extra_fingerprint: Union["CountingCuckooBin", None]) -> None:
         """the logic to acutally expand the cuckoo filter"""
-        # get all the fingerprints
-        fingerprints = self._setup_expand(extra_fingerprint)
-        self.__unique_elements = 0  # this needs to be reset!
+        # snapshot the current state so that a failed expansion leaves the
+        # filter unchanged
+        old_capacity = self._cuckoo_capacity
+        old_buckets = self._buckets
+        old_inserted = self._inserted_elements
+        old_unique = self.__unique_elements
 
-        for elm in fingerprints:
-            idx_1, idx_2 = self._indicies_from_fingerprint(elm.finger)
-            res = self._insert_fingerprint_alt(elm.finger, idx_1, idx_2, elm.count)
-            if res is not None:  # again, this *shouldn't* happen
-                msg = "The CountingCuckooFilter failed to expand"
-                raise CuckooFilterFullError(msg)
+        try:
+            # get all the fingerprints
+            fingerprints = self._setup_expand(extra_fingerprint)
+            self.__unique_elements = 0  # this needs to be reset!
+
+            for elm in fingerprints:
+                idx_1, idx_2 = self._indicies_from_fingerprint(elm.finger)
+                res = self._insert_fingerprint_alt(elm.finger, idx_1, idx_2, elm.count)
+                if res is not None:  # again, this *shouldn't* happen
+                    msg = "The CountingCuckooFilter failed to expand"
+                    raise CuckooFilterFullError(msg)
+        except Exception:
+            self._cuckoo_capacity = old_capacity
+            self._buckets = old_buckets
+            self._inserted_elements = old_inserted
+            self.__unique_elements = old_unique
+            raise
 
     def __insert_element(self, fingerprint, idx, count=1) -> bool:
         """insert an element"""
