@@ -371,12 +371,15 @@ class CuckooFilter:
         # and move things around to the other index, if possible, until we
         # either move everything around or hit the maximum number of swaps
         idx = random.choice([idx_1, idx_2])
+        orig_fingerprint = fingerprint
+        swaps = []
 
         for _ in range(self.max_swaps):
             # select one element to be swapped out...
             swap_elm = random.randint(0, self.bucket_size - 1)
 
             swb = self.buckets[idx][swap_elm]
+            swaps.append((idx, swap_elm, swb))
             fingerprint, self.buckets[idx][swap_elm] = swb, fingerprint
 
             # now find another place to put this fingerprint
@@ -388,8 +391,13 @@ class CuckooFilter:
                 self._inserted_elements += 1
                 return None
 
+        # unable to place the new fingerprint; undo the swaps so that the
+        # failed insertion leaves the filter unchanged
+        for idx, swap_elm, elm in reversed(swaps):
+            self.buckets[idx][swap_elm] = elm
+
         # if we got here we have an error... we might need to know what is left
-        return fingerprint
+        return orig_fingerprint
 
     def _load(self, file: Path | str | IOBase | mmap | bytes) -> None:
         """load a cuckoo filter from file"""
@@ -454,15 +462,27 @@ class CuckooFilter:
 
     def _expand_logic(self, extra_fingerprint):
         """the logic to acutally expand the cuckoo filter"""
-        # get all the fingerprints
-        fingerprints = self._setup_expand(extra_fingerprint)
+        # snapshot the current state so that a failed expansion leaves the
+        # filter unchanged
+        old_capacity = self._cuckoo_capacity
+        old_buckets = self._buckets
+        old_inserted = self._inserted_elements
 
-        for finger in fingerprints:
-            idx_1, idx_2 = self._indicies_from_fingerprint(finger)
-            res = self._insert_fingerprint(finger, idx_1, idx_2)
-            if res is not None:  # again, this *shouldn't* happen
-                msg = "The CuckooFilter failed to expand"
-                raise CuckooFilterFullError(msg)
+        try:
+            # get all the fingerprints
+            fingerprints = self._setup_expand(extra_fingerprint)
+
+            for finger in fingerprints:
+                idx_1, idx_2 = self._indicies_from_fingerprint(finger)
+                res = self._insert_fingerprint(finger, idx_1, idx_2)
+                if res is not None:  # again, this *shouldn't* happen
+                    msg = "The CuckooFilter failed to expand"
+                    raise CuckooFilterFullError(msg)
+        except Exception:
+            self._cuckoo_capacity = old_capacity
+            self._buckets = old_buckets
+            self._inserted_elements = old_inserted
+            raise
 
     def _setup_expand(self, extra_fingerprint):
         """setup this thing"""
