@@ -8,7 +8,6 @@ import math
 import os
 from array import array
 from binascii import hexlify, unhexlify
-from collections.abc import ByteString
 from io import BufferedRandom, BytesIO, IOBase
 from mmap import mmap
 from numbers import Number
@@ -20,7 +19,7 @@ from typing import Union
 
 from probables.exceptions import InitializationError, NotSupportedError, SimilarityError
 from probables.hashes import HashFuncT, HashResultsT, KeyT, default_fnv_1a
-from probables.utilities import MMap, is_hex_string, is_valid_file, resolve_path
+from probables.utilities import BytesLike, MMap, is_hex_string, is_valid_file, resolve_path
 
 MISMATCH_MSG = "The parameter second must be of type BloomFilter or a BloomFilterOnDisk"
 
@@ -322,10 +321,10 @@ class BloomFilter:
             print("const unsigned char bloom[] = {", *data, "};", sep="\n", file=file)
 
     @classmethod
-    def frombytes(cls, b: ByteString, hash_function: HashFuncT | None = None) -> "BloomFilter":
+    def frombytes(cls, b: BytesLike, hash_function: HashFuncT | None = None) -> "BloomFilter":
         """
         Args:
-            b (ByteString): The bytes to load as a Bloom Filter
+            b (BytesLike): The bytes to load as a Bloom Filter
             hash_function (function): Hashing strategy function to use `hf(key, number)`
         Returns:
             BloomFilter: A Bloom Filter object
@@ -513,7 +512,7 @@ class BloomFilter:
 
     def _load(
         self,
-        file: Path | str | IOBase | mmap | ByteString,
+        file: Path | str | IOBase | mmap | BytesLike,
         hash_function: HashFuncT | None = None,
     ) -> None:
         """load the Bloom Filter from file or bytes"""
@@ -533,7 +532,7 @@ class BloomFilter:
             self._els_added = els_added
 
     @classmethod
-    def _parse_footer(cls, stct: Struct, d: ByteString) -> tuple[int, int, float, int, int]:
+    def _parse_footer(cls, stct: Struct, d: BytesLike | mmap) -> tuple[int, int, float, int, int]:
         """parse footer returning the data: estimated elements, elements added,
         false positive rate, hash function, number hashes, number bits"""
         e_elms, e_added, fpr = stct.unpack_from(bytearray(d))
@@ -545,7 +544,7 @@ class BloomFilter:
 
         return int(est_elements), int(els_added), float(fpr), int(n_hashes), int(n_bits)
 
-    def _parse_bloom_array(self, b: ByteString, offset: int) -> None:
+    def _parse_bloom_array(self, b: BytesLike | mmap, offset: int) -> None:
         """parse bytes into the bloom array"""
         self._bloom = array(self._typecode, bytes(b[:offset]))
 
@@ -675,7 +674,7 @@ class BloomFilterOnDisk(BloomFilter):
         self.__update()
 
     @classmethod
-    def frombytes(cls, b: ByteString, hash_function: HashFuncT | None = None) -> "BloomFilterOnDisk":
+    def frombytes(cls, b: BytesLike, hash_function: HashFuncT | None = None) -> "BloomFilterOnDisk":
         """
         Raises: NotSupportedError
         """

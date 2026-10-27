@@ -1,5 +1,9 @@
 # PyProbables Changelog
 
+## Version 0.7.1 
+
+* CuckooFilter: Add rewind support for failed insertions or expansions; see [PR #149](https://github.com/barrust/pyprobables/pull/149); thanks [@mayur-dhavan](https://github.com/mayur-dhavan)
+
 ### Version 0.7.0
 
 ***Breaking Changes***

@@ -5,7 +5,6 @@ URL: https://github.com/barrust/counting_bloom
 """
 
 from array import array
-from collections.abc import ByteString
 from pathlib import Path
 from struct import Struct
 
@@ -13,7 +12,7 @@ from probables.blooms.bloom import BloomFilter
 from probables.constants import UINT32_T_MAX, UINT64_T_MAX
 from probables.exceptions import InitializationError, SimilarityError
 from probables.hashes import HashFuncT, HashResultsT, KeyT
-from probables.utilities import is_hex_string, is_valid_file, resolve_path
+from probables.utilities import BytesLike, is_hex_string, is_valid_file, resolve_path
 
 MISMATCH_MSG = "The parameter second must be of type CountingBloomFilter"
 
@@ -80,10 +79,10 @@ class CountingBloomFilter(BloomFilter):
     _IMPT_STRUCT = Struct("I")
 
     @classmethod
-    def frombytes(cls, b: ByteString, hash_function: HashFuncT | None = None) -> "CountingBloomFilter":
+    def frombytes(cls, b: BytesLike, hash_function: HashFuncT | None = None) -> "CountingBloomFilter":
         """
         Args:
-            b (ByteString): the bytes to load as a Counting Bloom Filter
+            b (BytesLike): the bytes to load as a Counting Bloom Filter
             hash_function (function): Hashing strategy function to use `hf(key, number)`
         Returns:
             CountingBloomFilter: A Counting Bloom Filter object
@@ -268,7 +267,7 @@ class CountingBloomFilter(BloomFilter):
             return 1.0
         return count_inter / count_union
 
-    def union(self, second: "CountingBloomFilter") -> "CountingBloomFilter":  # type:ignore
+    def union(self, second: "CountingBloomFilter") -> "CountingBloomFilter":  # type: ignore
         """Return a new Countiong Bloom Filter that contains the union of
         the two
 

@@ -140,6 +140,27 @@ StreamThreshold
 
 For more information of all methods and properties, see `CountMinSketch`_.
 
+HyperLogLog
+------------------
+
+HyperLogLog is a probabilistic data structure for estimating the number of
+distinct values observed in a stream without retaining the full set of inputs.
+
+`Further Reading <https://en.wikipedia.org/wiki/HyperLogLog>`__
+
+
+HyperLogLog
+++++++++++++++++++++++++++++++
+
+.. autoclass:: probables.HyperLogLog
+    :members:
+
+HyperLogLogPlusPlus
+++++++++++++++++++++++++++++++
+
+.. autoclass:: probables.HyperLogLogPlusPlus
+    :members:
+
 QuotientFilter
 ------------------
 
