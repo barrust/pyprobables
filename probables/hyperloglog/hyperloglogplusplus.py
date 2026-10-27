@@ -2,7 +2,6 @@
 
 import math
 from array import array
-from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from pathlib import Path
@@ -14,7 +13,7 @@ from probables.exceptions import InitializationError, NotSupportedError
 from probables.hashes import SimpleHashT
 from probables.hyperloglog.hllpp_bias_data import BIAS_DATA, LINEAR_COUNTING_THRESHOLD, RAW_ESTIMATE_DATA
 from probables.hyperloglog.hyperloglog import HyperLogLog
-from probables.utilities import MMap, is_valid_file, resolve_path
+from probables.utilities import BytesLike, MMap, is_valid_file, resolve_path
 
 
 class HyperLogLogPlusPlus(HyperLogLog):
@@ -77,7 +76,7 @@ class HyperLogLogPlusPlus(HyperLogLog):
                 self._parse_hllpp_bytes(filepointer.read())
 
     @classmethod
-    def frombytes(cls, b: ByteString, hash_function: SimpleHashT | None = None) -> "HyperLogLogPlusPlus":
+    def frombytes(cls, b: BytesLike, hash_function: SimpleHashT | None = None) -> "HyperLogLogPlusPlus":
         """Create a HyperLogLogPlusPlus from bytes"""
         hllpp = cls(hash_function=hash_function)
         hllpp._parse_hllpp_bytes(bytes(b))
@@ -321,7 +320,7 @@ class HyperLogLogPlusPlus(HyperLogLog):
         corrected = estimate - mean_bias
         return max(0.0, corrected)
 
-    def _parse_hllpp_bytes(self, data: ByteString) -> None:
+    def _parse_hllpp_bytes(self, data: BytesLike) -> None:
         """Parse HyperLogLog++ bytes and populate state"""
         try:
             header_size = self._HLLPP_HEADER.size
@@ -340,7 +339,7 @@ class HyperLogLogPlusPlus(HyperLogLog):
         except (StructError, ValueError) as ex:
             raise InitializationError("HyperLogLogPlusPlus: invalid byte stream") from ex
 
-    def _parse_hllpp_dense_bytes(self, data: ByteString) -> None:
+    def _parse_hllpp_dense_bytes(self, data: BytesLike) -> None:
         """Parse HyperLogLog++ dense format"""
         footer_size = self._HLLPP_FOOTER.size
         register_data = bytes(data[:-footer_size])
@@ -354,7 +353,7 @@ class HyperLogLogPlusPlus(HyperLogLog):
         if len(self._registers) != self.number_registers:
             raise InitializationError("HyperLogLogPlusPlus: register length mismatch")
 
-    def _parse_hllpp_sparse_bytes(self, data: ByteString) -> None:
+    def _parse_hllpp_sparse_bytes(self, data: BytesLike) -> None:
         """Parse HyperLogLog++ sparse format"""
         footer_size = self._HLLPP_FOOTER.size
         sparse_data = bytes(data[:-footer_size])

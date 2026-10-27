@@ -1,4 +1,5 @@
-"""HyperLogLog++ bias tables from the Google HLL++ dataset.
+"""
+HyperLogLog++ bias tables from the Google HLL++ dataset.
 
 Source:
 https://raw.githubusercontent.com/addthis/stream-lib/master/src/main/java/com/clearspring/analytics/stream/cardinality/HyperLogLogPlus.java

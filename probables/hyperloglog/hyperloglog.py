@@ -2,7 +2,6 @@
 
 import math
 from array import array
-from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from pathlib import Path
@@ -12,7 +11,7 @@ from struct import error as StructError
 from probables.constants import UINT64_T_MAX
 from probables.exceptions import InitializationError, NotSupportedError
 from probables.hashes import KeyT, SimpleHashT, hll_hash64
-from probables.utilities import MMap, is_valid_file, resolve_path
+from probables.utilities import BytesLike, MMap, is_valid_file, resolve_path
 
 
 class HyperLogLog:
@@ -87,7 +86,7 @@ class HyperLogLog:
         return self.cardinality()
 
     @classmethod
-    def frombytes(cls, b: ByteString, hash_function: SimpleHashT | None = None) -> "HyperLogLog":
+    def frombytes(cls, b: BytesLike, hash_function: SimpleHashT | None = None) -> "HyperLogLog":
         """Create a HyperLogLog from bytes"""
         try:
             offset = cls.__FOOTER_STRUCT.size
@@ -207,7 +206,7 @@ class HyperLogLog:
             raise InitializationError("HyperLogLog: precision must be between 4 and 20")
         self.__precision = precision
 
-    def _parse_bytes(self, data: ByteString) -> None:
+    def _parse_bytes(self, data: BytesLike | mmap) -> None:
         """Parse bytes and populate the sketch state"""
         try:
             offset = self.__FOOTER_STRUCT.size

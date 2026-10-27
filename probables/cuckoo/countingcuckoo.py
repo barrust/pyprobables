@@ -5,7 +5,6 @@ Author: Tyler Barrus (barrust@gmail.com)
 
 import random
 from array import array
-from collections.abc import ByteString
 from io import IOBase
 from mmap import mmap
 from pathlib import Path
@@ -15,7 +14,7 @@ from typing import Union
 from probables.cuckoo.cuckoo import CuckooFilter
 from probables.exceptions import CuckooFilterFullError
 from probables.hashes import KeyT, SimpleHashT
-from probables.utilities import MMap, resolve_path
+from probables.utilities import BytesLike, MMap, resolve_path
 
 
 class CountingCuckooFilter(CuckooFilter):
@@ -116,11 +115,11 @@ class CountingCuckooFilter(CuckooFilter):
 
     @classmethod
     def frombytes(
-        cls, b: ByteString, error_rate: float | None = None, hash_function: SimpleHashT | None = None
+        cls, b: BytesLike, error_rate: float | None = None, hash_function: SimpleHashT | None = None
     ) -> "CountingCuckooFilter":
         """
         Args:
-            b (ByteString): The bytes to load as a Expanding Bloom Filter
+            b (BytesLike): The bytes to load as a Expanding Bloom Filter
             error_rate (float): The error rate of the cuckoo filter, if used to generate the original filter
             hash_function (function): Hashing strategy function to use `hf(key, number)`
         Returns:
@@ -272,7 +271,7 @@ class CountingCuckooFilter(CuckooFilter):
             return idx_2
         return None
 
-    def _load(self, file: Path | str | IOBase | mmap | bytes | ByteString) -> None:
+    def _load(self, file: Path | str | IOBase | mmap | BytesLike) -> None:
         """load a cuckoo filter from file"""
         if not isinstance(file, IOBase | mmap | bytes | bytearray | memoryview):
             file = resolve_path(file)
@@ -283,7 +282,7 @@ class CountingCuckooFilter(CuckooFilter):
             self._inserted_elements = 0
             self._parse_buckets(file)  # type: ignore
 
-    def _parse_buckets(self, d: ByteString) -> None:
+    def _parse_buckets(self, d: BytesLike | mmap) -> None:
         """Parse bytes to pull out and set the buckets"""
         bin_size = self.__BIN_STRUCT.size
         self._cuckoo_capacity = (len(bytes(d)) - bin_size) // bin_size // self.bucket_size

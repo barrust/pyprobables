@@ -7,7 +7,9 @@ from array import array
 from io import IOBase
 from pathlib import Path
 from struct import Struct
-from typing import Literal
+from typing import Literal, TypeAlias
+
+BytesLike: TypeAlias = bytes | bytearray | memoryview
 
 
 def is_hex_string(hex_string: str | None) -> bool:
