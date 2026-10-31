@@ -290,6 +290,21 @@ class TestCountingCuckooFilter(unittest.TestCase):
             self.assertGreater(cko.check(str(i)), 0)
         self.assertEqual(20000, cko.capacity)
 
+    def test_c_cuckoo_filter_expand_duplicates(self):
+        """test that expanding preserves the count of duplicate keys"""
+        cko = CountingCuckooFilter(capacity=10)
+        for _ in range(3):
+            cko.add("a")
+        for i in range(20):
+            cko.add(str(i))
+        total = cko.elements_added
+        cko.expand()
+        self.assertEqual(total, cko.elements_added)
+        self.assertEqual(3, cko.check("a"))
+        for _ in range(3):
+            cko.remove("a")
+        self.assertEqual(total - 3, cko.elements_added)
+
     def test_c_cuckoo_filter_auto_exp(self):
         """test inserting until counting cuckoo filter is full"""
         cko = CountingCuckooFilter(capacity=100, bucket_size=2, max_swaps=100)

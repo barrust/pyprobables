@@ -232,11 +232,11 @@ class CountingCuckooFilter(CuckooFilter):
     ) -> Union["CountingCuckooBin", None]:
         """insert a fingerprint, but with a count parameter!"""
         if self.__insert_element(fingerprint, idx_1, count):
-            self._inserted_elements += 1
+            self._inserted_elements += count
             self.__unique_elements += 1
             return None
         if self.__insert_element(fingerprint, idx_2, count):
-            self._inserted_elements += 1
+            self._inserted_elements += count
             self.__unique_elements += 1
             return None
 
@@ -244,7 +244,7 @@ class CountingCuckooFilter(CuckooFilter):
         # and move things around to the other index, if possible, until we
         # either move everything around or hit the maximum number of swaps
         idx = random.choice([idx_1, idx_2])
-        prv_bin = CountingCuckooBin(fingerprint, 1)
+        prv_bin = CountingCuckooBin(fingerprint, count)
         orig_bin = prv_bin
         swaps = []
         for _ in range(self.max_swaps):
@@ -260,7 +260,7 @@ class CountingCuckooFilter(CuckooFilter):
             idx = index_2 if idx == index_1 else index_1
 
             if self.__insert_element(prv_bin.finger, idx, prv_bin.count):
-                self._inserted_elements += 1
+                self._inserted_elements += count
                 self.__unique_elements += 1
                 return None
 
