@@ -2,8 +2,9 @@
 
 ### Version 0.7.1
 
-* `CountingCuckooFilter`
-  * Increment Elements Added by number of elements inserted
+* `Cuckoo Filter`
+  * Implement rewind for both regular and counting; see [#149](https://github.com/barrust/pyprobables/pull/149); thanks [mayur-dhavan](https://github.com/mayur-dhavan)
+  * `CountingCuckooFilter`: Increment Elements Added by number of elements inserted
 
 ### Version 0.7.0
 
@@ -26,7 +27,7 @@ Minor breaking changes; mismatched Bloom filters raise a `SimilarityError` inste
 
 ### Version 0.6.1
 
-* `Quotient Filter`:
+* `QuotientFilter`:
   * Add ability to get hashes from the filter either as a list, or as a generator
   * Add quotient filter expand capability, auto and on request
   * Add QuotientFilterError exception
