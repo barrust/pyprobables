@@ -57,6 +57,7 @@ class HyperLogLogPlusPlus(HyperLogLog):
         precision: int = 14,
         filepath: str | Path | None = None,
         hash_function: SimpleHashT | None = None,
+        *,
         bias_correction: bool = True,
         sparse_enabled: bool = False,
         sparse_threshold: int | None = None,
