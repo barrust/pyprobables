@@ -1,5 +1,10 @@
 # PyProbables Changelog
 
+### Version 0.7.1
+
+* `CountingCuckooFilter`
+  * Increment Elements Added by number of elements inserted
+
 ### Version 0.7.0
 
 ***Breaking Changes***
@@ -21,7 +26,7 @@ Minor breaking changes; mismatched Bloom filters raise a `SimilarityError` inste
 
 ### Version 0.6.1
 
-* Quotient Filter:
+* `Quotient Filter`:
   * Add ability to get hashes from the filter either as a list, or as a generator
   * Add quotient filter expand capability, auto and on request
   * Add QuotientFilterError exception
@@ -30,7 +35,7 @@ Minor breaking changes; mismatched Bloom filters raise a `SimilarityError` inste
   * Add resize filter, automatically or programatically
   * Add merging two filters into one
   * Add removal of an element from the filter
-* Count-Min Sketch:
+* `Count-Min Sketch`:
   * Fix bug in elements added calculation when joining Count-Min Sketches; see [PR #119](https://github.com/barrust/pyprobables/pull/119); Thanks [@cunla](https://github.com/cunla)
 
 ### Version 0.6.0
