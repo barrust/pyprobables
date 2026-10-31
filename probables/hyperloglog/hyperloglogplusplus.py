@@ -180,27 +180,27 @@ class HyperLogLogPlusPlus(HyperLogLog):
         self._sparse_set.clear()
         self._is_sparse = False
 
-    def merge(self, other: "HyperLogLogPlusPlus | HyperLogLog") -> None:
+    def merge(self, second: "HyperLogLogPlusPlus | HyperLogLog") -> None:
         """Merge another sketch into this one"""
-        if not isinstance(other, (HyperLogLog, HyperLogLogPlusPlus)):
+        if not isinstance(second, (HyperLogLog, HyperLogLogPlusPlus)):
             raise NotSupportedError("Unable to merge with provided type")
-        if self.precision != other.precision:
+        if self.precision != second.precision:
             raise NotSupportedError("Unable to merge HyperLogLogPlusPlus with different precision values")
-        if self._hash_function("test", 0) != other._hash_function("test", 0):
+        if self._hash_function("test", 0) != second._hash_function("test", 0):
             raise NotSupportedError("Hash functions do not match")
 
-        if isinstance(other, HyperLogLogPlusPlus) and other.is_sparse:
+        if isinstance(second, HyperLogLogPlusPlus) and second.is_sparse:
             if self._is_sparse:
-                self._merge_sparse_sparse(other)
+                self._merge_sparse_sparse(second)
             else:
-                self._merge_dense_sparse(other)
+                self._merge_dense_sparse(second)
         else:
             if self._is_sparse:
                 for idx, rho in self._sparse_set:
                     self._registers[idx] = rho
                 self._sparse_set.clear()
                 self._is_sparse = False
-            super().merge(other)
+            super().merge(second)
 
     def _merge_sparse_sparse(self, other: "HyperLogLogPlusPlus") -> None:
         """Merge two sparse sketches"""
