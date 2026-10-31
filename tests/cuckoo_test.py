@@ -3,6 +3,7 @@
 
 import hashlib
 import os
+import random
 import sys
 import unittest
 from pathlib import Path
@@ -184,6 +185,34 @@ class TestCuckooFilter(unittest.TestCase):
             self.assertEqual(str(ex), "The CuckooFilter is currently full")
         else:
             self.assertEqual(True, False)
+
+    def test_cuckoo_filter_full_preserves_elements(self):
+        """test that a failed insertion does not remove previously added elements"""
+        self.addCleanup(random.setstate, random.getstate())
+        random.seed(0)
+        cko = CuckooFilter(capacity=4, bucket_size=1, max_swaps=1, auto_expand=False)
+        added = ["k24", "k26", "k2", "k16"]
+        for key in added:
+            cko.add(key)
+        self.assertRaises(CuckooFilterFullError, cko.add, "k32")
+        self.assertEqual(len(added), cko.elements_added)
+        for key in added:
+            self.assertTrue(cko.check(key))
+
+    def test_cuckoo_filter_failed_expand_preserves_elements(self):
+        """test that a failed expansion does not remove previously added elements"""
+        self.addCleanup(random.setstate, random.getstate())
+        random.seed(1)
+        cko = CuckooFilter(capacity=4, bucket_size=1, max_swaps=1)
+        added = ["k8", "k36", "k54", "k51", "k7", "k31"]
+        for key in added:
+            cko.add(key)
+        self.assertEqual(8, cko.capacity)  # an expansion already succeeded
+        self.assertRaises(CuckooFilterFullError, cko.add, "k48")
+        self.assertEqual(8, cko.capacity)  # the failed expansion is rolled back
+        self.assertEqual(len(added), cko.elements_added)
+        for key in added:
+            self.assertTrue(cko.check(key))
 
     def test_cuckoo_idx(self):
         """test that the indexing works correctly for cuckoo filter swap"""

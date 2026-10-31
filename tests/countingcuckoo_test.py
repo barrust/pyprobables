@@ -3,6 +3,7 @@
 
 import hashlib
 import os
+import random
 import sys
 import unittest
 from pathlib import Path
@@ -126,6 +127,33 @@ class TestCountingCuckooFilter(unittest.TestCase):
             self.assertEqual(str(ex), msg)
         else:
             self.assertEqual(True, False)
+
+    def test_c_cuckoo_filter_full_preserves_elements(self):
+        """test that a failed insertion does not remove previously added elements"""
+        self.addCleanup(random.setstate, random.getstate())
+        random.seed(0)
+        cko = CountingCuckooFilter(capacity=4, bucket_size=1, max_swaps=1, auto_expand=False)
+        added = ["k54", "k24", "k48", "k56"]
+        for key in added:
+            cko.add(key)
+        self.assertRaises(CuckooFilterFullError, cko.add, "k36")
+        self.assertEqual(len(added), cko.elements_added)
+        for key in added:
+            self.assertTrue(cko.check(key))
+
+    def test_c_cuckoo_filter_failed_expand_preserves_elements(self):
+        """test that a failed expansion does not remove previously added elements"""
+        self.addCleanup(random.setstate, random.getstate())
+        random.seed(15)
+        cko = CountingCuckooFilter(capacity=8, bucket_size=1, max_swaps=2)
+        added = ["k{}".format(i) for i in range(18)]
+        for key in added:
+            cko.add(key)
+        self.assertEqual(32, cko.capacity)  # earlier expansions succeeded
+        self.assertRaises(CuckooFilterFullError, cko.add, "k18")
+        self.assertEqual(32, cko.capacity)  # the failed expansion is rolled back
+        for key in added:
+            self.assertTrue(cko.check(key))
 
     def test_c_cuckoo_idx(self):
         """test that the indexing works correctly for counting cuckoo filter
@@ -261,6 +289,21 @@ class TestCountingCuckooFilter(unittest.TestCase):
         for i in range(200):
             self.assertGreater(cko.check(str(i)), 0)
         self.assertEqual(20000, cko.capacity)
+
+    def test_c_cuckoo_filter_expand_duplicates(self):
+        """test that expanding preserves the count of duplicate keys"""
+        cko = CountingCuckooFilter(capacity=10)
+        for _ in range(3):
+            cko.add("a")
+        for i in range(20):
+            cko.add(str(i))
+        total = cko.elements_added
+        cko.expand()
+        self.assertEqual(total, cko.elements_added)
+        self.assertEqual(3, cko.check("a"))
+        for _ in range(3):
+            cko.remove("a")
+        self.assertEqual(total - 3, cko.elements_added)
 
     def test_c_cuckoo_filter_auto_exp(self):
         """test inserting until counting cuckoo filter is full"""

@@ -1,8 +1,10 @@
 # PyProbables Changelog
 
-## Version 0.7.1 
+### Version 0.7.1
 
-* CuckooFilter: Add rewind support for failed insertions or expansions; see [PR #149](https://github.com/barrust/pyprobables/pull/149); thanks [@mayur-dhavan](https://github.com/mayur-dhavan)
+* `Cuckoo Filter`
+  * Implement rewind for both regular and counting; see [#149](https://github.com/barrust/pyprobables/pull/149); thanks [mayur-dhavan](https://github.com/mayur-dhavan)
+  * `CountingCuckooFilter`: Increment Elements Added by number of elements inserted
 
 ### Version 0.7.0
 
@@ -25,7 +27,7 @@ Minor breaking changes; mismatched Bloom filters raise a `SimilarityError` inste
 
 ### Version 0.6.1
 
-* Quotient Filter:
+* `QuotientFilter`:
   * Add ability to get hashes from the filter either as a list, or as a generator
   * Add quotient filter expand capability, auto and on request
   * Add QuotientFilterError exception
@@ -34,7 +36,7 @@ Minor breaking changes; mismatched Bloom filters raise a `SimilarityError` inste
   * Add resize filter, automatically or programatically
   * Add merging two filters into one
   * Add removal of an element from the filter
-* Count-Min Sketch:
+* `Count-Min Sketch`:
   * Fix bug in elements added calculation when joining Count-Min Sketches; see [PR #119](https://github.com/barrust/pyprobables/pull/119); Thanks [@cunla](https://github.com/cunla)
 
 ### Version 0.6.0
