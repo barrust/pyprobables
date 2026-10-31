@@ -166,7 +166,7 @@ class HyperLogLogPlusPlus(HyperLogLog):
             rho = max(rho, existing[1])
 
         self._sparse_set.add((idx, rho))
-        self._HyperLogLog__elements_added += 1
+        self._elements_added += 1
 
         threshold = self._sparse_threshold or max(int(1.5 * self.number_registers), 128)
         if len(self._sparse_set) > threshold:
@@ -209,8 +209,8 @@ class HyperLogLogPlusPlus(HyperLogLog):
         for idx, rho in other._sparse_set:
             combined[idx] = max(combined.get(idx, 0), rho)
 
-        self._sparse_set = {(idx, rho) for idx, rho in combined.items()}
-        self._HyperLogLog__elements_added += other.elements_added
+        self._sparse_set = set(combined.items())
+        self._elements_added += other.elements_added
 
         threshold = self._sparse_threshold or max(int(1.5 * self.number_registers), 128)
         if len(self._sparse_set) > threshold:
@@ -220,7 +220,7 @@ class HyperLogLogPlusPlus(HyperLogLog):
         """Merge sparse sketch into dense sketch"""
         for idx, rho in other._sparse_set:
             self._registers[idx] = max(self._registers[idx], rho)
-        self._HyperLogLog__elements_added += other.elements_added
+        self._elements_added += other.elements_added
 
     def estimate(self) -> float:
         """Return the estimated cardinality as a float"""
@@ -347,7 +347,7 @@ class HyperLogLogPlusPlus(HyperLogLog):
 
         precision, elements_added = self._HLLPP_FOOTER.unpack(footer_data)
         self._set_precision(precision)
-        self._HyperLogLog__elements_added = elements_added
+        self._elements_added = elements_added
         self._registers = array("B", register_data)
 
         if len(self._registers) != self.number_registers:
@@ -361,7 +361,7 @@ class HyperLogLogPlusPlus(HyperLogLog):
 
         precision, elements_added = self._HLLPP_FOOTER.unpack(footer_data)
         self._set_precision(precision)
-        self._HyperLogLog__elements_added = elements_added
+        self._elements_added = elements_added
         self._is_sparse = True
 
         num_entries = unpack("H", sparse_data[:2])[0]

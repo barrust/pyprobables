@@ -29,7 +29,7 @@ class HyperLogLog:
         avalanche behavior so the sketch can apply textbook register index / suffix splitting.
     """
 
-    __slots__ = ("__precision", "__elements_added", "_registers", "_hash_function")
+    __slots__ = ("__precision", "_elements_added", "_registers", "_hash_function")
 
     __FOOTER_STRUCT = Struct("IQ")
 
@@ -40,7 +40,7 @@ class HyperLogLog:
         hash_function: SimpleHashT | None = None,
     ) -> None:
         self.__precision = 0
-        self.__elements_added = 0
+        self._elements_added = 0
         self._registers = array("B")
 
         if filepath is not None:
@@ -121,7 +121,7 @@ class HyperLogLog:
 
         Note:
             Duplicate insertions are counted here even if they do not change the estimate"""
-        return self.__elements_added
+        return self._elements_added
 
     def add(self, key: KeyT) -> None:
         """Add the element `key` into the HyperLogLog"""
@@ -136,11 +136,11 @@ class HyperLogLog:
         rank = self._rank(remaining, width)
         if rank > self._registers[register_idx]:
             self._registers[register_idx] = rank
-        self.__elements_added += 1
+        self._elements_added += 1
 
     def clear(self) -> None:
         """Reset the HyperLogLog to an empty state"""
-        self.__elements_added = 0
+        self._elements_added = 0
         for idx, _ in enumerate(self._registers):
             self._registers[idx] = 0
 
@@ -173,7 +173,7 @@ class HyperLogLog:
         for idx, value in enumerate(second._registers):
             if value > self._registers[idx]:
                 self._registers[idx] = value
-        self.__elements_added += second.elements_added
+        self._elements_added += second.elements_added
 
     def export(self, file: Path | str | IOBase | mmap) -> None:
         """Export the HyperLogLog to file"""
@@ -216,7 +216,7 @@ class HyperLogLog:
             if len(registers) != self.number_registers:
                 raise InitializationError("HyperLogLog: invalid byte stream")
             self._registers = registers
-            self.__elements_added = elements_added
+            self._elements_added = elements_added
         except StructError as ex:
             raise InitializationError("HyperLogLog: invalid byte stream") from ex
 
