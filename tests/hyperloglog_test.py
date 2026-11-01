@@ -8,6 +8,7 @@ import unittest
 from io import BytesIO
 from hashlib import sha1
 from pathlib import Path
+from random import Random
 from struct import Struct
 from tempfile import NamedTemporaryFile
 
@@ -170,7 +171,7 @@ class TestHyperLogLog(unittest.TestCase):
         """Test loading bytes with invalid precision value"""
         hll = HyperLogLog(precision=10)
         data = bytes(hll)
-        footer = Struct("IQ")
+        footer = Struct("<IQ")
         corrupt = data[: -footer.size] + footer.pack(2, 0)
         self.assertRaises(InitializationError, lambda: HyperLogLog.frombytes(corrupt))
 
@@ -178,11 +179,40 @@ class TestHyperLogLog(unittest.TestCase):
         """Test loading bytes where register count does not match precision"""
         hll = HyperLogLog(precision=10)
         data = bytes(hll)
-        footer = Struct("IQ")
+        footer = Struct("<IQ")
         precision, elements = footer.unpack(data[-footer.size :])
         broken = data[:-1]  # remove one register byte
         broken = broken[: -footer.size] + footer.pack(precision, elements)
         self.assertRaises(InitializationError, lambda: HyperLogLog.frombytes(broken))
+
+    def test_hll_serialization_uses_standard_little_endian_fields(self):
+        """Streams use standard little-endian fields without native alignment."""
+        hll = HyperLogLog(precision=10)
+        for value in range(50):
+            hll.add(str(value))
+
+        footer = Struct("<IQ")
+        data = bytes(hll)
+        self.assertEqual(len(data), hll.number_registers + footer.size)
+        self.assertEqual(data[-footer.size :], footer.pack(hll.precision, hll.elements_added))
+
+    def test_hll_rejects_invalid_serialized_registers(self):
+        """Reject impossible ranks and register state inconsistent with element count."""
+        footer = Struct("<IQ")
+        hll = HyperLogLog(precision=4)
+        invalid_rank = bytearray(hll._registers.tobytes())
+        invalid_rank[0] = 62
+        self.assertRaises(
+            InitializationError,
+            lambda: HyperLogLog.frombytes(bytes(invalid_rank) + footer.pack(4, 1)),
+        )
+
+        occupied_without_elements = bytearray(hll._registers.tobytes())
+        occupied_without_elements[0] = 1
+        self.assertRaises(
+            InitializationError,
+            lambda: HyperLogLog.frombytes(bytes(occupied_without_elements) + footer.pack(4, 0)),
+        )
 
     def test_hll_export_load(self):
         """Test exporting and loading a HyperLogLog from file"""
@@ -302,3 +332,14 @@ class TestHyperLogLog(unittest.TestCase):
             rel_err = abs(est - cardinality) / cardinality
             # Allow a generous envelope to avoid flaky failures while still catching regressions.
             self.assertLessEqual(rel_err, min(0.35, (3.0 * hll.error_rate) + 0.1))
+
+    def test_hll_error_rate_multiple_seeds(self):
+        """Check error across deterministic hash streams and cardinality regimes."""
+        for precision, cardinality in ((6, 300), (8, 1000), (10, 3000)):
+            for seed in (11, 23, 47):
+                rng = Random(seed)
+                hll = HyperLogLog(precision=precision)
+                for _ in range(cardinality):
+                    hll.add_alt(rng.getrandbits(64))
+                relative_error = abs(hll.estimate() - cardinality) / cardinality
+                self.assertLessEqual(relative_error, min(0.35, (3.0 * hll.error_rate) + 0.1))

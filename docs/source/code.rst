@@ -148,6 +148,9 @@ distinct values observed in a stream without retaining the full set of inputs.
 
 `Further Reading <https://en.wikipedia.org/wiki/HyperLogLog>`__
 
+Serialized HyperLogLog data uses standard little-endian fields without native
+alignment. HyperLogLog++ uses version 2 of its serialized format, including
+32-bit sparse register indexes so the full supported precision range is valid.
 
 HyperLogLog
 ++++++++++++++++++++++++++++++

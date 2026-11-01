@@ -31,7 +31,7 @@ class HyperLogLog:
 
     __slots__ = ("__precision", "_elements_added", "_registers", "_hash_function")
 
-    __FOOTER_STRUCT = Struct("IQ")
+    __FOOTER_STRUCT = Struct("<IQ")
 
     def __init__(
         self,
@@ -88,13 +88,8 @@ class HyperLogLog:
     @classmethod
     def frombytes(cls, b: BytesLike, hash_function: SimpleHashT | None = None) -> "HyperLogLog":
         """Create a HyperLogLog from bytes"""
-        try:
-            offset = cls.__FOOTER_STRUCT.size
-            precision, _ = cls.__FOOTER_STRUCT.unpack_from(bytes(b[-1 * offset :]))
-            hll = cls(precision=precision, hash_function=hash_function)
-            hll._parse_bytes(b)
-        except (StructError, ValueError) as ex:
-            raise InitializationError("HyperLogLog: invalid byte stream") from ex
+        hll = cls(hash_function=hash_function)
+        hll._parse_bytes(b)
         return hll
 
     @property
@@ -208,17 +203,31 @@ class HyperLogLog:
 
     def _parse_bytes(self, data: BytesLike | mmap) -> None:
         """Parse bytes and populate the sketch state"""
+        payload = bytes(data)
+        if len(payload) < self.__FOOTER_STRUCT.size:
+            raise InitializationError("HyperLogLog: invalid byte stream")
         try:
-            offset = self.__FOOTER_STRUCT.size
-            precision, elements_added = self.__FOOTER_STRUCT.unpack_from(bytes(data[-1 * offset :]))
+            precision, elements_added = self.__FOOTER_STRUCT.unpack_from(
+                payload, len(payload) - self.__FOOTER_STRUCT.size
+            )
             self._set_precision(precision)
-            registers = array("B", bytes(data[:-offset]))
-            if len(registers) != self.number_registers:
-                raise InitializationError("HyperLogLog: invalid byte stream")
-            self._registers = registers
-            self._elements_added = elements_added
-        except StructError as ex:
+        except (InitializationError, StructError, ValueError) as ex:
             raise InitializationError("HyperLogLog: invalid byte stream") from ex
+
+        register_data = payload[: -self.__FOOTER_STRUCT.size]
+        if len(register_data) != self.number_registers:
+            raise InitializationError("HyperLogLog: invalid byte stream")
+        registers = array("B", register_data)
+        max_rank = 64 - self.precision + 1
+        occupied = sum(register != 0 for register in registers)
+        if (
+            any(register > max_rank for register in registers)
+            or elements_added < occupied
+            or (elements_added == 0) != (occupied == 0)
+        ):
+            raise InitializationError("HyperLogLog: invalid byte stream")
+        self._registers = registers
+        self._elements_added = elements_added
 
     def __load(self, file: Path | str | IOBase | mmap | bytes) -> None:
         """Load the HyperLogLog from file"""

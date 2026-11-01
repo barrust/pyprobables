@@ -7,6 +7,7 @@ import sys
 import unittest
 from io import BytesIO
 from pathlib import Path
+from random import Random
 from struct import Struct
 from tempfile import NamedTemporaryFile
 
@@ -156,9 +157,9 @@ class TestHyperLogLogPlusPlus(unittest.TestCase):
         """Test loading bytes with invalid precision value"""
         hllpp = HyperLogLogPlusPlus(precision=10)
         data = bytearray(bytes(hllpp))
-        footer = Struct("IQ")
-        header = Struct("4sBB")
-        precision_field = Struct("I")
+        footer = Struct("<IQ")
+        header = Struct("<4sBB")
+        precision_field = Struct("<I")
         footer_start = len(data) - footer.size
         data[footer_start : footer_start + 4] = precision_field.pack(3)
         self.assertRaises(InitializationError, lambda: HyperLogLogPlusPlus.frombytes(bytes(data)))
@@ -174,7 +175,7 @@ class TestHyperLogLogPlusPlus(unittest.TestCase):
         """Test that wrong HLL++ version is rejected"""
         hllpp = HyperLogLogPlusPlus(precision=10)
         data = bytearray(bytes(hllpp))
-        header = Struct("4sBB")
+        header = Struct("<4sBB")
         data[4] = 99
         self.assertRaises(InitializationError, lambda: HyperLogLogPlusPlus.frombytes(bytes(data)))
 
@@ -309,7 +310,7 @@ class TestHyperLogLogPlusPlus(unittest.TestCase):
 
     def test_hllpp_sparse_estimate_matches_dense_registers(self):
         """Sparse estimates should account for stored ranks at every occupancy level."""
-        sparse = HyperLogLogPlusPlus(precision=4, sparse_enabled=True)
+        sparse = HyperLogLogPlusPlus(precision=4, sparse_enabled=True, sparse_threshold=16)
         dense = HyperLogLogPlusPlus(precision=4)
         width = 64 - sparse.precision
         suffix = 1 << (width - 1)
@@ -319,14 +320,17 @@ class TestHyperLogLogPlusPlus(unittest.TestCase):
             sparse.add_alt(value)
             dense.add_alt(value)
 
+        self.assertEqual(len(sparse._registers), 0)
         self.assertGreater(sparse.estimate(), 0)
         self.assertAlmostEqual(sparse.estimate(), dense.estimate())
 
     def test_hllpp_sparse_default_threshold_promotes(self):
-        """The default sparse threshold should be reachable before all registers fill."""
+        """The default sparse threshold is reachable and bounded for memory efficiency."""
         hllpp = HyperLogLogPlusPlus(precision=4, sparse_enabled=True)
         width = 64 - hllpp.precision
-        threshold = max(1, int(0.75 * hllpp.number_registers))
+        threshold = hllpp._sparse_promotion_threshold()
+        self.assertLessEqual(threshold, 128)
+        self.assertLessEqual(threshold, hllpp.number_registers)
 
         for idx in range(threshold - 1):
             hllpp.add_alt(idx << width)
@@ -335,7 +339,184 @@ class TestHyperLogLogPlusPlus(unittest.TestCase):
         hllpp.add_alt((threshold - 1) << width)
         self.assertFalse(hllpp.is_sparse)
         self.assertEqual(len(hllpp._sparse_set), 0)
+        self.assertEqual(len(hllpp._registers), hllpp.number_registers)
         self.assertEqual(hllpp._registers.count(0), hllpp.number_registers - threshold)
+
+    def test_hllpp_sparse_uses_register_indexed_mapping(self):
+        """Sparse updates replace a register value directly rather than scanning entries."""
+        hllpp = HyperLogLogPlusPlus(precision=10, sparse_enabled=True, sparse_threshold=1024)
+        width = 64 - hllpp.precision
+        idx = 73
+        hllpp.add_alt((idx << width) | (1 << (width - 1)))
+        hllpp.add_alt(idx << width)
+
+        self.assertEqual(len(hllpp._sparse_set), 1)
+        self.assertEqual(hllpp._sparse_set[idx], width + 1)
+
+    def test_hllpp_sparse_v2_supports_full_precision_indexes(self):
+        """Version 2 sparse serialization supports register indexes beyond 16 bits."""
+        hllpp = HyperLogLogPlusPlus(precision=20, sparse_enabled=True, sparse_threshold=2)
+        width = 64 - hllpp.precision
+        idx = 70_000
+        hllpp.add_alt((idx << width) | (1 << (width - 1)))
+
+        serialized = bytes(hllpp)
+        self.assertEqual(serialized[4], 2)
+        restored = HyperLogLogPlusPlus.frombytes(serialized)
+        self.assertEqual(restored._sparse_set, hllpp._sparse_set)
+        self.assertEqual(len(restored._registers), 0)
+        self.assertTrue(restored.sparse_enabled)
+        self.assertTrue(restored.is_sparse)
+        restored.clear()
+        self.assertTrue(restored.is_sparse)
+        self.assertEqual(len(restored._registers), 0)
+
+    def test_hllpp_sparse_to_dense_merge_materializes_registers(self):
+        """Merging dense state promotes sparse registers before using the base merge."""
+        sparse = HyperLogLogPlusPlus(precision=8, sparse_enabled=True, sparse_threshold=128)
+        dense = HyperLogLog(precision=8)
+        expected = HyperLogLogPlusPlus(precision=8)
+        for value in range(20):
+            sparse.add(str(value))
+            expected.add(str(value))
+            dense.add(str(value + 20))
+            expected.add(str(value + 20))
+
+        sparse.merge(dense)
+        self.assertFalse(sparse.is_sparse)
+        self.assertEqual(len(sparse._registers), sparse.number_registers)
+        self.assertEqual(sparse.cardinality(), expected.cardinality())
+
+    def test_hllpp_sparse_sparse_merge_uses_register_maxima(self):
+        """Merging sparse maps combines the maximum rank per register."""
+        first = HyperLogLogPlusPlus(precision=8, sparse_enabled=True, sparse_threshold=128)
+        second = HyperLogLogPlusPlus(precision=8, sparse_enabled=True, sparse_threshold=128)
+        expected = HyperLogLogPlusPlus(precision=8)
+        for value in range(10):
+            first.add(str(value))
+            second.add(str(value + 10))
+            expected.add(str(value))
+            expected.add(str(value + 10))
+
+        first.merge(second)
+        self.assertTrue(first.is_sparse)
+        self.assertEqual(len(first._registers), 0)
+        self.assertEqual(first.elements_added, 20)
+        self.assertAlmostEqual(first.estimate(), expected.estimate())
+
+    def test_hllpp_serialization_uses_standard_little_endian_fields(self):
+        """Version 2 streams use portable field sizes and byte order."""
+        hllpp = HyperLogLogPlusPlus(precision=10)
+        hllpp.add("item")
+        serialized = bytes(hllpp)
+        self.assertEqual(serialized[:6], Struct("<4sBB").pack(b"HLPP", 2, 0))
+        self.assertEqual(serialized[-12:], Struct("<IQ").pack(10, 1))
+
+        sparse_enabled = HyperLogLogPlusPlus(precision=10, sparse_enabled=True)
+        sparse_enabled._parse_hllpp_bytes(serialized)
+        self.assertFalse(sparse_enabled.is_sparse)
+        sparse_enabled.clear()
+        self.assertTrue(sparse_enabled.is_sparse)
+
+    def test_hllpp_rejects_unsupported_serialization_version(self):
+        """Reject legacy or unknown formats rather than interpreting native layouts."""
+        hllpp = HyperLogLogPlusPlus(precision=4)
+        data = bytearray(bytes(hllpp))
+        data[4] = 1
+        self.assertRaises(
+            InitializationError,
+            lambda: HyperLogLogPlusPlus.frombytes(bytes(data)),
+        )
+
+    def test_hllpp_rejects_malformed_serialized_registers(self):
+        """Reject unknown flags, invalid ranks, and inconsistent sparse payloads."""
+        header = Struct("<4sBB")
+        footer = Struct("<IQ")
+        dense = HyperLogLogPlusPlus(precision=4)
+        invalid_rank = bytearray(bytes(dense))
+        invalid_rank[header.size] = 62
+        invalid_rank[-footer.size :] = footer.pack(4, 1)
+        self.assertRaises(
+            InitializationError,
+            lambda: HyperLogLogPlusPlus.frombytes(bytes(invalid_rank)),
+        )
+
+        invalid_count = bytearray(bytes(dense))
+        invalid_count[header.size] = 1
+        invalid_count[-footer.size :] = footer.pack(4, 0)
+        self.assertRaises(
+            InitializationError,
+            lambda: HyperLogLogPlusPlus.frombytes(bytes(invalid_count)),
+        )
+
+        unknown_flags = bytearray(bytes(dense))
+        unknown_flags[5] = 0x80
+        self.assertRaises(
+            InitializationError,
+            lambda: HyperLogLogPlusPlus.frombytes(bytes(unknown_flags)),
+        )
+
+        sparse_header = header.pack(b"HLPP", 2, 1)
+        sparse_count = Struct("<I")
+        sparse_entry = Struct("<IB")
+
+        def sparse_stream(
+            entries: list[tuple[int, int]],
+            elements_added: int,
+            declared_count: int | None = None,
+            trailing_data: bytes = b"",
+        ) -> bytes:
+            count = len(entries) if declared_count is None else declared_count
+            payload = sparse_header + sparse_count.pack(count)
+            payload += b"".join(sparse_entry.pack(idx, rho) for idx, rho in entries)
+            return payload + trailing_data + footer.pack(4, elements_added)
+
+        malformed_streams = (
+            sparse_stream([(1, 1), (1, 2)], 2),
+            sparse_stream([(16, 1)], 1),
+            sparse_stream([(1, 0)], 1),
+            sparse_stream([(1, 62)], 1),
+            sparse_stream([(1, 1)], 1, declared_count=2),
+            sparse_stream([(1, 1)], 1, trailing_data=b"x"),
+            sparse_stream([(1, 1)], 0),
+            sparse_stream([], 1),
+        )
+        for malformed in malformed_streams:
+            with self.subTest(malformed=malformed):
+                self.assertRaises(
+                    InitializationError,
+                    lambda: HyperLogLogPlusPlus.frombytes(malformed),
+                )
+
+    def test_hllpp_sparse_accuracy_across_seeds_and_promotion(self):
+        """Sparse estimates match dense estimates before promotion and remain accurate after."""
+        for seed in (13, 29, 61):
+            rng = Random(seed)
+            sparse = HyperLogLogPlusPlus(
+                precision=8,
+                bias_correction=False,
+                sparse_enabled=True,
+                sparse_threshold=256,
+            )
+            dense = HyperLogLogPlusPlus(precision=8, bias_correction=False)
+            cardinality = 100
+            for _ in range(cardinality):
+                value = rng.getrandbits(64)
+                sparse.add_alt(value)
+                dense.add_alt(value)
+
+            self.assertTrue(sparse.is_sparse)
+            self.assertAlmostEqual(sparse.estimate(), dense.estimate())
+            error = abs(sparse.estimate() - cardinality) / cardinality
+            self.assertLessEqual(error, 0.35)
+
+            for _ in range(5000 - cardinality):
+                value = rng.getrandbits(64)
+                sparse.add_alt(value)
+                dense.add_alt(value)
+            self.assertFalse(sparse.is_sparse)
+            error = abs(sparse.estimate() - 5000) / 5000
+            self.assertLessEqual(error, 0.35)
 
     def test_hllpp_export_load_file(self):
         """Test exporting and loading HyperLogLog++ from file"""
