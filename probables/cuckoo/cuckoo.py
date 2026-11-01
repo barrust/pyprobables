@@ -6,7 +6,6 @@ Author: Tyler Barrus (barrust@gmail.com)
 import math
 import random
 from array import array
-from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from numbers import Number
@@ -15,7 +14,7 @@ from struct import Struct
 
 from probables.exceptions import CuckooFilterFullError, InitializationError
 from probables.hashes import KeyT, SimpleHashT, fnv_1a
-from probables.utilities import MMap, get_x_bits, is_valid_file, resolve_path
+from probables.utilities import BytesLike, MMap, get_x_bits, is_valid_file, resolve_path
 
 
 class CuckooFilter:
@@ -157,13 +156,13 @@ class CuckooFilter:
     @classmethod
     def frombytes(
         cls,
-        b: ByteString,
+        b: BytesLike,
         error_rate: float | None = None,
         hash_function: SimpleHashT | None = None,
     ) -> "CuckooFilter":
         """
         Args:
-            b (ByteString): The bytes to load as a Expanding Bloom Filter
+            b (BytesLike): The bytes to load as a Expanding Bloom Filter
             error_rate (float): The error rate of the cuckoo filter, if used to generate the original filter
             hash_function (function): Hashing strategy function to use `hf(key, number)`
         Returns:
@@ -338,9 +337,9 @@ class CuckooFilter:
         if not isinstance(file, IOBase | mmap):
             file = resolve_path(file)
             with open(file, "wb") as filepointer:
-                self.export(filepointer)  # type:ignore
+                self.export(filepointer)  # type: ignore
         else:
-            filepointer = file  # type:ignore
+            filepointer = file  # type: ignore
             for _, val in enumerate(self.buckets):
                 bucket = array(self._CUCKOO_SINGLE_INT_C, val)
                 bucket.extend([0] * (self.bucket_size - len(bucket)))
@@ -399,9 +398,9 @@ class CuckooFilter:
         # if we got here we have an error... we might need to know what is left
         return orig_fingerprint
 
-    def _load(self, file: Path | str | IOBase | mmap | bytes) -> None:
+    def _load(self, file: Path | str | IOBase | mmap | BytesLike) -> None:
         """load a cuckoo filter from file"""
-        if not isinstance(file, IOBase | mmap | bytes):
+        if not isinstance(file, IOBase | mmap | bytes | bytearray | memoryview):
             file = resolve_path(file)
             with MMap(file) as filepointer:
                 self._load(filepointer)
@@ -415,13 +414,13 @@ class CuckooFilter:
     _CUCKOO_SINGLE_INT_SIZE = Struct(_CUCKOO_SINGLE_INT_C).size
     _CUCKOO_FOOTER_STRUCT = Struct("II")
 
-    def _parse_footer(self, d: ByteString, stct: Struct) -> None:
+    def _parse_footer(self, d: BytesLike | mmap, stct: Struct) -> None:
         """parse bytes and set footer information"""
         list_size = len(d) - stct.size
-        self._bucket_size, self.__max_cuckoo_swaps = stct.unpack(d[list_size:])  # type:ignore
+        self._bucket_size, self.__max_cuckoo_swaps = stct.unpack(d[list_size:])  # type: ignore
         self._cuckoo_capacity = list_size // self._CUCKOO_SINGLE_INT_SIZE // self.bucket_size
 
-    def _parse_buckets(self, d: ByteString) -> None:
+    def _parse_buckets(self, d: BytesLike | mmap) -> None:
         """parse bytes and set buckets"""
         self._buckets = []
         bucket_byte_size = self.bucket_size * self._CUCKOO_SINGLE_INT_SIZE
@@ -431,7 +430,7 @@ class CuckooFilter:
             self.buckets.append(self._parse_bucket(d[offs:next_offs]))  # type: ignore
             offs = next_offs
 
-    def _parse_bucket(self, d: ByteString) -> array:
+    def _parse_bucket(self, d: BytesLike) -> array:
         """parse a single bucket"""
         bucket = array(self._CUCKOO_SINGLE_INT_C, bytes(d))
         bucket = array(self._CUCKOO_SINGLE_INT_C, [el for el in bucket if el])

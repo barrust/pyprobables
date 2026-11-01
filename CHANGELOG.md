@@ -2,6 +2,9 @@
 
 ### Version 0.7.1
 
+* `HyperLogLog` and `HyperLogLogPlusPlus`
+  * Add `HyperLogLog` cardinality estimator with merge, export, and load support
+  * Add `HyperLogLogPlusPlus` with bias correction and optional sparse mode
 * `Cuckoo Filter`
   * Implement rewind for both regular and counting; see [#149](https://github.com/barrust/pyprobables/pull/149); thanks [mayur-dhavan](https://github.com/mayur-dhavan)
   * `CountingCuckooFilter`: Increment Elements Added by number of elements inserted

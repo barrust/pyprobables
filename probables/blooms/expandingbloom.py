@@ -5,7 +5,6 @@ URL: https://github.com/barrust/pyprobables
 """
 
 from array import array
-from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from pathlib import Path
@@ -14,7 +13,7 @@ from struct import Struct
 from probables.blooms.bloom import BloomFilter
 from probables.exceptions import RotatingBloomFilterError
 from probables.hashes import HashFuncT, HashResultsT, KeyT, default_fnv_1a
-from probables.utilities import MMap, is_valid_file, resolve_path
+from probables.utilities import BytesLike, MMap, is_valid_file, resolve_path
 
 
 class ExpandingBloomFilter:
@@ -73,10 +72,10 @@ class ExpandingBloomFilter:
     _BLOOM_ELEMENT_SIZE = Struct("B").size
 
     @classmethod
-    def frombytes(cls, b: ByteString, hash_function: HashFuncT | None = None) -> "ExpandingBloomFilter":
+    def frombytes(cls, b: BytesLike, hash_function: HashFuncT | None = None) -> "ExpandingBloomFilter":
         """
         Args:
-            b (ByteString): The bytes to load as a Expanding Bloom Filter
+            b (BytesLike): The bytes to load as a Expanding Bloom Filter
             hash_function (function): Hashing strategy function to use `hf(key, number)`
         Returns:
             ExpandingBloomFilter: A Bloom Filter object
@@ -190,9 +189,9 @@ class ExpandingBloomFilter:
         if not isinstance(file, IOBase | mmap):
             file = resolve_path(file)
             with open(file, "wb") as filepointer:
-                self.export(filepointer)  # type:ignore
+                self.export(filepointer)  # type: ignore
         else:
-            filepointer = file  # type:ignore
+            filepointer = file  # type: ignore
             # add all the different Bloom bit arrays...
             for blm in self._blooms:
                 filepointer.write(self.__S_INT64_STRUCT.pack(blm.elements_added))
@@ -218,15 +217,15 @@ class ExpandingBloomFilter:
             self._added_elements = els_added
             self.__fpr = fpr
             self.__est_elements = est_els
-            self._parse_blooms(file, size)  # type:ignore
+            self._parse_blooms(file, size)  # type: ignore
 
     @classmethod
-    def _parse_footer(cls, b: ByteString) -> tuple[int, int, int, float]:
+    def _parse_footer(cls, b: BytesLike | mmap) -> tuple[int, int, int, float]:
         offset = cls.__FOOTER_STRUCT.size
         size, est_els, els_added, fpr = cls.__FOOTER_STRUCT.unpack(bytes(b[-1 * offset :]))
         return int(size), int(est_els), int(els_added), float(fpr)
 
-    def _parse_blooms(self, b: ByteString, size: int) -> None:
+    def _parse_blooms(self, b: BytesLike | mmap, size: int) -> None:
         # reset the bloom list
         self._blooms = []
         blm_size = 0
@@ -287,12 +286,12 @@ class RotatingBloomFilter(ExpandingBloomFilter):
         self._queue_size = max_queue_size
 
     @classmethod
-    def frombytes(  # type:ignore
-        cls, b: ByteString, max_queue_size: int, hash_function: HashFuncT | None = None
+    def frombytes(  # type: ignore
+        cls, b: BytesLike, max_queue_size: int, hash_function: HashFuncT | None = None
     ) -> "RotatingBloomFilter":
         """
         Args:
-            b (ByteString): The bytes to load as a Expanding Bloom Filter
+            b (BytesLike): The bytes to load as a Expanding Bloom Filter
             max_queue_size (int): This is the number is used to determine the maximum number \
                 of Bloom Filters. Total elements added is based on `max_queue_size * est_elements`
             hash_function (function): Hashing strategy function to use `hf(key, number)`

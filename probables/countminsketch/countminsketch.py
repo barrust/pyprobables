@@ -6,7 +6,6 @@ URL: https://github.com/barrust/count-min-sketch
 
 import math
 from array import array
-from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from numbers import Number
@@ -16,7 +15,7 @@ from struct import Struct
 from probables.constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN
 from probables.exceptions import CountMinSketchError, InitializationError, NotSupportedError
 from probables.hashes import HashFuncT, HashResultsT, KeyT, default_fnv_1a
-from probables.utilities import MMap, is_valid_file, resolve_path
+from probables.utilities import BytesLike, MMap, is_valid_file, resolve_path
 
 
 class CountMinSketch:
@@ -151,10 +150,10 @@ class CountMinSketch:
             return f.getvalue()
 
     @classmethod
-    def frombytes(cls, b: ByteString, hash_function: HashFuncT | None = None) -> "CountMinSketch":
+    def frombytes(cls, b: BytesLike, hash_function: HashFuncT | None = None) -> "CountMinSketch":
         """
         Args:
-            b (ByteString): The bytes to load as a Count-Min Sketch
+            b (BytesLike): The bytes to load as a Count-Min Sketch
             hash_function (function): Hashing strategy function to use `hf(key, number)`
         Returns:
             CountMinSketch: A count-min sketch object
@@ -408,13 +407,13 @@ class CountMinSketch:
             self._parse_bytes(file)  # type: ignore
 
     @classmethod
-    def _parse_footer(cls, file: ByteString) -> tuple[int, int, int]:
+    def _parse_footer(cls, file: BytesLike | mmap) -> tuple[int, int, int]:
         """return width, depth and elements added, in that order"""
         offset = cls.__FOOTER_STRUCT.size
         width, depth, elements_added = cls.__FOOTER_STRUCT.unpack_from(bytes(file[-1 * offset :]))
         return width, depth, elements_added
 
-    def _parse_bytes(self, file: ByteString):
+    def _parse_bytes(self, file: BytesLike | mmap):
         """parse bytes or a mapped file to setup the CountMin-Sketch"""
         width, depth, els_added = self._parse_footer(file)
         self.__width = width
@@ -574,11 +573,11 @@ class HeavyHitters(CountMinSketch):
 
     @classmethod
     def frombytes(  # type: ignore
-        cls, b: ByteString, num_hitters: int = 100, hash_function: HashFuncT | None = None
+        cls, b: BytesLike, num_hitters: int = 100, hash_function: HashFuncT | None = None
     ) -> "HeavyHitters":
         """
         Args:
-            b (ByteString): The bytes to load as a Expanding Bloom Filter
+            b (BytesLike): The bytes to load as a Expanding Bloom Filter
             num_hitters (int): The maximum number of distinct elements to track
             hash_function (function): Hashing strategy function to use `hf(key, number)`
         Returns:
@@ -733,11 +732,11 @@ class StreamThreshold(CountMinSketch):
 
     @classmethod
     def frombytes(  # type: ignore
-        cls, b: ByteString, threshold: int = 100, hash_function: HashFuncT | None = None
+        cls, b: BytesLike, threshold: int = 100, hash_function: HashFuncT | None = None
     ) -> "StreamThreshold":
         """
         Args:
-            b (ByteString): The bytes to load as a Expanding Bloom Filter
+            b (BytesLike): The bytes to load as a Expanding Bloom Filter
             threshold (int): The threshold above which an element will be tracked
             hash_function (function): Hashing strategy function to use `hf(key, number)`
         Returns:
