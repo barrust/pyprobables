@@ -16,6 +16,7 @@ keywords = [
     "count-min-sketch",
     "cuckoo-filter",
     "quotient-filter",
+    "hyperloglog",
 ]
 readme = "README.rst"
 classifiers = [
