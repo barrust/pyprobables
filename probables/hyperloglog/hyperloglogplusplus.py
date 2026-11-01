@@ -30,8 +30,8 @@ class HyperLogLogPlusPlus(HyperLogLog):
     Note:
         Sparse mode provides memory efficiency for small cardinalities.
         Empirical bias correction improves accuracy especially at low cardinalities.
-        Automatic promotion from sparse to dense occurs when element count or
-        sparse set size exceeds configured thresholds.
+        Automatic promotion from sparse to dense occurs when the sparse set reaches
+        its configured threshold or the default threshold of 75% of the registers.
     Note:
         Bias and threshold tables are provided for precisions 4 through 18.
         For precisions 19 and 20, bias correction falls back to the raw estimate
@@ -65,6 +65,12 @@ class HyperLogLogPlusPlus(HyperLogLog):
         super().__init__(precision=precision, hash_function=hash_function)
         self._bias_correction = bool(bias_correction)
         self._sparse_enabled = bool(sparse_enabled)
+        if sparse_threshold is not None and (
+            type(sparse_threshold) is not int or not 1 <= sparse_threshold <= self.number_registers
+        ):
+            raise InitializationError(
+                "HyperLogLogPlusPlus: sparse_threshold must be between 1 and the number of registers"
+            )
         self._sparse_threshold = sparse_threshold
         self._sparse_set: set[tuple[int, int]] = set()
         self._is_sparse = sparse_enabled
@@ -169,8 +175,7 @@ class HyperLogLogPlusPlus(HyperLogLog):
         self._sparse_set.add((idx, rho))
         self._elements_added += 1
 
-        threshold = self._sparse_threshold or max(int(1.5 * self.number_registers), 128)
-        if len(self._sparse_set) > threshold:
+        if len(self._sparse_set) >= self._sparse_promotion_threshold():
             self._promote_to_dense()
 
     def _promote_to_dense(self) -> None:
@@ -213,8 +218,7 @@ class HyperLogLogPlusPlus(HyperLogLog):
         self._sparse_set = set(combined.items())
         self._elements_added += other.elements_added
 
-        threshold = self._sparse_threshold or max(int(1.5 * self.number_registers), 128)
-        if len(self._sparse_set) > threshold:
+        if len(self._sparse_set) >= self._sparse_promotion_threshold():
             self._promote_to_dense()
 
     def _merge_dense_sparse(self, other: "HyperLogLogPlusPlus") -> None:
@@ -229,9 +233,11 @@ class HyperLogLogPlusPlus(HyperLogLog):
             return self._estimate_sparse()
 
         raw_estimate = self._raw_estimate_dense()
-        m = self.number_registers
-        zero_count = self._registers.count(0)
+        return self._correct_estimate(raw_estimate, self._registers.count(0))
 
+    def _correct_estimate(self, raw_estimate: float, zero_count: int) -> float:
+        """Apply HLL++ corrections to a raw estimate and register zero count."""
+        m = self.number_registers
         # Paper-faithful ordering: bias-correct the raw estimator in the small-range regime.
         if raw_estimate <= (5.0 * m):
             corrected = self._apply_bias_correction(raw_estimate) if self.bias_correction else raw_estimate
@@ -263,15 +269,19 @@ class HyperLogLogPlusPlus(HyperLogLog):
         return estimate
 
     def _estimate_sparse(self) -> float:
-        """Estimate cardinality in sparse mode"""
+        """Estimate cardinality from the sparse per-register maxima."""
         if len(self._sparse_set) == 0:
             return 0.0
-        threshold = self.number_registers / 2
-        if len(self._sparse_set) < threshold:
-            return self.number_registers * math.log(
-                self.number_registers / (self.number_registers - len(self._sparse_set))
-            )
-        return super().estimate()
+        indicator = self.number_registers - len(self._sparse_set)
+        indicator += sum(math.pow(2.0, -rho) for _, rho in self._sparse_set)
+        raw_estimate = self._alpha_mm() / indicator
+        return self._correct_estimate(raw_estimate, self.number_registers - len(self._sparse_set))
+
+    def _sparse_promotion_threshold(self) -> int:
+        """Return the sparse entry count at which dense storage is preferred."""
+        if self._sparse_threshold is not None:
+            return self._sparse_threshold
+        return max(1, int(0.75 * self.number_registers))
 
     def clear(self) -> None:
         """Clear the sketch"""

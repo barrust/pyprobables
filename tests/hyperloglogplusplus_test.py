@@ -298,6 +298,44 @@ class TestHyperLogLogPlusPlus(unittest.TestCase):
 
         self.assertIsNone(hllpp_no_threshold.sparse_threshold)
         self.assertEqual(hllpp_with_threshold.sparse_threshold, 1000)
+        self.assertRaises(
+            InitializationError,
+            lambda: HyperLogLogPlusPlus(sparse_enabled=True, sparse_threshold=0),
+        )
+        self.assertRaises(
+            InitializationError,
+            lambda: HyperLogLogPlusPlus(precision=4, sparse_enabled=True, sparse_threshold=17),
+        )
+
+    def test_hllpp_sparse_estimate_matches_dense_registers(self):
+        """Sparse estimates should account for stored ranks at every occupancy level."""
+        sparse = HyperLogLogPlusPlus(precision=4, sparse_enabled=True)
+        dense = HyperLogLogPlusPlus(precision=4)
+        width = 64 - sparse.precision
+        suffix = 1 << (width - 1)
+
+        for idx in range(8):
+            value = (idx << width) | suffix
+            sparse.add_alt(value)
+            dense.add_alt(value)
+
+        self.assertGreater(sparse.estimate(), 0)
+        self.assertAlmostEqual(sparse.estimate(), dense.estimate())
+
+    def test_hllpp_sparse_default_threshold_promotes(self):
+        """The default sparse threshold should be reachable before all registers fill."""
+        hllpp = HyperLogLogPlusPlus(precision=4, sparse_enabled=True)
+        width = 64 - hllpp.precision
+        threshold = max(1, int(0.75 * hllpp.number_registers))
+
+        for idx in range(threshold - 1):
+            hllpp.add_alt(idx << width)
+
+        self.assertTrue(hllpp.is_sparse)
+        hllpp.add_alt((threshold - 1) << width)
+        self.assertFalse(hllpp.is_sparse)
+        self.assertEqual(len(hllpp._sparse_set), 0)
+        self.assertEqual(hllpp._registers.count(0), hllpp.number_registers - threshold)
 
     def test_hllpp_export_load_file(self):
         """Test exporting and loading HyperLogLog++ from file"""
