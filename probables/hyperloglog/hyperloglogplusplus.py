@@ -68,7 +68,9 @@ class HyperLogLogPlusPlus(HyperLogLog):
         self._bias_correction = bool(bias_correction)
         self._sparse_enabled = bool(sparse_enabled)
         if sparse_threshold is not None and (
-            type(sparse_threshold) is not int or not 1 <= sparse_threshold <= self.number_registers
+            isinstance(sparse_threshold, bool)
+            or not isinstance(sparse_threshold, int)
+            or not 1 <= sparse_threshold <= self.number_registers
         ):
             raise InitializationError(
                 "HyperLogLogPlusPlus: sparse_threshold must be between 1 and the number of registers"
@@ -398,25 +400,11 @@ class HyperLogLogPlusPlus(HyperLogLog):
         if len(data) < footer_size + count_struct.size:
             raise InitializationError("HyperLogLogPlusPlus: invalid sparse byte stream")
         sparse_data = bytes(data[:-footer_size])
-        footer_data = bytes(data[-footer_size:])
 
-        precision, elements_added = footer_struct.unpack(footer_data)
+        precision, elements_added = footer_struct.unpack(bytes(data[-footer_size:]))
         self._set_precision(precision)
-        num_entries = count_struct.unpack_from(sparse_data)[0]
-        expected_length = count_struct.size + num_entries * entry_struct.size
-        if len(sparse_data) != expected_length or num_entries > self.number_registers:
-            raise InitializationError("HyperLogLogPlusPlus: invalid sparse byte stream")
-
-        entries: dict[int, int] = {}
-        offset = count_struct.size
-        max_rank = 64 - self.precision + 1
-        for _ in range(num_entries):
-            idx, rho = entry_struct.unpack_from(sparse_data, offset)
-            if idx >= self.number_registers or rho == 0 or rho > max_rank or idx in entries:
-                raise InitializationError("HyperLogLogPlusPlus: invalid sparse register")
-            entries[idx] = rho
-            offset += entry_struct.size
-        if elements_added < num_entries or (elements_added == 0) != (num_entries == 0):
+        entries = self._parse_sparse_entries(sparse_data, count_struct, entry_struct)
+        if elements_added < len(entries) or (elements_added == 0) != (len(entries) == 0):
             raise InitializationError("HyperLogLogPlusPlus: invalid sparse element count")
 
         self._sparse_set = entries
@@ -424,3 +412,21 @@ class HyperLogLogPlusPlus(HyperLogLog):
         self._elements_added = elements_added
         self._is_sparse = True
         self._sparse_enabled = True
+
+    def _parse_sparse_entries(self, sparse_data: bytes, count_struct: Struct, entry_struct: Struct) -> dict[int, int]:
+        """Parse and validate the sparse (index, rank) entries"""
+        num_entries = count_struct.unpack_from(sparse_data)[0]
+        if (
+            len(sparse_data) != count_struct.size + num_entries * entry_struct.size
+            or num_entries > self.number_registers
+        ):
+            raise InitializationError("HyperLogLogPlusPlus: invalid sparse byte stream")
+
+        entries: dict[int, int] = {}
+        max_rank = 64 - self.precision + 1
+        for offset in range(count_struct.size, len(sparse_data), entry_struct.size):
+            idx, rho = entry_struct.unpack_from(sparse_data, offset)
+            if idx >= self.number_registers or rho == 0 or rho > max_rank or idx in entries:
+                raise InitializationError("HyperLogLogPlusPlus: invalid sparse register")
+            entries[idx] = rho
+        return entries
