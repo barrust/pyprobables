@@ -4,6 +4,8 @@
 import os
 import sys
 import unittest
+from array import array
+from struct import Struct
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
@@ -11,7 +13,16 @@ this_dir = Path(__file__).parent
 sys.path.insert(0, str(this_dir))
 sys.path.insert(0, str(this_dir.parent))
 
-from probables.utilities import Bitarray, MMap, get_x_bits, is_hex_string, is_valid_file, resolve_path  # noqa: E402
+from probables.utilities import (  # noqa: E402
+    Bitarray,
+    MMap,
+    array_from_bytes,
+    array_to_little_endian,
+    get_x_bits,
+    is_hex_string,
+    is_valid_file,
+    resolve_path,
+)
 from tests.utilities import different_hash  # noqa: E402
 
 DELETE_TEMP_FILES = True
@@ -26,6 +37,18 @@ class TestProbablesUtilities(unittest.TestCase):
         self.assertTrue(is_hex_string("123467890ABCDEF"))
         self.assertFalse(is_hex_string("123467890abcdfq"))
         self.assertFalse(is_hex_string("123467890ABCDEFQ"))
+
+    def test_array_portable_endian_helpers(self):
+        """Array encoding has an explicit endian independent of host byte order."""
+        values = array("I", [0x01020304, 0xA0B0C0D0])
+        expected = Struct("<II").pack(0x01020304, 0xA0B0C0D0)
+        self.assertEqual(array_to_little_endian(values, 4), expected)
+        self.assertEqual(array_from_bytes("I", expected, 4, "little"), values)
+
+        simulated_big_endian = Struct(">II").pack(0x01020304, 0xA0B0C0D0)
+        self.assertEqual(array_from_bytes("I", simulated_big_endian, 4, "big"), values)
+        self.assertRaises(ValueError, lambda: array_to_little_endian(array("I", [1]), 8))
+        self.assertRaises(ValueError, lambda: array_from_bytes("I", b"\x00", 4))
 
     def test_is_valid_file(self):
         """test the is valid file function"""
@@ -164,6 +187,7 @@ class TestProbablesUtilities(unittest.TestCase):
         for i in range(34):
             ba.set_bit(i * 3)
         b = ba.to_bytes()
+        self.assertEqual(b[-8:], Struct("<Q").pack(100))
         nba = Bitarray.from_bytes(b)
         self.assertEqual(nba.as_string(), ba.as_string())
         for i in range(100):

@@ -122,6 +122,7 @@ class TestHashes(unittest.TestCase):
         res = my_hash("this is a test", 1)
         self.assertEqual(len(res), 1)
         self.assertEqual(res[0], results[0])
+        self.assertEqual(res[0], int.from_bytes(hashlib.sha512(b"this is a test").digest()[:8], "little"))
 
     def test_hash_ints_decorator(self):
         """test making int hashing strategy with decorator"""

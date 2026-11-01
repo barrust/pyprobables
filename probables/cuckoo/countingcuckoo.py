@@ -13,9 +13,9 @@ from struct import Struct
 from typing import Union
 
 from probables.cuckoo.cuckoo import CuckooFilter
-from probables.exceptions import CuckooFilterFullError
+from probables.exceptions import CuckooFilterFullError, InitializationError
 from probables.hashes import KeyT, SimpleHashT
-from probables.utilities import MMap, resolve_path
+from probables.utilities import MMap, array_to_little_endian, resolve_path
 
 
 class CountingCuckooFilter(CuckooFilter):
@@ -60,8 +60,13 @@ class CountingCuckooFilter(CuckooFilter):
             hash_function,
         )
 
-    __COUNTING_CUCKOO_FOOTER_STRUCT = Struct("II")
-    __BIN_STRUCT = Struct("II")
+    __COUNTING_CUCKOO_FOOTER_STRUCT = Struct("<II")
+    __COUNTING_CUCKOO_FOOTER_STRUCT_NATIVE = Struct("@II")
+    __COUNTING_CUCKOO_FOOTER_STRUCT_BE_LEGACY = Struct(">II")
+    __BIN_STRUCT = Struct("<II")
+    __BIN_STRUCT_NATIVE = Struct("@II")
+    __BIN_STRUCT_BE_LEGACY = Struct(">II")
+    _CUCKOO_SINGLE_INT_SIZE = __BIN_STRUCT.size
 
     @classmethod
     def init_error_rate(
@@ -223,7 +228,7 @@ class CountingCuckooFilter(CuckooFilter):
             with open(file, "wb") as filepointer:
                 self.export(filepointer)  # type:ignore
         else:
-            self.__bucket_decomposition(self.buckets, self.bucket_size).tofile(file)
+            file.write(array_to_little_endian(self.__bucket_decomposition(self.buckets, self.bucket_size), 4))
             # now put out the required information at the end
             file.write(self.__COUNTING_CUCKOO_FOOTER_STRUCT.pack(self.bucket_size, self.max_swaps))
 
@@ -287,21 +292,34 @@ class CountingCuckooFilter(CuckooFilter):
             with MMap(file) as filepointer:
                 self._load(filepointer)
         else:
-            self._parse_footer(file, self.__COUNTING_CUCKOO_FOOTER_STRUCT)  # type: ignore
+            byteorder = self._parse_footer(
+                file,
+                self.__COUNTING_CUCKOO_FOOTER_STRUCT,
+                self.__COUNTING_CUCKOO_FOOTER_STRUCT_NATIVE,
+            )  # type: ignore
             self._inserted_elements = 0
-            self._parse_buckets(file)  # type: ignore
+            self._parse_buckets(file, byteorder)  # type: ignore
 
-    def _parse_buckets(self, d: ByteString) -> None:
+    def _parse_buckets(self, d: ByteString, byteorder: str = "little") -> None:
         """Parse bytes to pull out and set the buckets"""
         bin_size = self.__BIN_STRUCT.size
-        self._cuckoo_capacity = (len(bytes(d)) - bin_size) // bin_size // self.bucket_size
+        payload_size = len(d) - self.__COUNTING_CUCKOO_FOOTER_STRUCT.size
+        if self.bucket_size < 1 or payload_size <= 0 or payload_size % (bin_size * self.bucket_size):
+            raise InitializationError("CountingCuckooFilter: invalid serialized data")
+        self._cuckoo_capacity = payload_size // bin_size // self.bucket_size
         start = 0
         end = bin_size
         self._buckets = []
         for i in range(self.capacity):
             self.buckets.append([])
             for _ in range(self.bucket_size):
-                finger, count = self.__BIN_STRUCT.unpack(bytes(d[start:end]))
+                if byteorder == "little":
+                    bin_struct = self.__BIN_STRUCT
+                elif byteorder == "big":
+                    bin_struct = self.__BIN_STRUCT_BE_LEGACY
+                else:
+                    bin_struct = self.__BIN_STRUCT_NATIVE
+                finger, count = bin_struct.unpack(bytes(d[start:end]))
                 if finger > 0:
                     ccb = CountingCuckooBin(finger, count)
                     self.buckets[i].append(ccb)

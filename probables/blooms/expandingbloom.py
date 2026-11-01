@@ -4,6 +4,7 @@ Author: Tyler Barrus (barrust@gmail.com)
 URL: https://github.com/barrust/pyprobables
 """
 
+import math
 from array import array
 from collections.abc import ByteString
 from io import BytesIO, IOBase
@@ -12,7 +13,7 @@ from pathlib import Path
 from struct import Struct
 
 from probables.blooms.bloom import BloomFilter
-from probables.exceptions import RotatingBloomFilterError
+from probables.exceptions import InitializationError, RotatingBloomFilterError
 from probables.hashes import HashFuncT, HashResultsT, KeyT, default_fnv_1a
 from probables.utilities import MMap, is_valid_file, resolve_path
 
@@ -68,8 +69,12 @@ class ExpandingBloomFilter:
             # add in the initial bloom filter!
             self.__add_bloom_filter()
 
-    __FOOTER_STRUCT = Struct("QQQf")
-    __S_INT64_STRUCT = Struct("Q")
+    __FOOTER_STRUCT = Struct("<QQQf")
+    __FOOTER_STRUCT_NATIVE = Struct("@QQQf")
+    __FOOTER_STRUCT_BE_LEGACY = Struct(">QQQf")
+    __S_INT64_STRUCT = Struct("<Q")
+    __S_INT64_STRUCT_NATIVE = Struct("@Q")
+    __S_INT64_STRUCT_BE_LEGACY = Struct(">Q")
     _BLOOM_ELEMENT_SIZE = Struct("B").size
 
     @classmethod
@@ -81,9 +86,9 @@ class ExpandingBloomFilter:
         Returns:
             ExpandingBloomFilter: A Bloom Filter object
         """
-        size, est_els, added_els, fpr = cls._parse_footer(b)
+        size, est_els, added_els, fpr, byteorder = cls._parse_footer(b)
         blm = ExpandingBloomFilter(est_elements=est_els, false_positive_rate=fpr, hash_function=hash_function)
-        blm._parse_blooms(b, size)
+        blm._parse_blooms(b, size, byteorder)
         blm._added_elements = added_els
         return blm
 
@@ -213,20 +218,36 @@ class ExpandingBloomFilter:
             with MMap(file) as filepointer:
                 self.__load(filepointer)
         else:
-            size, est_els, els_added, fpr = self._parse_footer(file)  # type: ignore
+            size, est_els, els_added, fpr, byteorder = self._parse_footer(file)  # type: ignore
             self._blooms = []
             self._added_elements = els_added
             self.__fpr = fpr
             self.__est_elements = est_els
-            self._parse_blooms(file, size)  # type:ignore
+            self._parse_blooms(file, size, byteorder)  # type:ignore
 
     @classmethod
-    def _parse_footer(cls, b: ByteString) -> tuple[int, int, int, float]:
-        offset = cls.__FOOTER_STRUCT.size
-        size, est_els, els_added, fpr = cls.__FOOTER_STRUCT.unpack(bytes(b[-1 * offset :]))
-        return int(size), int(est_els), int(els_added), float(fpr)
+    def _parse_footer(cls, b: ByteString) -> tuple[int, int, int, float, str]:
+        total_size = len(b)
+        footer_size = max(cls.__FOOTER_STRUCT.size, cls.__FOOTER_STRUCT_NATIVE.size)
+        data = bytes(b[-footer_size:])
+        for footer, byteorder in (
+            (cls.__FOOTER_STRUCT, "little"),
+            (cls.__FOOTER_STRUCT_NATIVE, "native"),
+            (cls.__FOOTER_STRUCT_BE_LEGACY, "big"),
+        ):
+            if len(data) < footer.size:
+                continue
+            try:
+                size, est_els, els_added, fpr = footer.unpack(data[-footer.size :])
+                _, _, n_bits = BloomFilter._get_optimized_params(est_els, fpr)
+            except (InitializationError, ValueError):
+                continue
+            bloom_size = cls.__S_INT64_STRUCT.size + math.ceil(n_bits / 8.0)
+            if size > 0 and total_size == footer.size + size * bloom_size:
+                return int(size), int(est_els), int(els_added), float(fpr), byteorder
+        raise InitializationError("ExpandingBloomFilter: invalid serialized data")
 
-    def _parse_blooms(self, b: ByteString, size: int) -> None:
+    def _parse_blooms(self, b: ByteString, size: int, byteorder: str = "little") -> None:
         # reset the bloom list
         self._blooms = []
         blm_size = 0
@@ -240,9 +261,15 @@ class ExpandingBloomFilter:
             )
             if blm_size == 0:
                 blm_size = self._BLOOM_ELEMENT_SIZE * blm.bloom_length
-            end = start + self.__S_INT64_STRUCT.size + blm_size
-            blm._els_added = int(self.__S_INT64_STRUCT.unpack(bytes(b[start : start + self.__S_INT64_STRUCT.size]))[0])
-            blm._bloom = array("B", bytes(b[start + self.__S_INT64_STRUCT.size : end]))
+            if byteorder == "little":
+                count_struct = self.__S_INT64_STRUCT
+            elif byteorder == "big":
+                count_struct = self.__S_INT64_STRUCT_BE_LEGACY
+            else:
+                count_struct = self.__S_INT64_STRUCT_NATIVE
+            end = start + count_struct.size + blm_size
+            blm._els_added = int(count_struct.unpack(bytes(b[start : start + count_struct.size]))[0])
+            blm._bloom = array("B", bytes(b[start + count_struct.size : end]))
             self._blooms.append(blm)
             start = end
 
@@ -299,11 +326,11 @@ class RotatingBloomFilter(ExpandingBloomFilter):
         Returns:
             RotatingBloomFilter: A Bloom Filter object
         """
-        size, est_els, added_els, fpr = cls._parse_footer(b)
+        size, est_els, added_els, fpr, byteorder = cls._parse_footer(b)
         blm = RotatingBloomFilter(
             est_elements=est_els, false_positive_rate=fpr, max_queue_size=max_queue_size, hash_function=hash_function
         )
-        blm._parse_blooms(b, size)
+        blm._parse_blooms(b, size, byteorder)
         blm._added_elements = added_els
         return blm
 

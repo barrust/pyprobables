@@ -35,7 +35,7 @@ def hash_with_depth_bytes(func: HashFuncBytesT | SimpleHashBytesT) -> HashFuncT:
         tmp = key if not isinstance(key, str) else key.encode("utf-8")
         for idx in range(depth):
             tmp = func(tmp, idx)
-            res.append(unpack("Q", tmp[:8])[0])  # turn into 64 bit number
+            res.append(unpack("<Q", tmp[:8])[0])  # turn into 64 bit number
         return res
 
     return hashing_func

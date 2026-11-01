@@ -16,7 +16,7 @@ from struct import Struct
 from probables.constants import INT32_T_MAX, INT32_T_MIN, INT64_T_MAX, INT64_T_MIN
 from probables.exceptions import CountMinSketchError, InitializationError, NotSupportedError
 from probables.hashes import HashFuncT, HashResultsT, KeyT, default_fnv_1a
-from probables.utilities import MMap, is_valid_file, resolve_path
+from probables.utilities import MMap, array_from_bytes, array_to_little_endian, is_valid_file, resolve_path
 
 
 class CountMinSketch:
@@ -119,8 +119,11 @@ class CountMinSketch:
         else:
             self._hash_function = hash_function  # type: ignore
 
-    __FOOTER_STRUCT = Struct("IIq")
-    __BASIC_BIN_STRUCT = Struct("i")
+    __FOOTER_STRUCT = Struct("<IIq")
+    __FOOTER_STRUCT_NATIVE = Struct("@IIq")
+    __FOOTER_STRUCT_BE_LEGACY = Struct(">IIq")
+    __BASIC_BIN_STRUCT = Struct("<i")
+    __BASIC_BIN_STRUCT_NATIVE = Struct("@i")
 
     def __str__(self) -> str:
         """string representation of the count min sketch"""
@@ -159,8 +162,7 @@ class CountMinSketch:
         Returns:
             CountMinSketch: A count-min sketch object
         """
-        offset = cls.__FOOTER_STRUCT.size
-        width, depth, _ = cls.__FOOTER_STRUCT.unpack_from(bytes(b[-1 * offset :]))
+        width, depth, _, _ = cls._parse_compatible_footer(bytes(b))
         cms = CountMinSketch(width=width, depth=depth, hash_function=hash_function)
         cms._parse_bytes(b)
         return cms
@@ -350,7 +352,7 @@ class CountMinSketch:
                 self.export(filepointer)  # type: ignore
         else:
             # write out the bins
-            self._bins.tofile(file)  # type: ignore
+            file.write(array_to_little_endian(self._bins, 4))
             file.write(self.__FOOTER_STRUCT.pack(self.width, self.depth, self.elements_added))
 
     def join(self, second: "CountMinSketch") -> None:
@@ -410,13 +412,36 @@ class CountMinSketch:
     @classmethod
     def _parse_footer(cls, file: ByteString) -> tuple[int, int, int]:
         """return width, depth and elements added, in that order"""
-        offset = cls.__FOOTER_STRUCT.size
-        width, depth, elements_added = cls.__FOOTER_STRUCT.unpack_from(bytes(file[-1 * offset :]))
+        width, depth, elements_added, _ = cls._parse_compatible_footer(bytes(file))
         return width, depth, elements_added
+
+    @classmethod
+    def _parse_compatible_footer(
+        cls, data: ByteString, serialized_size: int | None = None
+    ) -> tuple[int, int, int, str]:
+        """Parse canonical or legacy native-layout dimensions."""
+        total_size = len(data) if serialized_size is None else serialized_size
+        footer_size = max(cls.__FOOTER_STRUCT.size, cls.__FOOTER_STRUCT_NATIVE.size)
+        footer_data = bytes(data[-footer_size:])
+        for footer, byteorder in (
+            (cls.__FOOTER_STRUCT, "little"),
+            (cls.__FOOTER_STRUCT_NATIVE, "native"),
+            (cls.__FOOTER_STRUCT_BE_LEGACY, "big"),
+        ):
+            if len(footer_data) < footer.size:
+                continue
+            width, depth, elements_added = footer.unpack(footer_data[-footer.size :])
+            expected_size = footer.size + width * depth * cls.__BASIC_BIN_STRUCT.size
+            if width > 0 and depth > 0 and total_size == expected_size:
+                return width, depth, elements_added, byteorder
+        raise InitializationError("CountMinSketch: invalid serialized data")
 
     def _parse_bytes(self, file: ByteString):
         """parse bytes or a mapped file to setup the CountMin-Sketch"""
-        width, depth, els_added = self._parse_footer(file)
+        footer_size = max(self.__FOOTER_STRUCT.size, self.__FOOTER_STRUCT_NATIVE.size)
+        width, depth, els_added, byteorder = self._parse_compatible_footer(
+            file[-footer_size:], len(file)
+        )
         self.__width = width
         self.__depth = depth
         self.__elements_added = els_added
@@ -424,7 +449,7 @@ class CountMinSketch:
         self.__error_rate = 2 / self.width
 
         offset = self.__BASIC_BIN_STRUCT.size * self.width * self.depth
-        self._bins = array("i", bytes(file[:offset]))
+        self._bins = array_from_bytes("i", bytes(file[:offset]), 4, byteorder)
 
     @staticmethod
     def __min_query(results: HashResultsT) -> int:

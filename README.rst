@@ -213,6 +213,11 @@ of all changes.
 Backward Compatible Changes
 ---------------------------
 
+New binary exports use explicit little-endian fields and fixed-width integer
+arrays. Loaders also accept legacy native-endian encodings, including files
+written on big-endian systems. Hash byte streams are interpreted as
+little-endian integers consistently on all platforms.
+
 If you are using previously exported probablistic data structures (v0.4.1 or below)
 and used the default hashing strategy, you will want to use the following code
 to mimic the original default hashing algorithm.

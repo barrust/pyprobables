@@ -77,7 +77,7 @@ class CountingBloomFilter(BloomFilter):
             self._bloom_length = n_bits
             self._bloom = array(self._typecode, [0]) * self._bloom_length
 
-    _IMPT_STRUCT = Struct("I")
+    _IMPT_STRUCT = Struct("<I")
 
     @classmethod
     def frombytes(cls, b: ByteString, hash_function: HashFuncT | None = None) -> "CountingBloomFilter":
@@ -88,12 +88,13 @@ class CountingBloomFilter(BloomFilter):
         Returns:
             CountingBloomFilter: A Counting Bloom Filter object
         """
-        offset = cls._FOOTER_STRUCT.size
-        est_els, els_added, fpr, n_hashes, n_bits = cls._parse_footer(cls._FOOTER_STRUCT, bytes(b[-1 * offset :]))
+        est_els, els_added, fpr, n_hashes, n_bits, byteorder = cls._parse_compatible_footer(
+            bytes(b), cls._IMPT_STRUCT.size
+        )
         blm = CountingBloomFilter(est_elements=est_els, false_positive_rate=fpr, hash_function=hash_function)
         blm._set_values(est_els, fpr, n_hashes, n_bits, hash_function)
         blm._els_added = els_added
-        blm._parse_bloom_array(b, cls._IMPT_STRUCT.size * blm.bloom_length)
+        blm._parse_bloom_array(b, cls._IMPT_STRUCT.size * blm.bloom_length, byteorder)
         return blm
 
     def __str__(self) -> str:

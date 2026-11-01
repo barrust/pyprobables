@@ -15,12 +15,20 @@ from numbers import Number
 from pathlib import Path
 from shutil import copyfile
 from struct import Struct
+from struct import error as StructError
 from textwrap import wrap
 from typing import Union
 
 from probables.exceptions import InitializationError, NotSupportedError, SimilarityError
 from probables.hashes import HashFuncT, HashResultsT, KeyT, default_fnv_1a
-from probables.utilities import MMap, is_hex_string, is_valid_file, resolve_path
+from probables.utilities import (
+    MMap,
+    array_from_bytes,
+    array_to_little_endian,
+    is_hex_string,
+    is_valid_file,
+    resolve_path,
+)
 
 MISMATCH_MSG = "The parameter second must be of type BloomFilter or a BloomFilterOnDisk"
 
@@ -105,9 +113,11 @@ class BloomFilter:
             self._bloom = array(self._typecode, [0]) * self._bloom_length
 
     # NOTE: these should be "FOOTERS" and not headers
-    _FOOTER_STRUCT = Struct("QQf")
+    _FOOTER_STRUCT = Struct("<QQf")
+    _FOOTER_STRUCT_NATIVE = Struct("@QQf")
+    _FOOTER_STRUCT_BE_LEGACY = Struct(">QQf")
     _FOOTER_STRUCT_BE = Struct(">QQf")
-    _FPR_STRUCT = Struct("f")
+    _FPR_STRUCT = Struct("<f")
     _IMPT_STRUCT = Struct("B")
 
     def __contains__(self, key: KeyT) -> int | bool:
@@ -294,7 +304,7 @@ class BloomFilter:
             with open(file, "wb") as filepointer:
                 self.export(filepointer)
         else:
-            self._bloom.tofile(file)  # type: ignore
+            file.write(array_to_little_endian(self._bloom, 1 if self._typecode == "B" else 4))
             file.write(
                 self._FOOTER_STRUCT.pack(
                     self.estimated_elements,
@@ -330,8 +340,7 @@ class BloomFilter:
         Returns:
             BloomFilter: A Bloom Filter object
         """
-        offset = cls._FOOTER_STRUCT.size
-        est_els, els_added, fpr, _, _ = cls._parse_footer(cls._FOOTER_STRUCT, bytes(b[-1 * offset :]))
+        est_els, els_added, fpr, _, _, _ = cls._parse_compatible_footer(bytes(b), cls._IMPT_STRUCT.size)
         blm = BloomFilter(est_elements=est_els, false_positive_rate=fpr, hash_function=hash_function)
         blm._load(b, hash_function=blm.hash_function)
         blm._els_added = els_added
@@ -522,15 +531,40 @@ class BloomFilter:
             with MMap(file) as filepointer:
                 self._load(filepointer, hash_function)
         else:
-            offset = self._FOOTER_STRUCT.size
-            est_els, els_added, fpr, n_hashes, n_bits = self._parse_footer(
-                self._FOOTER_STRUCT,
-                file[-1 * offset :],  # type: ignore
+            serialized_size = len(file)
+            footer_size = max(self._FOOTER_STRUCT.size, self._FOOTER_STRUCT_NATIVE.size)
+            est_els, els_added, fpr, n_hashes, n_bits, byteorder = self._parse_compatible_footer(
+                bytes(file[-footer_size:]),
+                self._IMPT_STRUCT.size,
+                serialized_size,
             )
             self._set_values(est_els, fpr, n_hashes, n_bits, hash_function)
             # now read in the bit array!
-            self._parse_bloom_array(file, self._IMPT_STRUCT.size * self.bloom_length)  # type: ignore
+            self._parse_bloom_array(file, self._IMPT_STRUCT.size * self.bloom_length, byteorder)  # type: ignore
             self._els_added = els_added
+
+    @classmethod
+    def _parse_compatible_footer(
+        cls, data: ByteString, itemsize: int, serialized_size: int | None = None
+    ) -> tuple[int, int, float, int, int, str]:
+        """Parse canonical or legacy native-layout binary metadata."""
+        total_size = len(data) if serialized_size is None else serialized_size
+        for stct, byteorder in (
+            (cls._FOOTER_STRUCT, "little"),
+            (cls._FOOTER_STRUCT_NATIVE, "native"),
+            (cls._FOOTER_STRUCT_BE_LEGACY, "big"),
+        ):
+            if len(data) < stct.size:
+                continue
+            try:
+                est_els, els_added, fpr, n_hashes, n_bits = cls._parse_footer(stct, data[-stct.size :])
+            except (InitializationError, ValueError, StructError):
+                continue
+            bits_per_elm = 8.0 if itemsize == 1 else 1.0
+            bloom_length = math.ceil(n_bits / bits_per_elm)
+            if total_size == stct.size + bloom_length * itemsize:
+                return est_els, els_added, fpr, n_hashes, n_bits, byteorder
+        raise InitializationError("Bloom: invalid serialized data")
 
     @classmethod
     def _parse_footer(cls, stct: Struct, d: ByteString) -> tuple[int, int, float, int, int]:
@@ -545,9 +579,13 @@ class BloomFilter:
 
         return int(est_elements), int(els_added), float(fpr), int(n_hashes), int(n_bits)
 
-    def _parse_bloom_array(self, b: ByteString, offset: int) -> None:
+    def _parse_bloom_array(self, b: ByteString, offset: int, byteorder: str = "little") -> None:
         """parse bytes into the bloom array"""
-        self._bloom = array(self._typecode, bytes(b[:offset]))
+        contents = bytes(b[:offset])
+        if self._IMPT_STRUCT.size == 1:
+            self._bloom = array(self._typecode, contents)
+        else:
+            self._bloom = array_from_bytes(self._typecode, contents, self._IMPT_STRUCT.size, byteorder)
 
     def _cnt_number_bits_set(self) -> int:
         """calculate the total number of set bits in the bloom"""
@@ -617,7 +655,9 @@ class BloomFilterOnDisk(BloomFilter):
             self._set_values(est_elements, fpr, n_hashes, n_bits, hash_function)
 
             with open(self._filepath, "wb") as filepointer:
-                (array(self._typecode, [0]) * self.bloom_length).tofile(filepointer)
+                filepointer.write(
+                    array_to_little_endian(array(self._typecode, [0]) * self.bloom_length, 1)
+                )
                 filepointer.write(self._FOOTER_STRUCT.pack(est_elements, 0, false_positive_rate))
                 filepointer.flush()
             self._load(self._filepath, hash_function)
@@ -659,10 +699,14 @@ class BloomFilterOnDisk(BloomFilter):
         # mmap everything
         file = resolve_path(file)
         with open(file, "r+b") as filepointer:
-            offset = self._FOOTER_STRUCT.size
-            filepointer.seek(offset * -1, os.SEEK_END)
-            est_els, _, fpr = self._FOOTER_STRUCT.unpack_from(filepointer.read(offset))
-
+            filepointer.seek(0, os.SEEK_END)
+            serialized_size = filepointer.tell()
+            footer_size = max(self._FOOTER_STRUCT.size, self._FOOTER_STRUCT_NATIVE.size)
+            filepointer.seek(-footer_size, os.SEEK_END)
+            footer_data = filepointer.read(footer_size)
+            est_els, _, fpr, _, _, _ = self._parse_compatible_footer(
+                footer_data, self._IMPT_STRUCT.size, serialized_size
+            )
             fpr, n_hashes, n_bits = self._get_optimized_params(est_els, fpr)
             self._set_values(est_els, fpr, n_hashes, n_bits, hash_function)
         # setup a few additional items
@@ -682,8 +726,8 @@ class BloomFilterOnDisk(BloomFilter):
         msg = "Loading from bytes is currently not supported by the on disk Bloom Filter"
         raise NotSupportedError(msg)
 
-    _EXPECTED_ELM_STRUCT = Struct("Q")
-    _UPDATE_OFFSET = Struct("Qf")
+    _EXPECTED_ELM_STRUCT = Struct("<Q")
+    _UPDATE_OFFSET = Struct("<Qf")
 
     def _get_element(self, idx: int) -> int:
         """wrappper to use similar functions always!"""

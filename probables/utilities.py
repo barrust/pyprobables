@@ -3,11 +3,36 @@
 import math
 import mmap
 import string
+import sys
 from array import array
 from io import IOBase
 from pathlib import Path
 from struct import Struct
 from typing import Literal
+
+
+def array_to_little_endian(values: array, itemsize: int) -> bytes:
+    """Serialize fixed-width array values in standard little-endian order."""
+    if values.itemsize != itemsize:
+        raise ValueError(f"Array type {values.typecode!r} has unexpected item size")
+    if sys.byteorder == "little" or itemsize == 1:
+        return values.tobytes()
+    result = array(values.typecode, values)
+    result.byteswap()
+    return result.tobytes()
+
+
+def array_from_bytes(typecode: str, data: bytes, itemsize: int, byteorder: str = "little") -> array:
+    """Deserialize fixed-width array values from an explicitly selected byte order."""
+    if byteorder not in ("little", "big", "native", sys.byteorder):
+        raise ValueError(f"Unsupported byte order: {byteorder!r}")
+    result = array(typecode)
+    if result.itemsize != itemsize or len(data) % itemsize:
+        raise ValueError(f"Invalid serialized data for array type {typecode!r}")
+    result.frombytes(data)
+    if byteorder not in ("native", sys.byteorder) and itemsize > 1:
+        result.byteswap()
+    return result
 
 
 def is_hex_string(hex_string: str | None) -> bool:
@@ -193,7 +218,9 @@ class Bitarray:
             int: Number of bits set"""
         return sum(self.check_bit(x) for x in range(self._size))
 
-    _BITARRAY_FOOTER = Struct("Q")
+    _BITARRAY_FOOTER = Struct("<Q")
+    _BITARRAY_FOOTER_NATIVE = Struct("@Q")
+    _BITARRAY_FOOTER_BE_LEGACY = Struct(">Q")
     _BITARRAY_BIN = Struct("B")
 
     def to_bytes(self) -> bytes:
@@ -202,7 +229,7 @@ class Bitarray:
         Returns:
             bytes: Bitarray representation as bytes"""
         footer = self._BITARRAY_FOOTER.pack(self._size)
-        return self._bitarray.tobytes() + footer
+        return array_to_little_endian(self._bitarray, 1) + footer
 
     @classmethod
     def from_bytes(cls, data: bytes) -> "Bitarray":
@@ -210,8 +237,17 @@ class Bitarray:
 
         Args:
             data (bytes): Bytes to convert"""
-        size = cls._BITARRAY_FOOTER.unpack(data[-8:])[0]
-        bitarray = array("B", data[:-8])
+        if len(data) < cls._BITARRAY_FOOTER.size:
+            raise ValueError("Invalid serialized bitarray")
+        payload = data[:-cls._BITARRAY_FOOTER.size]
+        size = cls._BITARRAY_FOOTER.unpack(data[-cls._BITARRAY_FOOTER.size :])[0]
+        if math.ceil(size / 8) != len(payload):
+            size = cls._BITARRAY_FOOTER_NATIVE.unpack(data[-cls._BITARRAY_FOOTER_NATIVE.size :])[0]
+            if math.ceil(size / 8) != len(payload):
+                size = cls._BITARRAY_FOOTER_BE_LEGACY.unpack(data[-cls._BITARRAY_FOOTER_BE_LEGACY.size :])[0]
+                if math.ceil(size / 8) != len(payload):
+                    raise ValueError("Invalid serialized bitarray")
+        bitarray = array("B", payload)
         ba = Bitarray(size)
         ba._bitarray = bitarray
         return ba

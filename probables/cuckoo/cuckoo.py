@@ -15,7 +15,14 @@ from struct import Struct
 
 from probables.exceptions import CuckooFilterFullError, InitializationError
 from probables.hashes import KeyT, SimpleHashT, fnv_1a
-from probables.utilities import MMap, get_x_bits, is_valid_file, resolve_path
+from probables.utilities import (
+    MMap,
+    array_from_bytes,
+    array_to_little_endian,
+    get_x_bits,
+    is_valid_file,
+    resolve_path,
+)
 
 
 class CuckooFilter:
@@ -344,7 +351,7 @@ class CuckooFilter:
             for _, val in enumerate(self.buckets):
                 bucket = array(self._CUCKOO_SINGLE_INT_C, val)
                 bucket.extend([0] * (self.bucket_size - len(bucket)))
-                bucket.tofile(filepointer)
+                filepointer.write(array_to_little_endian(bucket, 4))
             # now put out the required information at the end
             filepointer.write(self._CUCKOO_FOOTER_STRUCT.pack(self.bucket_size, self.max_swaps))
 
@@ -406,34 +413,54 @@ class CuckooFilter:
             with MMap(file) as filepointer:
                 self._load(filepointer)
         else:
-            self._parse_footer(file, self._CUCKOO_FOOTER_STRUCT)  # type: ignore
+            byteorder = self._parse_footer(
+                file, self._CUCKOO_FOOTER_STRUCT, self._CUCKOO_FOOTER_STRUCT_NATIVE
+            )  # type: ignore
             self._inserted_elements = 0
             # now pull everything in!
-            self._parse_buckets(file)  # type: ignore
+            self._parse_buckets(file, byteorder)  # type: ignore
 
     _CUCKOO_SINGLE_INT_C = "I"
-    _CUCKOO_SINGLE_INT_SIZE = Struct(_CUCKOO_SINGLE_INT_C).size
-    _CUCKOO_FOOTER_STRUCT = Struct("II")
+    _CUCKOO_SINGLE_INT_SIZE = Struct("<I").size
+    _CUCKOO_FOOTER_STRUCT = Struct("<II")
+    _CUCKOO_FOOTER_STRUCT_NATIVE = Struct("@II")
+    _CUCKOO_FOOTER_STRUCT_BE_LEGACY = Struct(">II")
 
-    def _parse_footer(self, d: ByteString, stct: Struct) -> None:
+    def _parse_footer(self, d: ByteString, stct: Struct, legacy_struct: Struct) -> str:
         """parse bytes and set footer information"""
-        list_size = len(d) - stct.size
-        self._bucket_size, self.__max_cuckoo_swaps = stct.unpack(d[list_size:])  # type:ignore
-        self._cuckoo_capacity = list_size // self._CUCKOO_SINGLE_INT_SIZE // self.bucket_size
+        total_size = len(d)
+        footer_size = max(stct.size, legacy_struct.size)
+        footer_data = bytes(d[-footer_size:])
+        for footer, byteorder in (
+            (stct, "little"),
+            (legacy_struct, "native"),
+            (self._CUCKOO_FOOTER_STRUCT_BE_LEGACY, "big"),
+        ):
+            if len(footer_data) < footer.size:
+                continue
+            bucket_size, max_swaps = footer.unpack(footer_data[-footer.size :])
+            list_size = total_size - footer.size
+            bucket_bytes = self._CUCKOO_SINGLE_INT_SIZE * bucket_size
+            if bucket_size > 0 and list_size > 0 and list_size % bucket_bytes == 0:
+                self._bucket_size = bucket_size
+                self.__max_cuckoo_swaps = max_swaps
+                self._cuckoo_capacity = list_size // bucket_bytes
+                return byteorder
+        raise InitializationError("CuckooFilter: invalid serialized data")
 
-    def _parse_buckets(self, d: ByteString) -> None:
+    def _parse_buckets(self, d: ByteString, byteorder: str = "little") -> None:
         """parse bytes and set buckets"""
         self._buckets = []
         bucket_byte_size = self.bucket_size * self._CUCKOO_SINGLE_INT_SIZE
         offs = 0
         for _ in range(self.capacity):
             next_offs = offs + bucket_byte_size
-            self.buckets.append(self._parse_bucket(d[offs:next_offs]))  # type: ignore
+            self.buckets.append(self._parse_bucket(d[offs:next_offs], byteorder))  # type: ignore
             offs = next_offs
 
-    def _parse_bucket(self, d: ByteString) -> array:
+    def _parse_bucket(self, d: ByteString, byteorder: str = "little") -> array:
         """parse a single bucket"""
-        bucket = array(self._CUCKOO_SINGLE_INT_C, bytes(d))
+        bucket = array_from_bytes(self._CUCKOO_SINGLE_INT_C, bytes(d), 4, byteorder)
         bucket = array(self._CUCKOO_SINGLE_INT_C, [el for el in bucket if el])
         self._inserted_elements += len(bucket)
         return bucket
