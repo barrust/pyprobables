@@ -345,9 +345,9 @@ class CuckooFilter:
         if not isinstance(file, IOBase | mmap):
             file = resolve_path(file)
             with open(file, "wb") as filepointer:
-                self.export(filepointer)  # type:ignore
+                self.export(filepointer)  # type: ignore
         else:
-            filepointer = file  # type:ignore
+            filepointer = file  # type: ignore
             for _, val in enumerate(self.buckets):
                 bucket = array(self._CUCKOO_SINGLE_INT_C, val)
                 bucket.extend([0] * (self.bucket_size - len(bucket)))

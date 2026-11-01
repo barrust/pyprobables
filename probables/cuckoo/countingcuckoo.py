@@ -226,7 +226,7 @@ class CountingCuckooFilter(CuckooFilter):
         if not isinstance(file, IOBase | mmap):
             file = resolve_path(file)
             with open(file, "wb") as filepointer:
-                self.export(filepointer)  # type:ignore
+                self.export(filepointer)  # type: ignore
         else:
             file.write(array_to_little_endian(self.__bucket_decomposition(self.buckets, self.bucket_size), 4))
             # now put out the required information at the end

@@ -655,9 +655,7 @@ class BloomFilterOnDisk(BloomFilter):
             self._set_values(est_elements, fpr, n_hashes, n_bits, hash_function)
 
             with open(self._filepath, "wb") as filepointer:
-                filepointer.write(
-                    array_to_little_endian(array(self._typecode, [0]) * self.bloom_length, 1)
-                )
+                filepointer.write(array_to_little_endian(array(self._typecode, [0]) * self.bloom_length, 1))
                 filepointer.write(self._FOOTER_STRUCT.pack(est_elements, 0, false_positive_rate))
                 filepointer.flush()
             self._load(self._filepath, hash_function)

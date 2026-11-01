@@ -439,9 +439,7 @@ class CountMinSketch:
     def _parse_bytes(self, file: ByteString):
         """parse bytes or a mapped file to setup the CountMin-Sketch"""
         footer_size = max(self.__FOOTER_STRUCT.size, self.__FOOTER_STRUCT_NATIVE.size)
-        width, depth, els_added, byteorder = self._parse_compatible_footer(
-            file[-footer_size:], len(file)
-        )
+        width, depth, els_added, byteorder = self._parse_compatible_footer(file[-footer_size:], len(file))
         self.__width = width
         self.__depth = depth
         self.__elements_added = els_added

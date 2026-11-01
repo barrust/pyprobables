@@ -239,7 +239,7 @@ class Bitarray:
             data (bytes): Bytes to convert"""
         if len(data) < cls._BITARRAY_FOOTER.size:
             raise ValueError("Invalid serialized bitarray")
-        payload = data[:-cls._BITARRAY_FOOTER.size]
+        payload = data[: -cls._BITARRAY_FOOTER.size]
         size = cls._BITARRAY_FOOTER.unpack(data[-cls._BITARRAY_FOOTER.size :])[0]
         if math.ceil(size / 8) != len(payload):
             size = cls._BITARRAY_FOOTER_NATIVE.unpack(data[-cls._BITARRAY_FOOTER_NATIVE.size :])[0]
