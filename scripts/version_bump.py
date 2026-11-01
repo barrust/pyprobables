@@ -1,5 +1,5 @@
-""" Update all the different version variables
-"""
+"""Update all the different version variables"""
+
 import os
 from datetime import datetime
 from functools import wraps

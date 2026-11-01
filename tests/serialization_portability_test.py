@@ -63,9 +63,7 @@ class TestSerializationPortability(unittest.TestCase):
     def test_expanding_bloom_loads_legacy_big_endian(self):
         bloom = ExpandingBloomFilter(est_elements=20, false_positive_rate=0.05)
         bloom.add("portable")
-        payload = b"".join(
-            Struct(">Q").pack(part.elements_added) + bytes(part.bloom) for part in bloom._blooms
-        )
+        payload = b"".join(Struct(">Q").pack(part.elements_added) + bytes(part.bloom) for part in bloom._blooms)
         footer = Struct(">QQQf").pack(
             len(bloom._blooms), bloom.estimated_elements, bloom.elements_added, bloom.false_positive_rate
         )
@@ -103,10 +101,7 @@ class TestSerializationPortability(unittest.TestCase):
         footer = Struct(">II").pack(counting.bucket_size, counting.max_swaps)
         loaded_counting = CountingCuckooFilter.frombytes(bins + footer)
         self.assertEqual(
-            [
-                [(entry.get_array()[0], entry.get_array()[1]) for entry in bucket]
-                for bucket in loaded_counting.buckets
-            ],
+            [[(entry.get_array()[0], entry.get_array()[1]) for entry in bucket] for bucket in loaded_counting.buckets],
             [[(entry.get_array()[0], entry.get_array()[1]) for entry in bucket] for bucket in counting.buckets],
         )
 
