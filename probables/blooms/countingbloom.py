@@ -235,7 +235,7 @@ class CountingBloomFilter(BloomFilter):
         for i in range(self.bloom_length):
             if self._bloom[i] > 0 and second._bloom[i] > 0:
                 tmp = self._bloom[i] + second._bloom[i]
-                res.bloom[i] = tmp
+                res.bloom[i] = min(tmp, UINT32_T_MAX)
         res.elements_added = res.estimate_elements()
         return res
 
@@ -295,7 +295,7 @@ class CountingBloomFilter(BloomFilter):
         )
         for i in range(self.bloom_length):
             tmp = self._bloom[i] + second._bloom[i]
-            res._bloom[i] = tmp
+            res._bloom[i] = min(tmp, UINT32_T_MAX)
         res.elements_added = res.estimate_elements()
         return res
 
