@@ -71,6 +71,13 @@ elements with low overhead and few false positive results. The name is derived
 from the `cuckoo hashing <https://en.wikipedia.org/wiki/Cuckoo_hashing>`__
 strategy used to resolve conflicts.
 
+Fingerprints are stored in packed layers; expansion appends a layer rather
+than rebuilding existing entries. ``capacity`` counts buckets across all
+layers, and ``buckets`` is a snapshot. The reported error rate is a theoretical
+aggregate budget under suitable hashing assumptions, not a guarantee.
+Fingerprint collisions can merge distinct keys and affect later removals.
+See the quickstart for storage, persistence, and hash requirements.
+
 .. warning::
 
    Cuckoo filters exported by older pyprobables releases cannot be loaded by

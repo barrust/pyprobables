@@ -6,6 +6,14 @@
   exports from older pyprobables releases. Use an older release for existing
   files, or rebuild the filter from the original keys. Earlier exports may
   have already lost entries with zero fingerprints.
+* Cuckoo filters use key-dependent bucket indices and compact, packed
+  fingerprint layers. Expansion reserves an aggregate false-positive budget
+  and does not retain full hashes. Colliding keys may be treated as duplicates
+  or share counts; removals can affect other colliding keys.
+* Exports use a versioned little-endian format and preserve zero fingerprints.
+  `capacity` includes all layers, `fingerprint_size_bits` describes the first
+  layer, and `buckets` returns a snapshot. As before, expansion settings are
+  supplied by the loading constructor rather than persisted.
 
 ### Version 0.7.1
 

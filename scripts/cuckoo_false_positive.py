@@ -3,6 +3,7 @@
 import argparse
 import random
 import statistics
+import sys
 import time
 
 from probables import CountingCuckooFilter, CuckooFilter
@@ -42,11 +43,18 @@ def run_iteration(filter_class, args, iteration: int) -> tuple[int, int]:
         cko.add(key)
     missing = sum(not bool(cko.check(key)) for key in make_keys(seed, args.keys, "key"))
     hits = sum(bool(cko.check(key)) for key in make_keys(seed + args.iterations, args.queries, "query"))
+    allocated_buffers = sum(
+        sys.getsizeof(buffer)
+        for layer in cko._layers
+        for buffer in (layer.fingerprints, layer.occupied, layer.counts)
+        if buffer is not None
+    )
     print(
         f"{filter_class.__name__} run={iteration + 1} seed={seed} "
         f"inserted={cko.elements_added}/{args.keys} "
         f"capacity={cko.capacity} slots={cko.capacity * cko.bucket_size} "
         f"load={cko.load_factor():.6f} fingerprint_bits={cko.fingerprint_size_bits} "
+        f"layers={len(cko._layers)} allocated_buffer_bytes={allocated_buffers} "
         f"false_negatives={missing} false_positives={hits}/{args.queries} "
         f"rate={hits / args.queries:.8g} elapsed={time.perf_counter() - start:.2f}s",
         flush=True,

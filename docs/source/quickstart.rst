@@ -256,13 +256,38 @@ guarantee for every set of queries or custom hash function.
     >>> ckf.check('bob')
     True
 
-The new format stores 64-bit key hashes alongside fingerprints to allow
-expansion and to distinguish matching fingerprints. This increases memory and
-changes the export format and size; older releases cannot read the new format.
-The hash function is not stored, so a custom hash must also be provided when
-loading. A full 64-bit hash collision still makes keys
-indistinguishable. A positive membership check can be a false positive, and
-after removal a key can still appear present due to another fingerprint.
+The filter stores fingerprints rather than full key hashes. Each slot uses a
+fingerprint rounded up to whole bytes, plus one occupancy bit; the counting
+filter also uses four bytes per slot for its count. The occupancy bit allows
+zero fingerprints to be exported and restored. Python object and allocation
+overhead are additional.
+
+An expanding filter keeps its existing layers and appends a larger layer. The
+first layer receives half of the total false-positive budget and each
+subsequent layer receives half of the remaining budget. Its fingerprint
+width increases by one bit per layer, up to 64 bits. This budget is an
+estimate under a uniform, suitably independent hashing model, not a hard
+guarantee. For example, ``init_error_rate(0.001)`` with four slots per bucket
+uses 14 bits in the first layer; the default constructor retains a 32-bit
+first layer and reports the aggregate budget for future growth.
+``fingerprint_size_bits`` describes the first layer, while ``capacity`` is
+the total bucket count across layers. ``buckets`` is a detached snapshot.
+When the 64-bit limit is reached, further expansion raises
+``CuckooFilterFullError``.
+
+Repeated additions to the standard filter are ignored, including when a
+different key happens to match a stored fingerprint in a candidate bucket.
+As with a compact cuckoo filter generally, removing such a key can make
+another key appear absent; never remove a key that was not added. A positive
+membership check may be a false positive even after removal.
+
+Exports use a versioned little-endian format, portable across byte orders.
+The hash function is not stored, so the same custom hash must be supplied
+when loading. Custom hashes should provide uniformly distributed 64-bit values;
+a 32-bit hash cannot support the advertised budget for wider fingerprints.
+``auto_expand`` and ``expansion_rate`` are not saved and use the loading
+constructor's settings (defaults when loading with ``frombytes`` or
+``load_error_rate``). Older releases cannot read the new format.
 
 **Breaking change:** cuckoo filters exported by older pyprobables releases
 cannot be loaded by this version. Use an older release to work with those
@@ -277,17 +302,21 @@ To measure the false-positive rate of a source checkout, run:
 
     python -m scripts.cuckoo_false_positive --error-rate 0.001 --keys 100000 --queries 1000000 --iterations 5
 
-The script reports each run's load, false positives and false negatives for
-both cuckoo variants. Use ``--help`` for filter selection, seed, capacity, and
-other options. More queries are needed to measure very small rates reliably.
+The script reports each run's load, layer count, allocated fingerprint,
+occupancy and count buffer sizes, false positives and false negatives for both
+cuckoo variants. Buffer sizes include the Python bytearray allocation overhead
+but exclude other objects. Use ``--help`` for filter selection, seed, capacity,
+and other options. More queries are needed to measure very small rates reliably.
 
 Other Cuckoo Filters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Counting Cuckoo Filter
 """""""""""""""""""""""""""""""""""""""""""""""
-The counting cuckoo filter tracks additions by key hash. A query for an absent
-key can still return a nonzero count due to a matching fingerprint.
+The counting cuckoo filter tracks additions by matching fingerprint and
+candidate buckets. Colliding keys can share a count, and a query for an
+absent key can return a nonzero count. Removing a colliding key can affect
+another key's count.
 
 .. code:: python3
 

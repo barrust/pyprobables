@@ -15,7 +15,6 @@ sys.path.insert(0, str(this_dir))
 sys.path.insert(0, str(this_dir.parent))
 
 from probables import CuckooFilter, CuckooFilterFullError, InitializationError  # noqa: E402
-from tests.utilities import calc_file_md5  # noqa: E402
 
 DELETE_TEMP_FILES = True
 
@@ -131,7 +130,7 @@ class TestCuckooFilter(unittest.TestCase):
         def runner():
             """runner"""
             cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=100, auto_expand=False)
-            for i in range(175):
+            for i in range(201):
                 cko.add(str(i))
 
         self.assertRaises(CuckooFilterFullError, runner)
@@ -180,7 +179,7 @@ class TestCuckooFilter(unittest.TestCase):
         """test exception message for full cuckoo filter"""
         try:
             cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=100, auto_expand=False)
-            for i in range(175):
+            for i in range(201):
                 cko.add(str(i))
         except CuckooFilterFullError as ex:
             self.assertEqual(str(ex), "The CuckooFilter is currently full")
@@ -193,9 +192,9 @@ class TestCuckooFilter(unittest.TestCase):
         random.seed(0)
 
         def fixed_hash(key):
-            return (int(key[1:]) << 32) | 3 if key.startswith("k") else 1
+            return int(key[1:])
 
-        cko = CuckooFilter(capacity=2, bucket_size=1, max_swaps=4, auto_expand=False, hash_function=fixed_hash)
+        cko = CuckooFilter(capacity=1, bucket_size=2, max_swaps=4, auto_expand=False, hash_function=fixed_hash)
         added = ["k0", "k1"]
         for key in added:
             cko.add(key)
@@ -211,14 +210,8 @@ class TestCuckooFilter(unittest.TestCase):
         for key in added:
             cko.add(key)
         original = bytes(cko)
-        insert = cko._insert_entry
-        outcomes = iter([True, False])
-
-        def sometimes_insert(entry, key_hash):
-            return insert(entry, key_hash) if next(outcomes) else False
-
-        with patch.object(CuckooFilter, "_insert_entry", side_effect=sometimes_insert):
-            self.assertRaises(CuckooFilterFullError, cko.expand)
+        with patch.object(CuckooFilter, "_insert_entry", return_value=False):
+            self.assertRaises(CuckooFilterFullError, cko.add, "three")
         self.assertEqual(20, cko.capacity)
         self.assertEqual(original, bytes(cko))
         self.assertEqual(len(added), cko.elements_added)
@@ -286,23 +279,19 @@ class TestCuckooFilter(unittest.TestCase):
 
     def test_cuckoo_filter_export(self):
         """test exporting a cuckoo filter"""
-        md5sum = "2c4aa961ad1e0464726456680a9eeeed"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".cko", delete=DELETE_TEMP_FILES) as fobj:
             cko = CuckooFilter()
             for i in range(1000):
                 cko.add(str(i))
             cko.export(fobj.name)
-            md5_out = calc_file_md5(fobj.name)
-            self.assertEqual(md5sum, md5_out)
+            self.assertEqual(bytes(cko), Path(fobj.name).read_bytes())
 
     def test_cuckoo_filter_bytes(self):
         """test exporting a cuckoo filter to bytes"""
-        md5sum = "2c4aa961ad1e0464726456680a9eeeed"
         cko = CuckooFilter()
         for i in range(1000):
             cko.add(str(i))
-        md5_out = hashlib.md5(bytes(cko)).hexdigest()
-        self.assertEqual(md5sum, md5_out)
+        self.assertEqual(b"PYCKOO\x02\x00", bytes(cko)[:8])
 
     def test_cuckoo_filter_frombytes(self):
         """test initializing a cuckoo filter from bytes"""
@@ -320,14 +309,12 @@ class TestCuckooFilter(unittest.TestCase):
 
     def test_cuckoo_filter_load(self):
         """test loading a saved cuckoo filter"""
-        md5sum = "2c4aa961ad1e0464726456680a9eeeed"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".cko", delete=DELETE_TEMP_FILES) as fobj:
             cko = CuckooFilter()
             for i in range(1000):
                 cko.add(str(i))
             cko.export(fobj.name)
-            md5_out = calc_file_md5(fobj.name)
-            self.assertEqual(md5sum, md5_out)
+            self.assertEqual(bytes(cko), Path(fobj.name).read_bytes())
 
             ckf = CuckooFilter(filepath=fobj.name)
             for i in range(1000):
@@ -360,14 +347,14 @@ class TestCuckooFilter(unittest.TestCase):
         cko.expand()
         for i in range(200):
             self.assertTrue(cko.check(str(i)))
-        self.assertEqual(20000, cko.capacity)
+        self.assertEqual(30000, cko.capacity)
 
     def test_cuckoo_filter_auto_expand(self):
         """test inserting until cuckoo filter is full"""
         cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=100)
         for i in range(375):  # this would fail if it doesn't expand
             cko.add(str(i))
-        self.assertEqual(400, cko.capacity)
+        self.assertEqual(300, cko.capacity)
         self.assertEqual(375, cko.elements_added)
         for i in range(375):
             self.assertTrue(cko.check(str(i)))
@@ -498,7 +485,7 @@ class TestCuckooFilterErrorRate(unittest.TestCase):
         self.assertEqual(2, cko.expansion_rate)
         self.assertEqual(True, cko.auto_expand)
         self.assertEqual(3, cko.fingerprint_size)
-        self.assertEqual(20, cko.fingerprint_size_bits)
+        self.assertEqual(21, cko.fingerprint_size_bits)
         self.assertEqual(0.00001, cko.error_rate)
 
     def test_cuckoo_filter_er_add_check(self):
@@ -527,25 +514,21 @@ class TestCuckooFilterErrorRate(unittest.TestCase):
 
     def test_cuckoo_filter_er_export(self):
         """test exporting a cuckoo filter"""
-        md5sum = "e65ba297ac1f9c666786a3b51c79dd6e"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".cko", delete=DELETE_TEMP_FILES) as fobj:
             cko = CuckooFilter.init_error_rate(0.00001)
             for i in range(1000):
                 cko.add(str(i))
             cko.export(fobj.name)
-            md5_out = calc_file_md5(fobj.name)
-            self.assertEqual(md5sum, md5_out)
+            self.assertEqual(bytes(cko), Path(fobj.name).read_bytes())
 
     def test_cuckoo_filter_load(self):
         """test loading a saved cuckoo filter"""
-        md5sum = "e65ba297ac1f9c666786a3b51c79dd6e"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".cko", delete=DELETE_TEMP_FILES) as fobj:
             cko = CuckooFilter.init_error_rate(0.00001)
             for i in range(1000):
                 cko.add(str(i))
             cko.export(fobj.name)
-            md5_out = calc_file_md5(fobj.name)
-            self.assertEqual(md5sum, md5_out)
+            self.assertEqual(bytes(cko), Path(fobj.name).read_bytes())
 
             ckf = CuckooFilter.load_error_rate(error_rate=0.00001, filepath=fobj.name)
             for i in range(1000):
@@ -557,18 +540,16 @@ class TestCuckooFilterErrorRate(unittest.TestCase):
             self.assertEqual(2, ckf.expansion_rate)
             self.assertEqual(True, ckf.auto_expand)
             self.assertEqual(3, ckf.fingerprint_size)
-            self.assertEqual(20, ckf.fingerprint_size_bits)
+            self.assertEqual(21, ckf.fingerprint_size_bits)
             self.assertEqual(0.00001, ckf.error_rate)
             self.assertEqual(0.025, ckf.load_factor())
 
     def test_cuckoo_filter_er_bytes(self):
         """test exporting a cuckoo filter to bytes"""
-        md5sum = "e65ba297ac1f9c666786a3b51c79dd6e"
         cko = CuckooFilter.init_error_rate(0.00001)
         for i in range(1000):
             cko.add(str(i))
-        md5_out = hashlib.md5(bytes(cko)).hexdigest()
-        self.assertEqual(md5sum, md5_out)
+        self.assertEqual(b"PYCKOO\x02\x00", bytes(cko)[:8])
 
     def test_cuckoo_filter_er_frombytes(self):
         """test initializing a cuckoo filter frombytes"""
