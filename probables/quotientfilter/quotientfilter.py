@@ -212,9 +212,9 @@ class QuotientFilter:
             int: The next hash stored in the quotient filter"""
         queue: list[int] = []
 
-        # find first empty location
+        # find the first location that is empty or, if there may be no such location, the start of a cluster
         start = 0
-        while not self._is_empty_element(start):
+        while not (self._is_empty_element(start) or self._is_cluster_start(start)):
             start += 1
 
         cur_quot = 0
@@ -398,6 +398,12 @@ class QuotientFilter:
         if idx == -1:
             return
 
+        if self._elements_added == self._size:
+            self._remove_from_full(q, r)
+            return
+
+        self._elements_added -= 1
+
         next_idx = (idx + 1) & self.__mod_size
         remove_orig_idx = self._should_remove_orig_idx(idx, next_idx)
 
@@ -412,6 +418,21 @@ class QuotientFilter:
         if remove_orig_idx:
             self._is_occupied[q] = 0
         self._fixup_cluster(min_idx, next_idx)
+
+    def _remove_from_full(self, q: int, r: int) -> None:
+        """Remove an element when there is no empty location that would end the shifting"""
+        hashes = self.get_hashes()
+        hashes.remove((q << self._r) + r)
+
+        self._is_occupied.clear()
+        self._is_continuation.clear()
+        self._is_shifted.clear()
+        for i in range(self._size):
+            self._filter[i] = 0
+        self._elements_added = 0
+
+        for _h in hashes:
+            self._add(_h >> self._r, _h & ((1 << self._r) - 1))
 
     def _should_remove_orig_idx(self, idx: int, next_idx: int) -> bool:
         return self._is_run_or_cluster_start(idx) and self._is_continuation[next_idx] == 0

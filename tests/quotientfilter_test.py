@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Unittest class"""
 
+import itertools
 import os
 import random
 import sys
@@ -431,6 +432,38 @@ class TestQuotientFilter(unittest.TestCase):
                     missing_vals.append(a)
             self.assertListEqual(missing_vals, [])
             self.assertTrue(qf.validate_metadata())
+
+    def test_qf_remove_elements_added(self):
+        """Test that removed elements do not count as added"""
+        qf = QuotientFilter(quotient=3)
+        for i in range(100):
+            qf.add(f"test{i}")
+            self.assertEqual(qf.elements_added, 1)
+            qf.remove("missing")
+            self.assertEqual(qf.elements_added, 1)
+            qf.remove(f"test{i}")
+            self.assertEqual(qf.elements_added, 0)
+        self.assertEqual(qf.size, 8)
+
+        qf = QuotientFilter(quotient=3, auto_expand=False)
+        for i in range(100):
+            qf.add(f"test{i}")
+            qf.remove(f"test{i}")
+        self.assertEqual(qf.load_factor, 0.0)
+
+    def test_qf_remove_no_empty_locations(self):
+        """Test removing from a filter that has no empty locations, filled in many ways"""
+        for quotients in itertools.islice(itertools.combinations_with_replacement(range(8), 8), 0, None, 10):
+            hashes = [(q << 29) + i for i, q in enumerate(quotients)]
+            for removed in hashes:
+                qf = QuotientFilter(quotient=3, auto_expand=False)
+                for _h in hashes:
+                    qf.add_alt(_h)
+                self.assertEqual(qf.get_hashes().count(removed), 1)
+                qf.remove_alt(removed)
+                self.assertFalse(qf.check_alt(removed))
+                self.assertListEqual(sorted(qf.get_hashes()), [_h for _h in hashes if _h != removed])
+                self.assertEqual(qf.elements_added, 7)
 
     def test_quotient_filter_print_empty(self):
         """Test printing the data of a quotient filter in a manner to be read through"""
