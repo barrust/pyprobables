@@ -234,23 +234,71 @@ Import a Cuckoo Filter
 Cuckoo Filters based on Error Rate
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 To use error rate to initialize a Cuckoo Filter, there are class methods that can be used.
-`init_error_rate()` can be used to initialize a Cuckoo Filter that has not been exported, and
-`load_error_rate()` can be used to load in a previously exported Cuckoo Filter that used error rate
-to determine the parameters.
+``init_error_rate()`` chooses a fingerprint size for the requested rate.
+The rate is a theoretical estimate assuming suitably distributed hashes, not a
+guarantee for every set of queries or custom hash function.
 
 .. code:: python3
 
-    >>> cko = CuckooFilter.init_error_rate(0.00001)
-    >>> cko.export('war_and_peace.cko')
-    >>> ckf = CuckooFilter.load_error_rate(0.00001)
+    >>> from probables import CuckooFilter
+    >>> cko = CuckooFilter.init_error_rate(0.001)
+    >>> cko.add('alice')
+    >>> cko.add('bob')
+    >>> cko.add('alice')  # repeated additions are ignored
+    >>> cko.check('alice')
+    True
+    >>> cko.remove('alice')
+    True
+    >>> cko.check('bob')
+    True
+    >>> cko.export('example.cko')
+    >>> ckf = CuckooFilter(filepath='example.cko')
+    >>> ckf.check('bob')
+    True
+
+The new format stores 64-bit key hashes alongside fingerprints to allow
+expansion and to distinguish matching fingerprints. This increases memory and
+changes the export format and size; older releases cannot read the new format.
+The hash function is not stored, so a custom hash must also be provided when
+loading. A full 64-bit hash collision still makes keys
+indistinguishable. A positive membership check can be a false positive, and
+after removal a key can still appear present due to another fingerprint.
+
+Exports from older versions remain readable using their original indexing and
+error-rate behavior. They cannot be converted to the new layout without
+re-adding the original keys. For old error-rate-based exports, use
+``load_error_rate(error_rate, filepath)`` with the original error rate.
+
+To measure the false-positive rate of a source checkout, run:
+
+.. code:: bash
+
+    python -m scripts.cuckoo_false_positive --error-rate 0.001 --keys 100000 --queries 1000000 --iterations 5
+
+The script reports each run's load, false positives and false negatives for
+both cuckoo variants. Use ``--help`` for filter selection, seed, capacity, and
+other options. More queries are needed to measure very small rates reliably.
 
 Other Cuckoo Filters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Counting Cuckoo Filter
 """""""""""""""""""""""""""""""""""""""""""""""
-The counting cuckoo filter is similar to the standard filter except that it
-tracks the number of times a fingerprint has been added to the filter.
+The counting cuckoo filter tracks additions by key hash. A query for an absent
+key can still return a nonzero count due to a matching fingerprint.
+
+.. code:: python3
+
+    >>> from probables import CountingCuckooFilter
+    >>> counts = CountingCuckooFilter.init_error_rate(0.001)
+    >>> counts.add('alice')
+    >>> counts.add('alice')
+    >>> counts.check('alice')
+    2
+    >>> counts.remove('alice')
+    True
+    >>> counts.check('alice')
+    1
 
 
 Quotient Filters

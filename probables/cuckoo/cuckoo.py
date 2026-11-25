@@ -11,7 +11,7 @@ from io import BytesIO, IOBase
 from mmap import mmap
 from numbers import Number
 from pathlib import Path
-from struct import Struct
+from struct import Struct, error as StructError
 
 from probables.exceptions import CuckooFilterFullError, InitializationError
 from probables.hashes import KeyT, SimpleHashT, fnv_1a
@@ -28,8 +28,7 @@ class CuckooFilter:
         expansion_rate (int): The rate at which to expand
         auto_expand (bool): If the filter should automatically expand
         finger_size (int): The size of the fingerprint to use in bytes \
-            (between 1 and 4); exported as 4 bytes; up to the user to \
-            reset the size correctly on import
+            (between 1 and 4). Legacy exports require this value on import.
         filepath (str): The path to the file to load or None if no file
         hash_function (function): Hashing strategy function to use `hf(key)`
     Returns:
@@ -46,6 +45,8 @@ class CuckooFilter:
         "_inserted_elements",
         "_buckets",
         "_error_rate",
+        "_hash_buckets",
+        "_legacy_layout",
     )
 
     def __init__(
@@ -86,18 +87,22 @@ class CuckooFilter:
         else:
             self.__hash_func = hash_function  # type: ignore
         self._inserted_elements = 0
+        self._legacy_layout = False
+        self._hash_buckets: list[list[int]] = []
+        self._error_rate = float(self._calc_error_rate())
         if filepath is None:
             self._buckets = []  # type: ignore
             for _ in range(self.capacity):
                 self.buckets.append([])
+                self._hash_buckets.append([])
         elif is_valid_file(filepath):
             filepath = resolve_path(filepath)
             self._load(filepath)
+            if self._legacy_layout:
+                self._error_rate = self._calc_error_rate()
         else:
             msg = "CuckooFilter: failed to load provided file"
             raise InitializationError(msg)
-
-        self._error_rate = float(self._calc_error_rate())
 
     @classmethod
     def init_error_rate(
@@ -163,11 +168,11 @@ class CuckooFilter:
     ) -> "CuckooFilter":
         """
         Args:
-            b (ByteString): The bytes to load as a Expanding Bloom Filter
-            error_rate (float): The error rate of the cuckoo filter, if used to generate the original filter
-            hash_function (function): Hashing strategy function to use `hf(key, number)`
+            b (ByteString): The exported cuckoo filter
+            error_rate (float): Original error rate, required for legacy error-rate-based exports
+            hash_function (function): Original hashing strategy function `hf(key)`
         Returns:
-            CuckooFilter: A Bloom Filter object
+            CuckooFilter: A Cuckoo Filter object
         """
         cku = CuckooFilter(hash_function=hash_function)
         cku._load(b)  # type: ignore
@@ -245,7 +250,11 @@ class CuckooFilter:
 
     @property
     def error_rate(self) -> float:
-        """float: The error rate of the cuckoo filter"""
+        """float: Target error rate, or theoretical estimate for the fingerprint size.
+
+        The estimate assumes suitably distributed hashes and does not apply to
+        legacy filters loaded from the old fingerprint-only layout.
+        """
         return self._error_rate
 
     @property
@@ -270,7 +279,8 @@ class CuckooFilter:
         Raises:
             ValueError: If the size is not between 1 and 4
         Note:
-            The size of the fingerprint must be between 1 and 4"""
+            The size of the fingerprint must be between 1 and 4 and cannot
+            be changed on a non-empty filter."""
         return math.ceil(self.fingerprint_size_bits / 8)
 
     @fingerprint_size.setter
@@ -280,9 +290,11 @@ class CuckooFilter:
         if not 1 <= tmp <= 4:
             msg = f"{self.__class__.__name__}: fingerprint size must be between 1 and 4"
             raise ValueError(msg)
+        if getattr(self, "_inserted_elements", 0) and tmp * 8 != self._fingerprint_size:
+            raise ValueError("Cannot change fingerprint size on a non-empty cuckoo filter")
         # bytes to bits
         self._fingerprint_size = tmp * 8
-        self._calc_error_rate()  # if updating fingerprint size then error rate may change
+        self._error_rate = self._calc_error_rate()
 
     def load_factor(self) -> float:
         """float: How full the Cuckoo Filter is currently"""
@@ -295,6 +307,14 @@ class CuckooFilter:
             key (str): The element to add
         Raises:
             CuckooFilterFullError: When element not inserted after maximum number of swaps or 'kicks'"""
+        if not self._legacy_layout:
+            key_hash = self._key_hash(key)
+            if self._find_hash(key_hash) is not None:
+                return
+            fingerprint = self._fingerprint_from_hash(key_hash)
+            self._add_modern(fingerprint, key_hash)
+            self._inserted_elements += 1
+            return
         idx_1, idx_2, fingerprint = self._generate_fingerprint_info(key)
 
         is_present = self._check_if_present(idx_1, idx_2, fingerprint)
@@ -321,6 +341,15 @@ class CuckooFilter:
             key (str): Element to remove
         Returns:
             bool: True if removed, False if not present"""
+        if not self._legacy_layout:
+            location = self._find_hash(self._key_hash(key))
+            if location is None:
+                return False
+            idx, pos = location
+            del self.buckets[idx][pos]
+            del self._hash_buckets[idx][pos]
+            self._inserted_elements -= 1
+            return True
         idx_1, idx_2, fingerprint = self._generate_fingerprint_info(key)
         idx = self._check_if_present(idx_1, idx_2, fingerprint)
         if idx is None:
@@ -341,6 +370,9 @@ class CuckooFilter:
                 self.export(filepointer)  # type:ignore
         else:
             filepointer = file  # type:ignore
+            if not self._legacy_layout:
+                self._export_modern(filepointer)
+                return
             for _, val in enumerate(self.buckets):
                 bucket = array(self._CUCKOO_SINGLE_INT_C, val)
                 bucket.extend([0] * (self.bucket_size - len(bucket)))
@@ -356,7 +388,10 @@ class CuckooFilter:
 
     def expand(self):
         """Expand the cuckoo filter"""
-        self._expand_logic(None)
+        if self._legacy_layout:
+            self._expand_logic(None)
+        else:
+            self._expand_modern()
 
     def _insert_fingerprint(self, fingerprint, idx_1, idx_2):
         """insert a fingerprint"""
@@ -399,17 +434,27 @@ class CuckooFilter:
         # if we got here we have an error... we might need to know what is left
         return orig_fingerprint
 
-    def _load(self, file: Path | str | IOBase | mmap | bytes) -> None:
+    def _load(self, file: Path | str | IOBase | mmap | bytes | ByteString) -> None:
         """load a cuckoo filter from file"""
-        if not isinstance(file, IOBase | mmap | bytes):
+        if not isinstance(file, IOBase | mmap | bytes | bytearray | memoryview):
             file = resolve_path(file)
             with MMap(file) as filepointer:
                 self._load(filepointer)
         else:
+            if isinstance(file, IOBase):
+                file = file.read()
+            if bytes(file[:6]) == self._MODERN_MAGIC[:6]:
+                if bytes(file[:8]) != self._MODERN_MAGIC:
+                    raise InitializationError("Unsupported cuckoo filter format")
+                self._load_modern(file)
+                return
+            self._legacy_layout = True
+            self._hash_buckets = []
             self._parse_footer(file, self._CUCKOO_FOOTER_STRUCT)  # type: ignore
             self._inserted_elements = 0
             # now pull everything in!
             self._parse_buckets(file)  # type: ignore
+            self._error_rate = self._calc_error_rate()
 
     _CUCKOO_SINGLE_INT_C = "I"
     _CUCKOO_SINGLE_INT_SIZE = Struct(_CUCKOO_SINGLE_INT_C).size
@@ -442,8 +487,15 @@ class CuckooFilter:
         """set error rate correctly"""
         # if error rate is provided, use it
         if error_rate is not None:
+            if not 0 < error_rate < 1:
+                raise ValueError("Cuckoo filter error rate must be between 0 and 1")
+            bits = math.ceil(-math.log2(error_rate) + math.log2(self.bucket_size) + 1)
+            if not 1 <= bits <= 32:
+                raise ValueError("Cuckoo filter error rate requires a fingerprint outside 1 to 32 bits")
+            if self._inserted_elements and not self._legacy_layout and bits != self.fingerprint_size_bits:
+                raise ValueError("Cannot change fingerprint size on a non-empty cuckoo filter")
             self._error_rate = error_rate
-            self._fingerprint_size = self._calc_fingerprint_size()
+            self._fingerprint_size = bits
 
     def _check_if_present(self, idx_1, idx_2, fingerprint):
         """wrapper for checking if fingerprint is already inserted"""
@@ -516,14 +568,179 @@ class CuckooFilter:
             key (str): The element for which information is to be generated
         """
         # generate the fingerprint along with the two possible indecies
-        hash_val = self.__hash_func(key)  # type: ignore
+        hash_val = self._key_hash(key)
         fingerprint = get_x_bits(hash_val, 64, self.fingerprint_size_bits, True)
-        idx_1, idx_2 = self._indicies_from_fingerprint(fingerprint)
+        if self._legacy_layout:
+            idx_1, idx_2 = self._indicies_from_fingerprint(fingerprint)
+        else:
+            idx_1, idx_2 = self._modern_indices(hash_val)
 
         # NOTE: This should never happen...
         if idx_1 > self.capacity or idx_2 > self.capacity:
             raise ValueError(f"Either idx_1 {idx_1} or idx_2 {idx_2} is greater than {self.capacity}")
         return idx_1, idx_2, fingerprint
+
+    _MODERN_MAGIC = b"PYCKOO\x01\x00"
+    _MODERN_HEADER = Struct("<8sBIIIId")
+    _MODERN_BUCKET_SIZE = Struct("<I")
+    _MODERN_HASH = Struct("<Q")
+    _MODERN_COUNT = Struct("<I")
+
+    def _key_hash(self, key: KeyT) -> int:
+        return self.__hash_func(key) & ((1 << 64) - 1)  # type: ignore
+
+    def _fingerprint_from_hash(self, key_hash: int) -> int:
+        return get_x_bits(key_hash, 64, self.fingerprint_size_bits, True)
+
+    def _modern_indices(self, key_hash: int) -> tuple[int, int]:
+        idx = (key_hash >> 32) % self.capacity
+        return idx, self._alternate_index(idx, self._fingerprint_from_hash(key_hash))
+
+    def _alternate_index(self, idx: int, fingerprint: int) -> int:
+        return (self.__hash_func(str(fingerprint)) - idx) % self.capacity  # type: ignore
+
+    def _find_hash(self, key_hash: int) -> tuple[int, int] | None:
+        for idx in set(self._modern_indices(key_hash)):
+            try:
+                return idx, self._hash_buckets[idx].index(key_hash)
+            except ValueError:
+                pass
+        return None
+
+    def _add_modern(self, entry, key_hash: int) -> None:
+        if self._insert_modern(entry, key_hash):
+            return
+        if not self.auto_expand:
+            raise CuckooFilterFullError(f"The {self.__class__.__name__} is currently full")
+        self._expand_modern((entry, key_hash))
+
+    def _insert_modern(self, entry, key_hash: int) -> bool:
+        idx_1, idx_2 = self._modern_indices(key_hash)
+        for idx in (idx_1, idx_2):
+            if len(self.buckets[idx]) < self.bucket_size:
+                self.buckets[idx].append(entry)
+                self._hash_buckets[idx].append(key_hash)
+                return True
+        idx = random.choice((idx_1, idx_2))
+        swaps = []
+        for _ in range(self.max_swaps):
+            pos = random.randrange(self.bucket_size)
+            swaps.append((idx, pos, self.buckets[idx][pos], self._hash_buckets[idx][pos]))
+            entry, self.buckets[idx][pos] = self.buckets[idx][pos], entry
+            key_hash, self._hash_buckets[idx][pos] = self._hash_buckets[idx][pos], key_hash
+            idx = self._alternate_index(idx, self._fingerprint_from_hash(key_hash))
+            if len(self.buckets[idx]) < self.bucket_size:
+                self.buckets[idx].append(entry)
+                self._hash_buckets[idx].append(key_hash)
+                return True
+        for idx, pos, old_entry, old_hash in reversed(swaps):
+            self.buckets[idx][pos] = old_entry
+            self._hash_buckets[idx][pos] = old_hash
+        return False
+
+    def _expand_modern(self, extra=None) -> None:
+        self._validate_modern_buckets()
+        old_capacity, old_buckets, old_hashes = self.capacity, self._buckets, self._hash_buckets
+        entries = [(entry, h) for bucket, hashes in zip(old_buckets, old_hashes) for entry, h in zip(bucket, hashes)]
+        if extra is not None:
+            entries.append(extra)
+        if not isinstance(self.expansion_rate, int) or self.expansion_rate <= 1:
+            raise ValueError("Cuckoo filter expansion rate must be an integer greater than 1")
+        try:
+            self._cuckoo_capacity *= self.expansion_rate
+            self._buckets = [[] for _ in range(self.capacity)]
+            self._hash_buckets = [[] for _ in range(self.capacity)]
+            for entry, key_hash in entries:
+                if not self._insert_modern(entry, key_hash):
+                    raise CuckooFilterFullError(f"The {self.__class__.__name__} failed to expand")
+        except Exception:
+            self._cuckoo_capacity, self._buckets, self._hash_buckets = old_capacity, old_buckets, old_hashes
+            raise
+
+    def _modern_kind(self) -> int:
+        return 0
+
+    def _modern_entry(self, key_hash: int, _count: int):
+        return self._fingerprint_from_hash(key_hash)
+
+    def _modern_count(self, _entry) -> int:
+        return 1
+
+    def _modern_fingerprint(self, entry) -> int:
+        return entry
+
+    def _validate_modern_buckets(self) -> None:
+        if len(self.buckets) != self.capacity or len(self._hash_buckets) != self.capacity:
+            raise ValueError("Cuckoo filter buckets do not match capacity")
+        seen = set()
+        for idx, (bucket, hashes) in enumerate(zip(self.buckets, self._hash_buckets)):
+            if len(bucket) != len(hashes) or len(bucket) > self.bucket_size:
+                raise ValueError("Cuckoo filter bucket hashes do not match entries")
+            for entry, key_hash in zip(bucket, hashes):
+                if (key_hash in seen or idx not in self._modern_indices(key_hash)
+                        or self._modern_fingerprint(entry) != self._fingerprint_from_hash(key_hash)):
+                    raise ValueError("Cuckoo filter entry does not match hash")
+                seen.add(key_hash)
+
+    def _export_modern(self, file) -> None:
+        self._validate_modern_buckets()
+        file.write(self._MODERN_HEADER.pack(
+            self._MODERN_MAGIC, self._modern_kind(), self.capacity, self.bucket_size,
+            self.max_swaps, self.fingerprint_size_bits, self.error_rate,
+        ))
+        for bucket, hashes in zip(self.buckets, self._hash_buckets):
+            file.write(self._MODERN_BUCKET_SIZE.pack(len(bucket)))
+            for entry, key_hash in zip(bucket, hashes):
+                file.write(self._MODERN_HASH.pack(key_hash))
+                if self._modern_kind():
+                    file.write(self._MODERN_COUNT.pack(self._modern_count(entry)))
+
+    def _load_modern(self, data) -> None:
+        try:
+            magic, kind, capacity, bucket_size, max_swaps, bits, error_rate = self._MODERN_HEADER.unpack_from(data)
+            if (magic != self._MODERN_MAGIC or kind != self._modern_kind() or not capacity or not bucket_size
+                    or not max_swaps or not 1 <= bits <= 32 or not math.isfinite(error_rate) or not 0 < error_rate):
+                raise ValueError("invalid cuckoo filter header")
+            if capacity > (len(data) - self._MODERN_HEADER.size) // self._MODERN_BUCKET_SIZE.size:
+                raise ValueError("invalid cuckoo filter capacity")
+            self._cuckoo_capacity = capacity
+            self._bucket_size = bucket_size
+            self.__max_cuckoo_swaps = max_swaps
+            self._fingerprint_size = bits
+            self._error_rate = error_rate
+            self._buckets = []
+            self._hash_buckets = []
+            self._inserted_elements = 0
+            offset = self._MODERN_HEADER.size
+            seen = set()
+            for idx in range(capacity):
+                size = self._MODERN_BUCKET_SIZE.unpack_from(data, offset)[0]
+                offset += self._MODERN_BUCKET_SIZE.size
+                if size > bucket_size:
+                    raise ValueError("invalid cuckoo bucket size")
+                bucket, hashes = [], []
+                for _ in range(size):
+                    key_hash = self._MODERN_HASH.unpack_from(data, offset)[0]
+                    offset += self._MODERN_HASH.size
+                    if key_hash in seen or idx not in self._modern_indices(key_hash):
+                        raise ValueError("invalid cuckoo entry")
+                    seen.add(key_hash)
+                    count = 1
+                    if kind:
+                        count = self._MODERN_COUNT.unpack_from(data, offset)[0]
+                        offset += self._MODERN_COUNT.size
+                        if not count:
+                            raise ValueError("invalid cuckoo count")
+                    bucket.append(self._modern_entry(key_hash, count))
+                    hashes.append(key_hash)
+                    self._inserted_elements += count
+                self._buckets.append(bucket)
+                self._hash_buckets.append(hashes)
+            if offset != len(data):
+                raise ValueError("invalid cuckoo filter length")
+            self._legacy_layout = False
+        except (ValueError, OverflowError, StructError) as exc:
+            raise InitializationError(f"Invalid cuckoo filter data: {exc}") from exc
 
     def _deal_with_insertion(self, finger):
         """some code to handle the insertion the same"""
@@ -541,4 +758,4 @@ class CuckooFilter:
 
     def _calc_fingerprint_size(self) -> int:
         """calculate fingerprint size (bits) based on error rate and bucket size"""
-        return int(math.ceil(math.log2(1.0 / self.error_rate) + math.log2(self.bucket_size) + 1))
+        return int(math.ceil(-math.log2(self.error_rate) + math.log2(self.bucket_size) + 1))

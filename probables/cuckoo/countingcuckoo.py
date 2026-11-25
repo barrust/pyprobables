@@ -13,7 +13,7 @@ from struct import Struct
 from typing import Union
 
 from probables.cuckoo.cuckoo import CuckooFilter
-from probables.exceptions import CuckooFilterFullError
+from probables.exceptions import CuckooFilterFullError, InitializationError
 from probables.hashes import KeyT, SimpleHashT
 from probables.utilities import MMap, resolve_path
 
@@ -28,8 +28,7 @@ class CountingCuckooFilter(CuckooFilter):
         expansion_rate (int): The rate at which to expand
         auto_expand (bool): If the filter should automatically expand
         finger_size (int): The size of the fingerprint to use in bytes \
-            (between 1 and 4); exported as 4 bytes; up to the user to \
-            reset the size correctly on import
+            (between 1 and 4). Legacy exports require this value on import.
         filename (str): The path to the file to load or None if no file
     Returns:
         CountingCuckooFilter: A Cuckoo Filter object"""
@@ -120,11 +119,11 @@ class CountingCuckooFilter(CuckooFilter):
     ) -> "CountingCuckooFilter":
         """
         Args:
-            b (ByteString): The bytes to load as a Expanding Bloom Filter
-            error_rate (float): The error rate of the cuckoo filter, if used to generate the original filter
-            hash_function (function): Hashing strategy function to use `hf(key, number)`
+            b (ByteString): The exported counting cuckoo filter
+            error_rate (float): Original error rate, required for legacy error-rate-based exports
+            hash_function (function): Original hashing strategy function `hf(key)`
         Returns:
-            CountingCuckooFilter: A Bloom Filter object"""
+            CountingCuckooFilter: A Counting Cuckoo Filter object"""
         cku = CountingCuckooFilter(hash_function=hash_function)
         cku._load(b)
 
@@ -160,6 +159,17 @@ class CountingCuckooFilter(CuckooFilter):
             key (str): The element to add
         Raises:
             CuckooFilterFullError: When element not inserted after maximum number of swaps or 'kicks'"""
+        if not self._legacy_layout:
+            key_hash = self._key_hash(key)
+            location = self._find_hash(key_hash)
+            if location is not None:
+                idx, pos = location
+                self.buckets[idx][pos].increment()
+            else:
+                self._add_modern(CountingCuckooBin(self._fingerprint_from_hash(key_hash), 1), key_hash)
+                self.__unique_elements += 1
+            self._inserted_elements += 1
+            return
         idx_1, idx_2, fingerprint = self._generate_fingerprint_info(key)
 
         is_present = self._check_if_present(idx_1, idx_2, fingerprint)
@@ -179,6 +189,11 @@ class CountingCuckooFilter(CuckooFilter):
             key (str): Element to check
         Returns:
             int: The number of times inserted into the filter"""
+        if not self._legacy_layout:
+            location = self._find_hash(self._key_hash(key))
+            if location is not None:
+                idx, pos = location
+                return self.buckets[idx][pos].count
         idx_1, idx_2, fingerprint = self._generate_fingerprint_info(key)
         is_present = self._check_if_present(idx_1, idx_2, fingerprint)
         val = 0
@@ -195,6 +210,19 @@ class CountingCuckooFilter(CuckooFilter):
 
         Args:
             key (str): Element to remove"""
+        if not self._legacy_layout:
+            location = self._find_hash(self._key_hash(key))
+            if location is None:
+                return False
+            idx, pos = location
+            entry = self.buckets[idx][pos]
+            entry.decrement()
+            self._inserted_elements -= 1
+            if entry.count == 0:
+                del self.buckets[idx][pos]
+                del self._hash_buckets[idx][pos]
+                self.__unique_elements -= 1
+            return True
         idx_1, idx_2, fingerprint = self._generate_fingerprint_info(key)
         idx = self._check_if_present(idx_1, idx_2, fingerprint)
         if idx is None:
@@ -211,7 +239,7 @@ class CountingCuckooFilter(CuckooFilter):
 
     def expand(self):
         """Expand the cuckoo filter"""
-        self._expand_logic(None)
+        super().expand()
 
     def export(self, file: Path | str | IOBase | mmap) -> None:
         """Export cuckoo filter to file
@@ -223,6 +251,9 @@ class CountingCuckooFilter(CuckooFilter):
             with open(file, "wb") as filepointer:
                 self.export(filepointer)  # type:ignore
         else:
+            if not self._legacy_layout:
+                self._export_modern(file)
+                return
             self.__bucket_decomposition(self.buckets, self.bucket_size).tofile(file)
             # now put out the required information at the end
             file.write(self.__COUNTING_CUCKOO_FOOTER_STRUCT.pack(self.bucket_size, self.max_swaps))
@@ -287,9 +318,20 @@ class CountingCuckooFilter(CuckooFilter):
             with MMap(file) as filepointer:
                 self._load(filepointer)
         else:
+            if isinstance(file, IOBase):
+                file = file.read()
+            if bytes(file[:6]) == self._MODERN_MAGIC[:6]:
+                if bytes(file[:8]) != self._MODERN_MAGIC:
+                    raise InitializationError("Unsupported cuckoo filter format")
+                self.__unique_elements = 0
+                self._load_modern(file)
+                return
+            self._legacy_layout = True
+            self._hash_buckets = []
             self._parse_footer(file, self.__COUNTING_CUCKOO_FOOTER_STRUCT)  # type: ignore
             self._inserted_elements = 0
             self._parse_buckets(file)  # type: ignore
+            self._error_rate = self._calc_error_rate()
 
     def _parse_buckets(self, d: ByteString) -> None:
         """Parse bytes to pull out and set the buckets"""
@@ -343,6 +385,19 @@ class CountingCuckooFilter(CuckooFilter):
             self.buckets[idx].append(CountingCuckooBin(fingerprint, count))
             return True
         return False
+
+    def _modern_kind(self) -> int:
+        return 1
+
+    def _modern_entry(self, key_hash: int, count: int) -> "CountingCuckooBin":
+        self.__unique_elements += 1
+        return CountingCuckooBin(self._fingerprint_from_hash(key_hash), count)
+
+    def _modern_count(self, entry: "CountingCuckooBin") -> int:
+        return entry.count
+
+    def _modern_fingerprint(self, entry: "CountingCuckooBin") -> int:
+        return entry.finger
 
     @staticmethod
     def __bucket_decomposition(buckets, bucket_size: int) -> array:

@@ -8,6 +8,7 @@ import sys
 import unittest
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from unittest.mock import patch
 
 this_dir = Path(__file__).parent
 sys.path.insert(0, str(this_dir))
@@ -190,26 +191,35 @@ class TestCuckooFilter(unittest.TestCase):
         """test that a failed insertion does not remove previously added elements"""
         self.addCleanup(random.setstate, random.getstate())
         random.seed(0)
-        cko = CuckooFilter(capacity=4, bucket_size=1, max_swaps=1, auto_expand=False)
-        added = ["k24", "k26", "k2", "k16"]
+        def fixed_hash(key):
+            return (int(key[1:]) << 32) | 3 if key.startswith("k") else 1
+
+        cko = CuckooFilter(capacity=2, bucket_size=1, max_swaps=4, auto_expand=False, hash_function=fixed_hash)
+        added = ["k0", "k1"]
         for key in added:
             cko.add(key)
-        self.assertRaises(CuckooFilterFullError, cko.add, "k32")
+        self.assertRaises(CuckooFilterFullError, cko.add, "k2")
         self.assertEqual(len(added), cko.elements_added)
         for key in added:
             self.assertTrue(cko.check(key))
 
     def test_cuckoo_filter_failed_expand_preserves_elements(self):
         """test that a failed expansion does not remove previously added elements"""
-        self.addCleanup(random.setstate, random.getstate())
-        random.seed(1)
-        cko = CuckooFilter(capacity=4, bucket_size=1, max_swaps=1)
-        added = ["k8", "k36", "k54", "k51", "k7", "k31"]
+        cko = CuckooFilter(capacity=20)
+        added = ["one", "two"]
         for key in added:
             cko.add(key)
-        self.assertEqual(8, cko.capacity)  # an expansion already succeeded
-        self.assertRaises(CuckooFilterFullError, cko.add, "k48")
-        self.assertEqual(8, cko.capacity)  # the failed expansion is rolled back
+        original = bytes(cko)
+        insert = cko._insert_modern
+        outcomes = iter([True, False])
+
+        def sometimes_insert(entry, key_hash):
+            return insert(entry, key_hash) if next(outcomes) else False
+
+        with patch.object(CuckooFilter, "_insert_modern", side_effect=sometimes_insert):
+            self.assertRaises(CuckooFilterFullError, cko.expand)
+        self.assertEqual(20, cko.capacity)
+        self.assertEqual(original, bytes(cko))
         self.assertEqual(len(added), cko.elements_added)
         for key in added:
             self.assertTrue(cko.check(key))
@@ -219,9 +229,8 @@ class TestCuckooFilter(unittest.TestCase):
         cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=5)
         txt = "this is a test"
         idx_1, idx_2, fingerprint = cko._generate_fingerprint_info(txt)
-        index_1, index_2 = cko._indicies_from_fingerprint(fingerprint)
-        self.assertEqual(idx_1, index_1)
-        self.assertEqual(idx_2, index_2)
+        self.assertEqual(idx_2, cko._alternate_index(idx_1, fingerprint))
+        self.assertEqual(idx_1, cko._alternate_index(idx_2, fingerprint))
 
     def test_cuckoo_filter_check(self):
         """test checking if element in cuckoo filter"""
@@ -276,7 +285,7 @@ class TestCuckooFilter(unittest.TestCase):
 
     def test_cuckoo_filter_export(self):
         """test exporting a cuckoo filter"""
-        md5sum = "1371760d4ee9ccbe83e0144919750140"
+        md5sum = "2c4aa961ad1e0464726456680a9eeeed"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".cko", delete=DELETE_TEMP_FILES) as fobj:
             cko = CuckooFilter()
             for i in range(1000):
@@ -287,7 +296,7 @@ class TestCuckooFilter(unittest.TestCase):
 
     def test_cuckoo_filter_bytes(self):
         """test exporting a cuckoo filter to bytes"""
-        md5sum = "1371760d4ee9ccbe83e0144919750140"
+        md5sum = "2c4aa961ad1e0464726456680a9eeeed"
         cko = CuckooFilter()
         for i in range(1000):
             cko.add(str(i))
@@ -310,7 +319,7 @@ class TestCuckooFilter(unittest.TestCase):
 
     def test_cuckoo_filter_load(self):
         """test loading a saved cuckoo filter"""
-        md5sum = "1371760d4ee9ccbe83e0144919750140"
+        md5sum = "2c4aa961ad1e0464726456680a9eeeed"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".cko", delete=DELETE_TEMP_FILES) as fobj:
             cko = CuckooFilter()
             for i in range(1000):
@@ -517,7 +526,7 @@ class TestCuckooFilterErrorRate(unittest.TestCase):
 
     def test_cuckoo_filter_er_export(self):
         """test exporting a cuckoo filter"""
-        md5sum = "3c693508d1a3acd819310fd0c11dc906"
+        md5sum = "e65ba297ac1f9c666786a3b51c79dd6e"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".cko", delete=DELETE_TEMP_FILES) as fobj:
             cko = CuckooFilter.init_error_rate(0.00001)
             for i in range(1000):
@@ -528,7 +537,7 @@ class TestCuckooFilterErrorRate(unittest.TestCase):
 
     def test_cuckoo_filter_load(self):
         """test loading a saved cuckoo filter"""
-        md5sum = "3c693508d1a3acd819310fd0c11dc906"
+        md5sum = "e65ba297ac1f9c666786a3b51c79dd6e"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".cko", delete=DELETE_TEMP_FILES) as fobj:
             cko = CuckooFilter.init_error_rate(0.00001)
             for i in range(1000):
@@ -553,7 +562,7 @@ class TestCuckooFilterErrorRate(unittest.TestCase):
 
     def test_cuckoo_filter_er_bytes(self):
         """test exporting a cuckoo filter to bytes"""
-        md5sum = "3c693508d1a3acd819310fd0c11dc906"
+        md5sum = "e65ba297ac1f9c666786a3b51c79dd6e"
         cko = CuckooFilter.init_error_rate(0.00001)
         for i in range(1000):
             cko.add(str(i))
