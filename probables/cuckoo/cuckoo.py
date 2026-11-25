@@ -509,17 +509,27 @@ class CuckooFilter:
             if len(bucket) != len(hashes) or len(bucket) > self.bucket_size:
                 raise ValueError("Cuckoo filter bucket hashes do not match entries")
             for entry, key_hash in zip(bucket, hashes):
-                if (key_hash in seen or idx not in self._indices_from_hash(key_hash)
-                        or self._entry_fingerprint(entry) != self._fingerprint_from_hash(key_hash)):
+                if (
+                    key_hash in seen
+                    or idx not in self._indices_from_hash(key_hash)
+                    or self._entry_fingerprint(entry) != self._fingerprint_from_hash(key_hash)
+                ):
                     raise ValueError("Cuckoo filter entry does not match hash")
                 seen.add(key_hash)
 
     def _export_data(self, file) -> None:
         self._validate_buckets()
-        file.write(self._FORMAT_HEADER.pack(
-            self._FORMAT_MAGIC, self._format_kind(), self.capacity, self.bucket_size,
-            self.max_swaps, self.fingerprint_size_bits, self.error_rate,
-        ))
+        file.write(
+            self._FORMAT_HEADER.pack(
+                self._FORMAT_MAGIC,
+                self._format_kind(),
+                self.capacity,
+                self.bucket_size,
+                self.max_swaps,
+                self.fingerprint_size_bits,
+                self.error_rate,
+            )
+        )
         for bucket, hashes in zip(self.buckets, self._hash_buckets):
             file.write(self._FORMAT_BUCKET_SIZE.pack(len(bucket)))
             for entry, key_hash in zip(bucket, hashes):
@@ -530,8 +540,16 @@ class CuckooFilter:
     def _load_data(self, data) -> None:
         try:
             magic, kind, capacity, bucket_size, max_swaps, bits, error_rate = self._FORMAT_HEADER.unpack_from(data)
-            if (magic != self._FORMAT_MAGIC or kind != self._format_kind() or not capacity or not bucket_size
-                    or not max_swaps or not 1 <= bits <= 32 or not math.isfinite(error_rate) or not 0 < error_rate):
+            if (
+                magic != self._FORMAT_MAGIC
+                or kind != self._format_kind()
+                or not capacity
+                or not bucket_size
+                or not max_swaps
+                or not 1 <= bits <= 32
+                or not math.isfinite(error_rate)
+                or not 0 < error_rate
+            ):
                 raise ValueError("invalid cuckoo filter header")
             if capacity > (len(data) - self._FORMAT_HEADER.size) // self._FORMAT_BUCKET_SIZE.size:
                 raise ValueError("invalid cuckoo filter capacity")

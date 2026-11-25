@@ -60,8 +60,9 @@ class CuckooIndexRegressionTest(unittest.TestCase):
         for cls in (CuckooFilter, CountingCuckooFilter):
             with self.subTest(cls=cls):
                 cko = cls.init_error_rate(0.001)
-                self.assertEqual(cko._generate_fingerprint_info("user-99")[2],
-                                 cko._generate_fingerprint_info("user-404")[2])
+                self.assertEqual(
+                    cko._generate_fingerprint_info("user-99")[2], cko._generate_fingerprint_info("user-404")[2]
+                )
                 cko.add("user-99")
                 cko.add("user-404")
                 self.assertEqual(2, cko.elements_added)
@@ -101,10 +102,13 @@ class CuckooIndexRegressionTest(unittest.TestCase):
                 cko.add("b")
                 with patch("random.choice", return_value=0), patch("random.randrange", return_value=0):
                     cko.add("c")
-                self.assertEqual([[3], [1], [2], []], [
-                    [entry.finger if cls is CountingCuckooFilter else entry for entry in bucket]
-                    for bucket in cko.buckets
-                ])
+                self.assertEqual(
+                    [[3], [1], [2], []],
+                    [
+                        [entry.finger if cls is CountingCuckooFilter else entry for entry in bucket]
+                        for bucket in cko.buckets
+                    ],
+                )
                 for key in ("a", "b", "c"):
                     self.assertTrue(cko.check(key))
                 loaded = cls.frombytes(bytes(cko), hash_function=fixed_hash)

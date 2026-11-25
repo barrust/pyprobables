@@ -191,6 +191,7 @@ class TestCuckooFilter(unittest.TestCase):
         """test that a failed insertion does not remove previously added elements"""
         self.addCleanup(random.setstate, random.getstate())
         random.seed(0)
+
         def fixed_hash(key):
             return (int(key[1:]) << 32) | 3 if key.startswith("k") else 1
 
