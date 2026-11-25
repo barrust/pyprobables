@@ -3,23 +3,20 @@ License: MIT
 Author: Tyler Barrus (barrust@gmail.com)
 """
 
-import random
 from array import array
 from collections.abc import ByteString
-from io import IOBase
-from mmap import mmap
 from pathlib import Path
-from struct import Struct
-from typing import Union
 
 from probables.cuckoo.cuckoo import CuckooFilter
-from probables.exceptions import CuckooFilterFullError, InitializationError
 from probables.hashes import KeyT, SimpleHashT
-from probables.utilities import MMap, resolve_path
+from probables.utilities import resolve_path
 
 
 class CountingCuckooFilter(CuckooFilter):
-    """Simple Counting Cuckoo Filter implementation
+    """Simple Counting Cuckoo Filter implementation.
+
+    Filters exported by older pyprobables releases use an incompatible format.
+    Use an older release to read them or rebuild from the original keys.
 
     Args:
         capacity (int): The number of bins
@@ -28,7 +25,7 @@ class CountingCuckooFilter(CuckooFilter):
         expansion_rate (int): The rate at which to expand
         auto_expand (bool): If the filter should automatically expand
         finger_size (int): The size of the fingerprint to use in bytes \
-            (between 1 and 4). Legacy exports require this value on import.
+            (between 1 and 4).
         filename (str): The path to the file to load or None if no file
     Returns:
         CountingCuckooFilter: A Cuckoo Filter object"""
@@ -58,9 +55,6 @@ class CountingCuckooFilter(CuckooFilter):
             filepath,
             hash_function,
         )
-
-    __COUNTING_CUCKOO_FOOTER_STRUCT = Struct("II")
-    __BIN_STRUCT = Struct("II")
 
     @classmethod
     def init_error_rate(
@@ -120,7 +114,7 @@ class CountingCuckooFilter(CuckooFilter):
         """
         Args:
             b (ByteString): The exported counting cuckoo filter
-            error_rate (float): Original error rate, required for legacy error-rate-based exports
+            error_rate (float): Optional original error rate; the fingerprint size must match the export
             hash_function (function): Original hashing strategy function `hf(key)`
         Returns:
             CountingCuckooFilter: A Counting Cuckoo Filter object"""
@@ -159,28 +153,15 @@ class CountingCuckooFilter(CuckooFilter):
             key (str): The element to add
         Raises:
             CuckooFilterFullError: When element not inserted after maximum number of swaps or 'kicks'"""
-        if not self._legacy_layout:
-            key_hash = self._key_hash(key)
-            location = self._find_hash(key_hash)
-            if location is not None:
-                idx, pos = location
-                self.buckets[idx][pos].increment()
-            else:
-                self._add_modern(CountingCuckooBin(self._fingerprint_from_hash(key_hash), 1), key_hash)
-                self.__unique_elements += 1
-            self._inserted_elements += 1
-            return
-        idx_1, idx_2, fingerprint = self._generate_fingerprint_info(key)
-
-        is_present = self._check_if_present(idx_1, idx_2, fingerprint)
-        if is_present is not None:
-            for bucket in self.buckets[is_present]:
-                if fingerprint in bucket:
-                    bucket.increment()
-                    self._inserted_elements += 1
-                    return
-        finger = self._insert_fingerprint_alt(fingerprint, idx_1, idx_2)
-        self._deal_with_insertion(finger)
+        key_hash = self._key_hash(key)
+        location = self._find_hash(key_hash)
+        if location is not None:
+            idx, pos = location
+            self.buckets[idx][pos].increment()
+        else:
+            self._add_entry(CountingCuckooBin(self._fingerprint_from_hash(key_hash), 1), key_hash)
+            self.__unique_elements += 1
+        self._inserted_elements += 1
 
     def check(self, key: KeyT) -> int:  # type: ignore
         """Check if an element is in the filter
@@ -189,12 +170,13 @@ class CountingCuckooFilter(CuckooFilter):
             key (str): Element to check
         Returns:
             int: The number of times inserted into the filter"""
-        if not self._legacy_layout:
-            location = self._find_hash(self._key_hash(key))
-            if location is not None:
-                idx, pos = location
-                return self.buckets[idx][pos].count
-        idx_1, idx_2, fingerprint = self._generate_fingerprint_info(key)
+        key_hash = self._key_hash(key)
+        location = self._find_hash(key_hash)
+        if location is not None:
+            idx, pos = location
+            return self.buckets[idx][pos].count
+        idx_1, idx_2 = self._indices_from_hash(key_hash)
+        fingerprint = self._fingerprint_from_hash(key_hash)
         is_present = self._check_if_present(idx_1, idx_2, fingerprint)
         val = 0
         if is_present is not None:
@@ -210,98 +192,18 @@ class CountingCuckooFilter(CuckooFilter):
 
         Args:
             key (str): Element to remove"""
-        if not self._legacy_layout:
-            location = self._find_hash(self._key_hash(key))
-            if location is None:
-                return False
-            idx, pos = location
-            entry = self.buckets[idx][pos]
-            entry.decrement()
-            self._inserted_elements -= 1
-            if entry.count == 0:
-                del self.buckets[idx][pos]
-                del self._hash_buckets[idx][pos]
-                self.__unique_elements -= 1
-            return True
-        idx_1, idx_2, fingerprint = self._generate_fingerprint_info(key)
-        idx = self._check_if_present(idx_1, idx_2, fingerprint)
-        if idx is None:
+        location = self._find_hash(self._key_hash(key))
+        if location is None:
             return False
-        for bucket in self.buckets[idx]:
-            if fingerprint in bucket:
-                bucket.decrement()
-                self._inserted_elements -= 1
-                if bucket.count == 0:
-                    self.buckets[idx].remove(bucket)
-                    self.__unique_elements -= 1
-                return True
-        return False  # catch this...
-
-    def expand(self):
-        """Expand the cuckoo filter"""
-        super().expand()
-
-    def export(self, file: Path | str | IOBase | mmap) -> None:
-        """Export cuckoo filter to file
-
-        Args:
-            file (str): Path to file to export"""
-        if not isinstance(file, IOBase | mmap):
-            file = resolve_path(file)
-            with open(file, "wb") as filepointer:
-                self.export(filepointer)  # type:ignore
-        else:
-            if not self._legacy_layout:
-                self._export_modern(file)
-                return
-            self.__bucket_decomposition(self.buckets, self.bucket_size).tofile(file)
-            # now put out the required information at the end
-            file.write(self.__COUNTING_CUCKOO_FOOTER_STRUCT.pack(self.bucket_size, self.max_swaps))
-
-    def _insert_fingerprint_alt(
-        self, fingerprint: int, idx_1: int, idx_2: int, count: int = 1
-    ) -> Union["CountingCuckooBin", None]:
-        """insert a fingerprint, but with a count parameter!"""
-        if self.__insert_element(fingerprint, idx_1, count):
-            self._inserted_elements += count
-            self.__unique_elements += 1
-            return None
-        if self.__insert_element(fingerprint, idx_2, count):
-            self._inserted_elements += count
-            self.__unique_elements += 1
-            return None
-
-        # we didn't insert, so now we need to randomly select one index to use
-        # and move things around to the other index, if possible, until we
-        # either move everything around or hit the maximum number of swaps
-        idx = random.choice([idx_1, idx_2])
-        prv_bin = CountingCuckooBin(fingerprint, count)
-        orig_bin = prv_bin
-        swaps = []
-        for _ in range(self.max_swaps):
-            # select one element to be swapped out...
-            swap_elm = random.randint(0, self.bucket_size - 1)
-            swap_finger = self.buckets[idx][swap_elm]
-            swaps.append((idx, swap_elm, swap_finger))
-            prv_bin, self.buckets[idx][swap_elm] = swap_finger, prv_bin
-
-            # now find another place to put this fingerprint
-            index_1, index_2 = self._indicies_from_fingerprint(prv_bin.finger)
-
-            idx = index_2 if idx == index_1 else index_1
-
-            if self.__insert_element(prv_bin.finger, idx, prv_bin.count):
-                self._inserted_elements += count
-                self.__unique_elements += 1
-                return None
-
-        # unable to place the new fingerprint; undo the swaps so that the
-        # failed insertion leaves the filter unchanged
-        for idx, swap_elm, elm in reversed(swaps):
-            self.buckets[idx][swap_elm] = elm
-
-        # if we got here we have an error... we might need to know what is left
-        return orig_bin
+        idx, pos = location
+        entry = self.buckets[idx][pos]
+        entry.decrement()
+        self._inserted_elements -= 1
+        if entry.count == 0:
+            del self.buckets[idx][pos]
+            del self._hash_buckets[idx][pos]
+            self.__unique_elements -= 1
+        return True
 
     def _check_if_present(self, idx_1: int, idx_2: int, fingerprint: int) -> int | None:
         """wrapper for checking if fingerprint is already inserted"""
@@ -311,104 +213,22 @@ class CountingCuckooFilter(CuckooFilter):
             return idx_2
         return None
 
-    def _load(self, file: Path | str | IOBase | mmap | bytes | ByteString) -> None:
-        """load a cuckoo filter from file"""
-        if not isinstance(file, IOBase | mmap | bytes | bytearray | memoryview):
-            file = resolve_path(file)
-            with MMap(file) as filepointer:
-                self._load(filepointer)
-        else:
-            if isinstance(file, IOBase):
-                file = file.read()
-            if bytes(file[:6]) == self._MODERN_MAGIC[:6]:
-                if bytes(file[:8]) != self._MODERN_MAGIC:
-                    raise InitializationError("Unsupported cuckoo filter format")
-                self.__unique_elements = 0
-                self._load_modern(file)
-                return
-            self._legacy_layout = True
-            self._hash_buckets = []
-            self._parse_footer(file, self.__COUNTING_CUCKOO_FOOTER_STRUCT)  # type: ignore
-            self._inserted_elements = 0
-            self._parse_buckets(file)  # type: ignore
-            self._error_rate = self._calc_error_rate()
+    def _load_data(self, data) -> None:
+        self.__unique_elements = 0
+        super()._load_data(data)
 
-    def _parse_buckets(self, d: ByteString) -> None:
-        """Parse bytes to pull out and set the buckets"""
-        bin_size = self.__BIN_STRUCT.size
-        self._cuckoo_capacity = (len(bytes(d)) - bin_size) // bin_size // self.bucket_size
-        start = 0
-        end = bin_size
-        self._buckets = []
-        for i in range(self.capacity):
-            self.buckets.append([])
-            for _ in range(self.bucket_size):
-                finger, count = self.__BIN_STRUCT.unpack(bytes(d[start:end]))
-                if finger > 0:
-                    ccb = CountingCuckooBin(finger, count)
-                    self.buckets[i].append(ccb)
-                    self._inserted_elements += count
-                    self.__unique_elements += 1
-                start = end
-                end += bin_size
-
-    def _expand_logic(self, extra_fingerprint: Union["CountingCuckooBin", None]) -> None:
-        """the logic to acutally expand the cuckoo filter"""
-        # snapshot the current state so that a failed expansion leaves the
-        # filter unchanged
-        old_capacity = self._cuckoo_capacity
-        old_buckets = self._buckets
-        old_inserted = self._inserted_elements
-        old_unique = self.__unique_elements
-
-        try:
-            # get all the fingerprints
-            fingerprints = self._setup_expand(extra_fingerprint)
-            self.__unique_elements = 0  # this needs to be reset!
-
-            for elm in fingerprints:
-                idx_1, idx_2 = self._indicies_from_fingerprint(elm.finger)
-                res = self._insert_fingerprint_alt(elm.finger, idx_1, idx_2, elm.count)
-                if res is not None:  # again, this *shouldn't* happen
-                    msg = "The CountingCuckooFilter failed to expand"
-                    raise CuckooFilterFullError(msg)
-        except Exception:
-            self._cuckoo_capacity = old_capacity
-            self._buckets = old_buckets
-            self._inserted_elements = old_inserted
-            self.__unique_elements = old_unique
-            raise
-
-    def __insert_element(self, fingerprint, idx, count=1) -> bool:
-        """insert an element"""
-        if len(self.buckets[idx]) < self.bucket_size:
-            self.buckets[idx].append(CountingCuckooBin(fingerprint, count))
-            return True
-        return False
-
-    def _modern_kind(self) -> int:
+    def _format_kind(self) -> int:
         return 1
 
-    def _modern_entry(self, key_hash: int, count: int) -> "CountingCuckooBin":
+    def _entry_from_hash(self, key_hash: int, count: int) -> "CountingCuckooBin":
         self.__unique_elements += 1
         return CountingCuckooBin(self._fingerprint_from_hash(key_hash), count)
 
-    def _modern_count(self, entry: "CountingCuckooBin") -> int:
+    def _entry_count(self, entry: "CountingCuckooBin") -> int:
         return entry.count
 
-    def _modern_fingerprint(self, entry: "CountingCuckooBin") -> int:
+    def _entry_fingerprint(self, entry: "CountingCuckooBin") -> int:
         return entry.finger
-
-    @staticmethod
-    def __bucket_decomposition(buckets, bucket_size: int) -> array:
-        """convert a list of buckets into a single array for export"""
-        arr = array("I")
-        for bucket in buckets:
-            for buck in bucket:
-                arr.extend(buck.get_array())
-            leftover = bucket_size - len(bucket)
-            arr.fromlist([0 for _ in range(leftover * 2)])
-        return arr
 
 
 class CountingCuckooBin:

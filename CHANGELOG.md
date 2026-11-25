@@ -1,5 +1,12 @@
 # PyProbables Changelog
 
+### Unreleased
+
+* **Breaking:** `CuckooFilter` and `CountingCuckooFilter` no longer load
+  exports from older pyprobables releases. Use an older release for existing
+  files, or rebuild the filter from the original keys. Earlier exports may
+  have already lost entries with zero fingerprints.
+
 ### Version 0.7.1
 
 * `Cuckoo Filter`

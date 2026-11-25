@@ -152,13 +152,13 @@ class TestCountingCuckooFilter(unittest.TestCase):
         for key in added:
             cko.add(key)
         original = bytes(cko)
-        insert = cko._insert_modern
+        insert = cko._insert_entry
         outcomes = iter([True, False])
 
         def sometimes_insert(entry, key_hash):
             return insert(entry, key_hash) if next(outcomes) else False
 
-        with patch.object(CountingCuckooFilter, "_insert_modern", side_effect=sometimes_insert):
+        with patch.object(CountingCuckooFilter, "_insert_entry", side_effect=sometimes_insert):
             self.assertRaises(CuckooFilterFullError, cko.expand)
         self.assertEqual(20, cko.capacity)
         self.assertEqual(original, bytes(cko))

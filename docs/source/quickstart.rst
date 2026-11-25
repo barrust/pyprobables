@@ -264,10 +264,12 @@ loading. A full 64-bit hash collision still makes keys
 indistinguishable. A positive membership check can be a false positive, and
 after removal a key can still appear present due to another fingerprint.
 
-Exports from older versions remain readable using their original indexing and
-error-rate behavior. They cannot be converted to the new layout without
-re-adding the original keys. For old error-rate-based exports, use
-``load_error_rate(error_rate, filepath)`` with the original error rate.
+**Breaking change:** cuckoo filters exported by older pyprobables releases
+cannot be loaded by this version. Use an older release to work with those
+files, or rebuild the filter in this version by re-adding the original keys.
+The old format may have lost zero fingerprints during earlier exports, so
+rebuilding from the original keys is the safest migration. This applies to
+both standard and counting cuckoo filters.
 
 To measure the false-positive rate of a source checkout, run:
 

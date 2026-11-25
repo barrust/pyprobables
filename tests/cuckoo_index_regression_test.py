@@ -4,7 +4,9 @@ import random
 import unittest
 from array import array
 from io import BytesIO
+from pathlib import Path
 from struct import pack
+from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
 from probables import CountingCuckooFilter, CuckooFilter, InitializationError
@@ -74,9 +76,14 @@ class CuckooIndexRegressionTest(unittest.TestCase):
             with self.subTest(cls=cls):
                 cko = cls(capacity=4, hash_function=fixed_hash)
                 cko.add("key")
+                if cls is CountingCuckooFilter:
+                    cko.add("key")
                 loaded = cls.frombytes(bytes(cko), hash_function=fixed_hash)
-                self.assertTrue(loaded.check("key"))
+                self.assertEqual(2 if cls is CountingCuckooFilter else True, loaded.check("key"))
                 self.assertTrue(loaded.remove("key"))
+                if cls is CountingCuckooFilter:
+                    self.assertEqual(1, loaded.check("key"))
+                    self.assertTrue(loaded.remove("key"))
                 self.assertFalse(loaded.check("key"))
 
     def test_successful_kicks_preserve_hashes_and_counts(self):
@@ -106,8 +113,8 @@ class CuckooIndexRegressionTest(unittest.TestCase):
                 for key in ("a", "b", "c"):
                     self.assertTrue(loaded.check(key))
 
-    def test_legacy_bytes_continue_using_legacy_layout(self):
-        capacity, bucket_size, bits = 10000, 4, 13
+    def test_legacy_exports_are_rejected(self):
+        capacity, bucket_size, bits = 20, 4, 13
         key = "user-99"
         fingerprint = fnv_1a(key) & ((1 << bits) - 1)
         idx = fingerprint % capacity
@@ -119,12 +126,32 @@ class CuckooIndexRegressionTest(unittest.TestCase):
                 if width == 2:
                     raw[idx * bucket_size * width + 1] = 3
                 data = raw.tobytes() + pack("II", bucket_size, 500)
-                cko = cls.frombytes(data, error_rate=0.001)
-                self.assertTrue(cko.check(key))
-                self.assertTrue(cko.check("user-404"))
-                self.assertEqual(data, bytes(cko))
-                cko.expand()
-                self.assertTrue(cko.check(key))
+                with self.assertRaisesRegex(InitializationError, "older pyprobables releases"):
+                    cls.frombytes(data, error_rate=0.001)
+                zero_raw = array("I", [0] * (bucket_size * width))
+                if width == 2:
+                    zero_raw[1] = 3
+                with self.assertRaisesRegex(InitializationError, "older pyprobables releases"):
+                    cls.frombytes(zero_raw.tobytes() + pack("II", bucket_size, 500))
+                with TemporaryDirectory() as temp_dir:
+                    path = Path(temp_dir) / "legacy.cko"
+                    path.write_bytes(data)
+                    with self.assertRaisesRegex(InitializationError, "older pyprobables releases"):
+                        cls(filepath=path)
+                    with self.assertRaisesRegex(InitializationError, "older pyprobables releases"):
+                        cls.load_error_rate(0.001, path)
+
+    def test_counting_load_resets_unique_count(self):
+        original = CountingCuckooFilter(capacity=10)
+        original.add("a")
+        original.add("a")
+        loaded = CountingCuckooFilter(capacity=10)
+        loaded.add("old")
+        loaded.add("another")
+        loaded._load(BytesIO(bytes(original)))
+        self.assertEqual(1, loaded.unique_elements)
+        self.assertEqual(2, loaded.elements_added)
+        self.assertEqual(2, loaded.check("a"))
 
     def test_invalid_modern_data_and_error_rate(self):
         for cls in (CuckooFilter, CountingCuckooFilter):
@@ -138,7 +165,7 @@ class CuckooIndexRegressionTest(unittest.TestCase):
                 self.assertTrue(reloaded.check("key"))
                 with self.assertRaises(InitializationError):
                     cls.frombytes(data[:-1])
-                with self.assertRaises(InitializationError):
+                with self.assertRaisesRegex(InitializationError, "format version"):
                     cls.frombytes(data[:6] + b"\x02" + data[7:])
                 with self.assertRaises(ValueError):
                     cls.frombytes(data, error_rate=0.00001)

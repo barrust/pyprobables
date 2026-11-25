@@ -71,6 +71,12 @@ elements with low overhead and few false positive results. The name is derived
 from the `cuckoo hashing <https://en.wikipedia.org/wiki/Cuckoo_hashing>`__
 strategy used to resolve conflicts.
 
+.. warning::
+
+   Cuckoo filters exported by older pyprobables releases cannot be loaded by
+   this version. Use an older release or rebuild from the original keys.
+   This applies to both ``CuckooFilter`` and ``CountingCuckooFilter``.
+
 `Further Reading <https://www.cs.cmu.edu/~dga/papers/cuckoo-conext2014.pdf>`__
 
 CuckooFilter
