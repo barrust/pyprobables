@@ -133,37 +133,37 @@ class TestCountingCuckooFilter(unittest.TestCase):
         self.addCleanup(random.setstate, random.getstate())
         random.seed(0)
         cko = CountingCuckooFilter(capacity=4, bucket_size=1, max_swaps=1, auto_expand=False)
-        added = ["k54", "k24", "k48", "k56"]
+        added = ["k0", "k1", "k2", "k3"]
         for key in added:
             cko.add(key)
-        self.assertRaises(CuckooFilterFullError, cko.add, "k36")
+        self.assertRaises(CuckooFilterFullError, cko.add, "k4")
         self.assertEqual(len(added), cko.elements_added)
         for key in added:
             self.assertTrue(cko.check(key))
 
-    def test_c_cuckoo_filter_failed_expand_preserves_elements(self):
-        """test that a failed expansion does not remove previously added elements"""
+    def test_c_cuckoo_filter_expand_keeps_elements(self):
+        """test that expanding a full filter keeps every element and count"""
         self.addCleanup(random.setstate, random.getstate())
-        random.seed(15)
-        cko = CountingCuckooFilter(capacity=8, bucket_size=1, max_swaps=2)
-        added = ["k{}".format(i) for i in range(18)]
+        random.seed(0)
+        cko = CountingCuckooFilter(capacity=4, bucket_size=1, max_swaps=1)
+        added = [f"k{i}" for i in range(40)]
         for key in added:
             cko.add(key)
-        self.assertEqual(32, cko.capacity)  # earlier expansions succeeded
-        self.assertRaises(CuckooFilterFullError, cko.add, "k18")
-        self.assertEqual(32, cko.capacity)  # the failed expansion is rolled back
+            cko.add(key)
+        self.assertGreater(cko.layers, 1)
+        self.assertEqual(80, cko.elements_added)
+        self.assertEqual(40, cko.unique_elements)
         for key in added:
-            self.assertTrue(cko.check(key))
+            self.assertEqual(2, cko.check(key))
 
     def test_c_cuckoo_idx(self):
         """test that the indexing works correctly for counting cuckoo filter
         swap"""
         cko = CountingCuckooFilter(capacity=100, bucket_size=2, max_swaps=5)
         txt = "this is a test"
-        idx_1, idx_2, fingerprint = cko._generate_fingerprint_info(txt)
-        index_1, index_2 = cko._indicies_from_fingerprint(fingerprint)
-        self.assertEqual(idx_1, index_1)
-        self.assertEqual(idx_2, index_2)
+        fingerprint, idx_1, idx_2 = cko._layers[0].locate(cko._key_hash(txt))
+        self.assertEqual(idx_2, cko._layers[0].alternate(idx_1, fingerprint))
+        self.assertEqual(idx_1, cko._layers[0].alternate(idx_2, fingerprint))
 
     def test_c_cuckoo_filter_check(self):
         """test checking if element in counting cuckoo filter"""
@@ -226,7 +226,7 @@ class TestCountingCuckooFilter(unittest.TestCase):
 
     def test_c_cuckoo_filter_export(self):
         """test exporting a counting cuckoo filter"""
-        md5sum = "6a98c2df1ec9fbb4f75f8e6392696b9b"
+        md5sum = "9441fe4ee9dcd56aba4fe422eeb7435b"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".cck", delete=DELETE_TEMP_FILES) as fobj:
             cko = CountingCuckooFilter(capacity=1000, bucket_size=2, auto_expand=False)
             for i in range(100):
@@ -238,7 +238,7 @@ class TestCountingCuckooFilter(unittest.TestCase):
 
     def test_c_cuckoo_filter_bytes(self):
         """test exporting a counting cuckoo filter"""
-        md5sum = "6a98c2df1ec9fbb4f75f8e6392696b9b"
+        md5sum = "9441fe4ee9dcd56aba4fe422eeb7435b"
         cko = CountingCuckooFilter(capacity=1000, bucket_size=2, auto_expand=False)
         for i in range(100):
             cko.add(str(i))
@@ -261,7 +261,7 @@ class TestCountingCuckooFilter(unittest.TestCase):
 
     def test_c_cuckoo_filter_load(self):
         """test loading a saved counting cuckoo filter"""
-        md5sum = "6a98c2df1ec9fbb4f75f8e6392696b9b"
+        md5sum = "9441fe4ee9dcd56aba4fe422eeb7435b"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".cck", delete=DELETE_TEMP_FILES) as fobj:
             cko = CountingCuckooFilter(capacity=1000, bucket_size=2, auto_expand=False)
             for i in range(100):
@@ -351,7 +351,7 @@ class TestCuckooFilterErrorRate(unittest.TestCase):
         self.assertEqual(2, cko.expansion_rate)
         self.assertEqual(True, cko.auto_expand)
         self.assertEqual(3, cko.fingerprint_size)
-        self.assertEqual(20, cko.fingerprint_size_bits)
+        self.assertEqual(21, cko.fingerprint_size_bits)
         self.assertEqual(0.00001, cko.error_rate)
 
     def test_c_cuckoo_filter_er_add_check(self):
@@ -380,7 +380,7 @@ class TestCuckooFilterErrorRate(unittest.TestCase):
 
     def test_c_cuckoo_filter_er_export(self):
         """test exporting a cuckoo filter"""
-        md5sum = "f68767bd97b21426f5d2315fb38961ad"
+        md5sum = "c020e5b0bcfd39410898fe337666edbf"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".cko", delete=DELETE_TEMP_FILES) as fobj:
             cko = CountingCuckooFilter.init_error_rate(0.00001)
             for i in range(1000):
@@ -391,7 +391,7 @@ class TestCuckooFilterErrorRate(unittest.TestCase):
 
     def test_c_cuckoo_filter_load(self):
         """test loading a saved cuckoo filter"""
-        md5sum = "88bc3a08bfc967f9ba60e9d57c21207f"
+        md5sum = "8d2fed69a93916bf144bafeff7edb73c"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".cko", delete=DELETE_TEMP_FILES) as fobj:
             cko = CountingCuckooFilter.init_error_rate(0.00001)
             for i in range(1000):
@@ -411,14 +411,14 @@ class TestCuckooFilterErrorRate(unittest.TestCase):
             self.assertEqual(500, ckf.max_swaps)
             self.assertEqual(2, ckf.expansion_rate)
             self.assertEqual(True, ckf.auto_expand)
-            self.assertEqual(20, ckf.fingerprint_size_bits)
+            self.assertEqual(21, ckf.fingerprint_size_bits)
             self.assertEqual(3, ckf.fingerprint_size)
             self.assertEqual(0.00001, ckf.error_rate)
             self.assertEqual(0.025, ckf.load_factor())
 
     def test_c_cuckoo_filter_er_bytes(self):
         """test exporting a cuckoo filter to bytes"""
-        md5sum = "f68767bd97b21426f5d2315fb38961ad"
+        md5sum = "c020e5b0bcfd39410898fe337666edbf"
         cko = CountingCuckooFilter.init_error_rate(0.00001)
         for i in range(1000):
             cko.add(str(i))

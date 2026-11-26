@@ -242,7 +242,31 @@ to determine the parameters.
 
     >>> cko = CuckooFilter.init_error_rate(0.00001)
     >>> cko.export('war_and_peace.cko')
-    >>> ckf = CuckooFilter.load_error_rate(0.00001)
+    >>> ckf = CuckooFilter.load_error_rate(0.00001, 'war_and_peace.cko')
+
+The error rate is an upper bound on the false positive rate of the whole filter, including any
+expansions. The first table uses `ceil(log2(4 * bucket_size / error_rate))` bit fingerprints, which
+must be 32 bits or fewer (`error_rate >= 3.7e-9` with the default bucket size of 4).
+
+Expanding Cuckoo Filters
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+A cuckoo filter stores fingerprints, not the elements, so it cannot move its elements into a larger
+table. When a filter with `auto_expand=True` is full (or when `expand()` is called), it adds a new,
+empty table instead, sized so that the total capacity grows by `expansion_rate`. Each new table uses
+a fingerprint one bit longer than the previous one, which keeps the total false positive rate under
+`error_rate`. Checks look in every table, so a filter that is sized for its elements up front is
+faster than one that has expanded many times.
+
+.. code:: python3
+
+    >>> cko = CuckooFilter.init_error_rate(0.001, capacity=1000)
+    >>> for i in range(10000):
+    >>>     cko.add(str(i))
+    >>> print(cko.layers, cko.capacity)  # prints 3 4000
+
+.. note::
+    Starting with version 0.8.0 the cuckoo filters use a new layout and export format. Filters
+    exported by earlier versions cannot be loaded and must be rebuilt from the original elements.
 
 Other Cuckoo Filters
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

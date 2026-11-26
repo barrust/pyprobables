@@ -1,5 +1,22 @@
 # PyProbables Changelog
 
+### Version 0.8.0 (unreleased)
+
+***Breaking Changes***
+`CuckooFilter` and `CountingCuckooFilter` use a new layout and export format; filters exported by earlier versions raise an `InitializationError` on load and must be rebuilt from the original elements
+
+* `Cuckoo Filter`
+  * Fix: the false positive rate was far above `error_rate` and grew with the number of elements (0.46 measured for `init_error_rate(0.001)` with 5,000 elements); both buckets were computed from the fingerprint alone, so any element whose fingerprint was stored anywhere was reported present. The first bucket now comes from a mix of the whole hash, which a 64-bit hash keeps independent of the fingerprint (partial-key cuckoo hashing, Fan et al. 2014)
+  * Fix: `add()` skipped elements whose fingerprint was stored anywhere in the filter, and `remove()` could remove a different element with the same fingerprint
+  * Fix: `CountingCuckooFilter.check()` could return the count of a different element with the same fingerprint
+  * Fix: elements whose fingerprint was 0 were dropped on export, since 0 marks an empty slot; a fingerprint of 0 is now stored as 1
+  * Fingerprints are stored in `array`s of 1, 2, or 4 bytes per slot (about 1/12 the memory, and half the export size at `error_rate=0.001`); checks are about 1.35x faster
+  * Expanding adds a table with a one bit longer fingerprint instead of re-inserting fingerprints into a larger table, so `error_rate` bounds the false positive rate of the whole filter; add `layers` property
+  * `init_error_rate()` uses `ceil(log2(4 * bucket_size / error_rate))` bit fingerprints and raises `InitializationError` if the error rate is not between 0 and 1 or needs more than 32 bits
+  * `load_error_rate()` and `frombytes(error_rate=...)` check the error rate stored in the export
+  * `expansion_rate` must be a whole number greater than 1 (`InitializationError` from the constructor, `ValueError` from the setter); `fingerprint_size` can only be changed on an empty filter
+  * `buckets` returns a read-only view that builds each bin when it is accessed; `CountingCuckooBin.increment()` and `decrement()` are deprecated, since they do not change the filter
+
 ### Version 0.7.1
 
 * `Cuckoo Filter`

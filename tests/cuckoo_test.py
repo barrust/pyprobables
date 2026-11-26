@@ -191,37 +191,36 @@ class TestCuckooFilter(unittest.TestCase):
         self.addCleanup(random.setstate, random.getstate())
         random.seed(0)
         cko = CuckooFilter(capacity=4, bucket_size=1, max_swaps=1, auto_expand=False)
-        added = ["k24", "k26", "k2", "k16"]
+        added = ["k0", "k1", "k2", "k3"]
         for key in added:
             cko.add(key)
-        self.assertRaises(CuckooFilterFullError, cko.add, "k32")
+        self.assertRaises(CuckooFilterFullError, cko.add, "k4")
         self.assertEqual(len(added), cko.elements_added)
         for key in added:
             self.assertTrue(cko.check(key))
 
-    def test_cuckoo_filter_failed_expand_preserves_elements(self):
-        """test that a failed expansion does not remove previously added elements"""
+    def test_cuckoo_filter_expand_keeps_elements(self):
+        """test that expanding a full filter keeps every element and adds a table"""
         self.addCleanup(random.setstate, random.getstate())
-        random.seed(1)
+        random.seed(0)
         cko = CuckooFilter(capacity=4, bucket_size=1, max_swaps=1)
-        added = ["k8", "k36", "k54", "k51", "k7", "k31"]
+        added = [f"k{i}" for i in range(40)]
         for key in added:
             cko.add(key)
-        self.assertEqual(8, cko.capacity)  # an expansion already succeeded
-        self.assertRaises(CuckooFilterFullError, cko.add, "k48")
-        self.assertEqual(8, cko.capacity)  # the failed expansion is rolled back
+        self.assertGreater(cko.layers, 1)
+        self.assertEqual(4 * 2 ** (cko.layers - 1), cko.capacity)
         self.assertEqual(len(added), cko.elements_added)
         for key in added:
             self.assertTrue(cko.check(key))
 
     def test_cuckoo_idx(self):
-        """test that the indexing works correctly for cuckoo filter swap"""
+        """test that either bucket and the fingerprint give the other bucket"""
         cko = CuckooFilter(capacity=100, bucket_size=2, max_swaps=5)
-        txt = "this is a test"
-        idx_1, idx_2, fingerprint = cko._generate_fingerprint_info(txt)
-        index_1, index_2 = cko._indicies_from_fingerprint(fingerprint)
-        self.assertEqual(idx_1, index_1)
-        self.assertEqual(idx_2, index_2)
+        layer = cko._layers[0]
+        for txt in ["this is a test"] + [str(i) for i in range(500)]:
+            fingerprint, idx_1, idx_2 = layer.locate(cko._key_hash(txt))
+            self.assertEqual(idx_2, layer.alternate(idx_1, fingerprint))
+            self.assertEqual(idx_1, layer.alternate(idx_2, fingerprint))
 
     def test_cuckoo_filter_check(self):
         """test checking if element in cuckoo filter"""
@@ -276,7 +275,7 @@ class TestCuckooFilter(unittest.TestCase):
 
     def test_cuckoo_filter_export(self):
         """test exporting a cuckoo filter"""
-        md5sum = "1371760d4ee9ccbe83e0144919750140"
+        md5sum = "8f6e1abdbdef1ac90fa2d86db9ec62d8"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".cko", delete=DELETE_TEMP_FILES) as fobj:
             cko = CuckooFilter()
             for i in range(1000):
@@ -287,7 +286,7 @@ class TestCuckooFilter(unittest.TestCase):
 
     def test_cuckoo_filter_bytes(self):
         """test exporting a cuckoo filter to bytes"""
-        md5sum = "1371760d4ee9ccbe83e0144919750140"
+        md5sum = "8f6e1abdbdef1ac90fa2d86db9ec62d8"
         cko = CuckooFilter()
         for i in range(1000):
             cko.add(str(i))
@@ -310,7 +309,7 @@ class TestCuckooFilter(unittest.TestCase):
 
     def test_cuckoo_filter_load(self):
         """test loading a saved cuckoo filter"""
-        md5sum = "1371760d4ee9ccbe83e0144919750140"
+        md5sum = "8f6e1abdbdef1ac90fa2d86db9ec62d8"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".cko", delete=DELETE_TEMP_FILES) as fobj:
             cko = CuckooFilter()
             for i in range(1000):
@@ -488,7 +487,7 @@ class TestCuckooFilterErrorRate(unittest.TestCase):
         self.assertEqual(2, cko.expansion_rate)
         self.assertEqual(True, cko.auto_expand)
         self.assertEqual(3, cko.fingerprint_size)
-        self.assertEqual(20, cko.fingerprint_size_bits)
+        self.assertEqual(21, cko.fingerprint_size_bits)
         self.assertEqual(0.00001, cko.error_rate)
 
     def test_cuckoo_filter_er_add_check(self):
@@ -517,7 +516,7 @@ class TestCuckooFilterErrorRate(unittest.TestCase):
 
     def test_cuckoo_filter_er_export(self):
         """test exporting a cuckoo filter"""
-        md5sum = "3c693508d1a3acd819310fd0c11dc906"
+        md5sum = "bd0ae64dd2c304d2618286e9692cc203"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".cko", delete=DELETE_TEMP_FILES) as fobj:
             cko = CuckooFilter.init_error_rate(0.00001)
             for i in range(1000):
@@ -528,7 +527,7 @@ class TestCuckooFilterErrorRate(unittest.TestCase):
 
     def test_cuckoo_filter_load(self):
         """test loading a saved cuckoo filter"""
-        md5sum = "3c693508d1a3acd819310fd0c11dc906"
+        md5sum = "bd0ae64dd2c304d2618286e9692cc203"
         with NamedTemporaryFile(dir=os.getcwd(), suffix=".cko", delete=DELETE_TEMP_FILES) as fobj:
             cko = CuckooFilter.init_error_rate(0.00001)
             for i in range(1000):
@@ -547,13 +546,13 @@ class TestCuckooFilterErrorRate(unittest.TestCase):
             self.assertEqual(2, ckf.expansion_rate)
             self.assertEqual(True, ckf.auto_expand)
             self.assertEqual(3, ckf.fingerprint_size)
-            self.assertEqual(20, ckf.fingerprint_size_bits)
+            self.assertEqual(21, ckf.fingerprint_size_bits)
             self.assertEqual(0.00001, ckf.error_rate)
             self.assertEqual(0.025, ckf.load_factor())
 
     def test_cuckoo_filter_er_bytes(self):
         """test exporting a cuckoo filter to bytes"""
-        md5sum = "3c693508d1a3acd819310fd0c11dc906"
+        md5sum = "bd0ae64dd2c304d2618286e9692cc203"
         cko = CuckooFilter.init_error_rate(0.00001)
         for i in range(1000):
             cko.add(str(i))
