@@ -217,8 +217,10 @@ class BloomFilter:
     def clear(self) -> None:
         """Clear or reset the Counting Bloom Filter"""
         self._els_added = 0
-        for idx in range(self._bloom_length):
-            self._bloom[idx] = 0
+        if isinstance(self._bloom, array):
+            self._bloom[:] = array(self._typecode, [0]) * self._bloom_length
+        else:  # the memory-mapped file of a Bloom Filter on disk
+            self._bloom[: self._bloom_length] = bytes(self._bloom_length)
 
     def hashes(self, key: KeyT, depth: int | None = None) -> HashResultsT:
         """Return the hashes based on the provided key
@@ -330,11 +332,9 @@ class BloomFilter:
         Returns:
             BloomFilter: A Bloom Filter object
         """
-        offset = cls._FOOTER_STRUCT.size
-        est_els, els_added, fpr, _, _ = cls._parse_footer(cls._FOOTER_STRUCT, bytes(b[-1 * offset :]))
-        blm = BloomFilter(est_elements=est_els, false_positive_rate=fpr, hash_function=hash_function)
+        # the smallest filter, so the array it allocates costs nothing to replace when loading
+        blm = BloomFilter(est_elements=1, false_positive_rate=0.5, hash_function=hash_function)
         blm._load(b, hash_function=blm.hash_function)
-        blm._els_added = els_added
         return blm
 
     def estimate_elements(self) -> int:
@@ -393,8 +393,8 @@ class BloomFilter:
             hash_function=self.hash_function,
         )
 
-        for i in range(0, res.bloom_length):
-            res._bloom[i] = self._get_element(i) & second._get_element(i)
+        both = self._bloom_as_int() & second._bloom_as_int()
+        res._bloom = array(res._typecode, both.to_bytes(res.bloom_length, "little"))
         res.elements_added = res.estimate_elements()
         return res
 
@@ -422,8 +422,8 @@ class BloomFilter:
             hash_function=self.hash_function,
         )
 
-        for i in range(self.bloom_length):
-            res._bloom[i] = self._get_element(i) | second._get_element(i)
+        either = self._bloom_as_int() | second._bloom_as_int()
+        res._bloom = array(res._typecode, either.to_bytes(res.bloom_length, "little"))
         res.elements_added = res.estimate_elements()
         return res
 
@@ -445,16 +445,9 @@ class BloomFilter:
         if self._verify_bloom_similarity(second) is False:
             raise SimilarityError("Bloom Filters are not similar")
 
-        count_union = 0
-
-        count_int = 0
-        for i in range(0, self.bloom_length):
-            el1 = self._get_element(i)
-            el2 = second._get_element(i)
-            t_union = el1 | el2
-            t_intersection = el1 & el2
-            count_union += bin(t_union).count("1")
-            count_int += bin(t_intersection).count("1")
+        first_bits, second_bits = self._bloom_as_int(), second._bloom_as_int()
+        count_union = (first_bits | second_bits).bit_count()
+        count_int = (first_bits & second_bits).bit_count()
         if count_union == 0:
             return 1.0
         return count_int / count_union
@@ -466,13 +459,16 @@ class BloomFilter:
         if not valid_prms:
             msg = "Bloom: estimated elements must be greater than 0"
             raise InitializationError(msg)
-        valid_prms = isinstance(false_positive_rate, Number) and 0.0 <= false_positive_rate < 1.0
+        valid_prms = isinstance(false_positive_rate, Number) and 0.0 < false_positive_rate < 1.0
         if not valid_prms:
             msg = "Bloom: false positive rate must be between 0.0 and 1.0"
             raise InitializationError(msg)
 
         fpr = cls._FPR_STRUCT.pack(float(false_positive_rate))
         t_fpr = float(cls._FPR_STRUCT.unpack(fpr)[0])  # to mimic the c version!
+        if t_fpr <= 0.0:  # too small to store as a 32-bit float
+            msg = "Bloom: false positive rate must be between 0.0 and 1.0"
+            raise InitializationError(msg)
         # optimal caluclations
         m_bt = math.ceil((-estimated_elements * math.log(t_fpr)) / 0.4804530139182)  # ln(2)^2
         number_hashes = int(round(0.6931471805599453 * m_bt / estimated_elements))  # math.log(2.0)
@@ -551,10 +547,11 @@ class BloomFilter:
 
     def _cnt_number_bits_set(self) -> int:
         """calculate the total number of set bits in the bloom"""
-        setbits = 0
-        for i in range(0, self.bloom_length):
-            setbits += bin(self._bloom[i]).count("1")
-        return setbits
+        return self._bloom_as_int().bit_count()
+
+    def _bloom_as_int(self) -> int:
+        """int: the bit array as one integer, so whole-filter bit operations run in C"""
+        return int.from_bytes(bytes(self._bloom[: self.bloom_length]), "little")
 
     def _get_element(self, idx: int) -> int:
         """wrappper for getting an element from the Bloom Filter!"""
@@ -661,10 +658,11 @@ class BloomFilterOnDisk(BloomFilter):
         with open(file, "r+b") as filepointer:
             offset = self._FOOTER_STRUCT.size
             filepointer.seek(offset * -1, os.SEEK_END)
-            est_els, _, fpr = self._FOOTER_STRUCT.unpack_from(filepointer.read(offset))
+            est_els, els_added, fpr = self._FOOTER_STRUCT.unpack_from(filepointer.read(offset))
 
             fpr, n_hashes, n_bits = self._get_optimized_params(est_els, fpr)
             self._set_values(est_els, fpr, n_hashes, n_bits, hash_function)
+            self._els_added = els_added
         # setup a few additional items
         self.__file_pointer = open(file, "r+b")  # noqa: SIM115
         self._bloom = mmap(self.__file_pointer.fileno(), 0)  # type: ignore
@@ -672,7 +670,12 @@ class BloomFilterOnDisk(BloomFilter):
 
     def add_alt(self, hashes: HashResultsT) -> None:
         super().add_alt(hashes)
-        self.__update()
+        self.__write_elements_added()
+
+    def clear(self) -> None:
+        """Clear or reset the Bloom Filter on disk"""
+        super().clear()
+        self.__write_elements_added()
 
     @classmethod
     def frombytes(cls, b: ByteString, hash_function: HashFuncT | None = None) -> "BloomFilterOnDisk":
@@ -687,11 +690,17 @@ class BloomFilterOnDisk(BloomFilter):
 
     def _get_element(self, idx: int) -> int:
         """wrappper to use similar functions always!"""
-        return int(self._IMPT_STRUCT.unpack(bytes([self._bloom[idx]]))[0])
+        return self._bloom[idx]
+
+    def __write_elements_added(self):
+        """write the elements added into the footer of the memory-mapped file
+
+        The footer is part of the mapping, so this is an 8-byte write to memory; the operating
+        system writes it to the file, and `close` and `export` flush it."""
+        offset = len(self._bloom) - self._UPDATE_OFFSET.size
+        self._EXPECTED_ELM_STRUCT.pack_into(self._bloom, offset, self.elements_added)  # type: ignore
 
     def __update(self):
         """update the on disk Bloom Filter and ensure everything is out to disk"""
+        self.__write_elements_added()
         self._bloom.flush()  # type: ignore
-        self.__file_pointer.seek(-1 * self._UPDATE_OFFSET.size, os.SEEK_END)  # type: ignore
-        self.__file_pointer.write(self._EXPECTED_ELM_STRUCT.pack(self.elements_added))  # type: ignore
-        self.__file_pointer.flush()  # type: ignore

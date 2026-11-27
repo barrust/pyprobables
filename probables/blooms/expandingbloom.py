@@ -4,6 +4,7 @@ Author: Tyler Barrus (barrust@gmail.com)
 URL: https://github.com/barrust/pyprobables
 """
 
+import math
 from array import array
 from collections.abc import ByteString
 from io import BytesIO, IOBase
@@ -81,10 +82,9 @@ class ExpandingBloomFilter:
         Returns:
             ExpandingBloomFilter: A Bloom Filter object
         """
-        size, est_els, added_els, fpr = cls._parse_footer(b)
-        blm = ExpandingBloomFilter(est_elements=est_els, false_positive_rate=fpr, hash_function=hash_function)
-        blm._parse_blooms(b, size)
-        blm._added_elements = added_els
+        # the smallest filter, so the Bloom Filter it allocates costs nothing to replace
+        blm = ExpandingBloomFilter(est_elements=1, false_positive_rate=0.5, hash_function=hash_function)
+        blm._load_bytes(b)
         return blm
 
     def __contains__(self, key: KeyT) -> bool:
@@ -213,12 +213,15 @@ class ExpandingBloomFilter:
             with MMap(file) as filepointer:
                 self.__load(filepointer)
         else:
-            size, est_els, els_added, fpr = self._parse_footer(file)  # type: ignore
-            self._blooms = []
-            self._added_elements = els_added
-            self.__fpr = fpr
-            self.__est_elements = est_els
-            self._parse_blooms(file, size)  # type:ignore
+            self._load_bytes(file)  # type: ignore
+
+    def _load_bytes(self, b: ByteString) -> None:
+        """set the parameters and Bloom Filters from an export"""
+        size, est_els, els_added, fpr = self._parse_footer(b)
+        self._added_elements = els_added
+        self.__fpr = fpr
+        self.__est_elements = est_els
+        self._parse_blooms(b, size)
 
     @classmethod
     def _parse_footer(cls, b: ByteString) -> tuple[int, int, int, float]:
@@ -227,22 +230,19 @@ class ExpandingBloomFilter:
         return int(size), int(est_els), int(els_added), float(fpr)
 
     def _parse_blooms(self, b: ByteString, size: int) -> None:
-        # reset the bloom list
+        # every stored Bloom Filter has the same parameters, so calculate them once, and set each
+        # bit array from the data instead of allocating one to replace
+        fpr, n_hashes, n_bits = BloomFilter._get_optimized_params(self.__est_elements, self.__fpr)
+        blm_size = self._BLOOM_ELEMENT_SIZE * math.ceil(n_bits / 8)
+        count_size = self.__S_INT64_STRUCT.size
         self._blooms = []
-        blm_size = 0
         start = 0
-        end = 0
         for _ in range(size):
-            blm = BloomFilter(
-                est_elements=self.__est_elements,
-                false_positive_rate=self.__fpr,
-                hash_function=self.__hash_func,
-            )
-            if blm_size == 0:
-                blm_size = self._BLOOM_ELEMENT_SIZE * blm.bloom_length
-            end = start + self.__S_INT64_STRUCT.size + blm_size
-            blm._els_added = int(self.__S_INT64_STRUCT.unpack(bytes(b[start : start + self.__S_INT64_STRUCT.size]))[0])
-            blm._bloom = array("B", bytes(b[start + self.__S_INT64_STRUCT.size : end]))
+            blm = BloomFilter(est_elements=1, false_positive_rate=0.5, hash_function=self.__hash_func)
+            blm._set_values(self.__est_elements, fpr, n_hashes, n_bits, self.__hash_func)
+            end = start + count_size + blm_size
+            blm._els_added = int(self.__S_INT64_STRUCT.unpack(bytes(b[start : start + count_size]))[0])
+            blm._bloom = array("B", bytes(b[start + count_size : end]))
             self._blooms.append(blm)
             start = end
 
@@ -299,12 +299,11 @@ class RotatingBloomFilter(ExpandingBloomFilter):
         Returns:
             RotatingBloomFilter: A Bloom Filter object
         """
-        size, est_els, added_els, fpr = cls._parse_footer(b)
+        # the smallest filter, so the Bloom Filter it allocates costs nothing to replace
         blm = RotatingBloomFilter(
-            est_elements=est_els, false_positive_rate=fpr, max_queue_size=max_queue_size, hash_function=hash_function
+            est_elements=1, false_positive_rate=0.5, max_queue_size=max_queue_size, hash_function=hash_function
         )
-        blm._parse_blooms(b, size)
-        blm._added_elements = added_els
+        blm._load_bytes(b)
         return blm
 
     @property
@@ -347,7 +346,7 @@ class RotatingBloomFilter(ExpandingBloomFilter):
     def __rotate_bloom_filter(self, force: bool = False):
         """handle determining if/when the Bloom Filter queue needs to be rotated"""
         blm = self._blooms[-1]
-        ready_to_rotate = blm.elements_added == blm.estimated_elements
+        ready_to_rotate = blm.elements_added >= blm.estimated_elements
         no_need_to_pop = self.current_queue_size < self._queue_size
         if force and no_need_to_pop:
             self.__add_bloom_filter()

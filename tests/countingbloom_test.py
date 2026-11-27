@@ -79,7 +79,7 @@ class TestCountingBloomFilter(unittest.TestCase):
             "\telements added: 10\n"
             "\tcurrent false positive rate: 0.048806\n"
             "\tis on disk: no\n"
-            "\tindex fullness: 0.634921\n"
+            "\tindex fullness: 0.492063\n"  # 31 of 63 slots in use (it reported the sum of counts, 40 / 63)
             "\tmax index usage: 3\n"
             "\tmax index id: 56\n"
             "\tcalculated elements: 10\n"
@@ -538,6 +538,83 @@ class TestCountingBloomFilter(unittest.TestCase):
             blm.add(str(i))
         # NOTE: this causes an exception when all bits are set
         self.assertEqual(-1, blm.estimate_elements())
+
+
+class TestCountingBloomFilterReviewFixes(unittest.TestCase):
+    """Regression tests for issues found in code review"""
+
+    @staticmethod
+    def _key_with_repeated_index(blm: CountingBloomFilter) -> tuple[str, list[int]]:
+        """a key two of whose hashes land on the same index, and its indexes"""
+        for i in range(100000):
+            key = str(i)
+            indexes = [h % blm.number_bits for h in blm.hashes(key)]
+            if len(set(indexes)) < len(indexes):
+                return key, indexes
+        raise AssertionError("no key with a repeated index")  # pragma: no cover
+
+    def test_remove_with_repeated_index(self):
+        """removing a key whose index repeats never goes below zero (it raised OverflowError)"""
+        blm = CountingBloomFilter(10, 0.05)
+        key, indexes = self._key_with_repeated_index(blm)
+        repeated = next(k for k in indexes if indexes.count(k) > 1)
+        for k in set(indexes):
+            blm.bloom[k] = 5
+        # the key was not added (adding it puts 2 in the repeated index), but it looks present: a
+        # false positive. One removal takes 2 from the repeated index, which holds only 1, so it
+        # must change nothing
+        blm.bloom[repeated] = 1
+        before = list(blm.bloom)
+        self.assertEqual(1, blm.remove(key))
+        self.assertEqual(before, list(blm.bloom))  # nothing was changed
+
+        blm = CountingBloomFilter(10, 0.05)
+        blm.add(key)
+        self.assertEqual(2, blm.bloom[repeated])  # incremented once per hash, as in the C version
+        self.assertEqual(0, blm.remove(key))
+        self.assertEqual(0, sum(blm.bloom))
+        self.assertEqual(0, blm.elements_added)
+
+    def test_add_with_repeated_index_at_cap(self):
+        """adding near the 32-bit cap stops at the cap (it raised OverflowError)"""
+        blm = CountingBloomFilter(10, 0.05)
+        key, indexes = self._key_with_repeated_index(blm)
+        repeated = next(k for k in indexes if indexes.count(k) > 1)
+        blm.bloom[repeated] = 2**32 - 2
+        self.assertEqual(1, blm.add(key))
+        self.assertEqual(2**32 - 1, blm.bloom[repeated])
+        for k in set(indexes) - {repeated}:
+            self.assertEqual(indexes.count(k), blm.bloom[k])
+
+    def test_remove_more_than_added(self):
+        """removing more times than added removes what is there"""
+        blm = CountingBloomFilter(100, 0.05)
+        blm.add("key", 3)
+        self.assertEqual(0, blm.remove("key", 10))
+        self.assertEqual(0, blm.check("key"))
+        self.assertEqual(0, blm.elements_added)
+        self.assertEqual(0, blm.remove("key"))
+
+    def test_saturated_indexes_not_removed(self):
+        """a key whose indexes are all at the cap cannot be removed"""
+        blm = CountingBloomFilter(100, 0.05)
+        for h in blm.hashes("key"):
+            blm.bloom[h % blm.number_bits] = 2**32 - 1
+        self.assertEqual(2**32 - 1, blm.remove("key"))
+        self.assertEqual(2**32 - 1, blm.check("key"))
+
+    def test_check_alt_uses_number_hashes(self):
+        """extra hashes passed to check_alt are ignored, as add_alt ignores them"""
+        blm = CountingBloomFilter(100, 0.05)
+        blm.add("key", 4)
+        self.assertEqual(4, blm.check_alt(blm.hashes("key", depth=blm.number_hashes + 6)))
+
+    def test_index_fullness_at_most_one(self):
+        """index fullness is the share of indexes in use (it summed the counts)"""
+        blm = CountingBloomFilter(10, 0.05)
+        blm.add("a", 100)
+        in_use = sum(1 for x in blm.bloom if x > 0)
+        self.assertIn(f"\tindex fullness: {in_use / blm.number_bits:.6}\n", str(blm))
 
 
 if __name__ == "__main__":

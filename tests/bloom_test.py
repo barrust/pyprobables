@@ -12,7 +12,7 @@ this_dir = Path(__file__).parent
 sys.path.insert(0, str(this_dir))
 sys.path.insert(0, str(this_dir.parent))
 
-from probables import BloomFilter, BloomFilterOnDisk  # noqa: E402
+from probables import BloomFilter, BloomFilterOnDisk, ExpandingBloomFilter  # noqa: E402
 from probables.constants import UINT64_T_MAX  # noqa: E402
 from probables.exceptions import InitializationError, NotSupportedError, SimilarityError  # noqa: E402
 from probables.hashes import hash_with_depth_int  # noqa: E402
@@ -942,6 +942,92 @@ class TestBloomFilterOnDisk(unittest.TestCase):
                 blm.add(str(i))
         # NOTE: this causes an exception when all bits are set
         self.assertEqual(-1, blm.estimate_elements())
+
+
+class TestBloomFilterReviewFixes(unittest.TestCase):
+    """Regression tests for issues found in code review"""
+
+    @staticmethod
+    def _footer_elements_added(path: str) -> int:
+        """the elements added stored in an exported Bloom Filter file"""
+        with open(path, "rb") as filepointer:
+            data = filepointer.read()
+        return BloomFilter._FOOTER_STRUCT.unpack(data[-BloomFilter._FOOTER_STRUCT.size :])[1]
+
+    def test_on_disk_reopen_keeps_elements_added(self):
+        """reopening an on disk Bloom Filter keeps its elements added (it was reset to 0)"""
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
+            blm = BloomFilterOnDisk(fobj.name, 10, 0.05)
+            for i in range(5):
+                blm.add(str(i))
+            blm.close()
+            reopened = BloomFilterOnDisk(fobj.name)
+            self.assertEqual(5, reopened.elements_added)
+            reopened.add("one more")
+            reopened.close()
+            self.assertEqual(6, self._footer_elements_added(fobj.name))  # it was written as 1
+
+    def test_on_disk_footer_current_without_close(self):
+        """each add updates the count in the file, without closing or exporting"""
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
+            blm = BloomFilterOnDisk(fobj.name, 100, 0.05)
+            for i in range(7):
+                blm.add(str(i))
+            self.assertEqual(7, self._footer_elements_added(fobj.name))
+            blm.clear()
+            self.assertEqual(0, self._footer_elements_added(fobj.name))
+            self.assertEqual(0, blm._cnt_number_bits_set())
+            blm.close()
+
+    def test_zero_false_positive_rate(self):
+        """a false positive rate of 0, or too small for a 32-bit float, raises InitializationError"""
+        for rate in (0.0, 1e-50):
+            self.assertRaises(InitializationError, BloomFilter, 10, rate)
+        # the expanding filter's default rate is 0.0; it raised a bare ValueError
+        self.assertRaises(InitializationError, ExpandingBloomFilter, est_elements=10)
+
+    def test_bit_operations_match_bytewise(self):
+        """bit counts, union, intersection, and jaccard index match a byte-by-byte calculation"""
+        first, second = BloomFilter(500, 0.01), BloomFilter(500, 0.01)
+        for i in range(400):
+            first.add(f"a{i}")
+            second.add(f"b{i % 250}")
+            second.add(f"a{i % 100}")
+        pairs = list(zip(first.bloom, second.bloom))
+        self.assertEqual(sum(bin(x).count("1") for x in first.bloom), first._cnt_number_bits_set())
+        self.assertEqual([x | y for x, y in pairs], list(first.union(second).bloom))
+        self.assertEqual([x & y for x, y in pairs], list(first.intersection(second).bloom))
+        union = sum(bin(x | y).count("1") for x, y in pairs)
+        intersection = sum(bin(x & y).count("1") for x, y in pairs)
+        self.assertEqual(intersection / union, first.jaccard_index(second))
+        empty = BloomFilter(500, 0.01)
+        self.assertEqual(1.0, empty.jaccard_index(BloomFilter(500, 0.01)))
+
+    def test_on_disk_bit_operations(self):
+        """an on disk Bloom Filter gives the same results as one in memory"""
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
+            on_disk = BloomFilterOnDisk(fobj.name, 500, 0.01)
+            in_memory, other = BloomFilter(500, 0.01), BloomFilter(500, 0.01)
+            for i in range(300):
+                on_disk.add(str(i))
+                in_memory.add(str(i))
+                other.add(str(i * 3))
+            self.assertEqual(in_memory._cnt_number_bits_set(), on_disk._cnt_number_bits_set())
+            self.assertEqual(bytes(in_memory.union(other)), bytes(on_disk.union(other)))
+            self.assertEqual(bytes(in_memory.intersection(other)), bytes(on_disk.intersection(other)))
+            self.assertEqual(in_memory.jaccard_index(other), on_disk.jaccard_index(other))
+            on_disk.close()
+
+    def test_clear_in_place(self):
+        """clear() empties the same bit array"""
+        blm = BloomFilter(100, 0.05)
+        bits = blm.bloom
+        for i in range(50):
+            blm.add(str(i))
+        blm.clear()
+        self.assertIs(bits, blm.bloom)
+        self.assertEqual(0, blm._cnt_number_bits_set())
+        self.assertEqual(0, blm.elements_added)
 
 
 if __name__ == "__main__":
