@@ -2,38 +2,21 @@
 
 ### Version 0.7.2 (unreleased)
 
-All export formats are unchanged; files exported by 0.7.1 load and give the same results.
-
 * `HyperLogLog` and `HyperLogLogPlusPlus`; see [#150](https://github.com/barrust/pyprobables/pull/150)
-  * Add `HyperLogLog` cardinality estimator with merge, export, and load support
-  * Add `HyperLogLogPlusPlus` with bias correction and optional sparse mode
-  * Exports start with a magic value and format version (`PHLL` for `HyperLogLog`, `HLPP` for `HyperLogLogPlusPlus`)
-* Hashing; see [#161](https://github.com/barrust/pyprobables/pull/161)
-  * `default_fnv_1a` hashes every depth in a single pass over the key; the hash values are unchanged (Bloom filter add and check about 3.6x faster with 10 hashes, Count-Min sketch about 2.8x at depth 7)
-  * `fnv_1a` and `fnv_1a_32` no longer copy the key into a list
-  * `default_fnv_1a` raises `ValueError` for a negative depth instead of returning `[]`
+  * Add `HyperLogLog` and `HyperLogLogPlusPlus` (bias correction and optional sparse mode) with merge, export, and load
+  * Exports start with a magic value and format version
 * `BloomFilter` and variants; see [#158](https://github.com/barrust/pyprobables/pull/158)
-  * Fix: `BloomFilterOnDisk` lost `elements_added` when reopened, and wrote the wrong count back on the next `add()`
-  * Fix: a false positive rate of 0 raised a bare `ValueError` instead of `InitializationError`, including `ExpandingBloomFilter(est_elements=10)`
-  * Fix: `RotatingBloomFilter` never rotated again once its newest filter was over the estimate
-  * `estimate_elements`, `union`, `intersection`, and `jaccard_index` work on the whole filter at once (about 50-150x faster on a 1.2 MB filter), and `clear` empties the filter in place
-  * `BloomFilterOnDisk.add()` updates the count in the memory-mapped footer instead of flushing the whole file (129 µs to 3.9 µs per key)
-  * Loading no longer allocates a full-size filter only to replace it
-* `CountingBloomFilter`; see [#158](https://github.com/barrust/pyprobables/pull/158)
-  * Fix: `remove()` could raise `OverflowError` and leave the filter partly updated when a key's hashes repeat an index or the key was not added; it now removes only what every index allows
-  * Fix: `add()` could raise `OverflowError` near `UINT32_MAX` on a repeated index; it now caps
-  * Fix: `check_alt()` used every hash passed instead of only `number_hashes`
-  * Fix: `__str__` reported the sum of the counts as the index fullness; it now reports the share of indexes in use
+  * Fix: `BloomFilterOnDisk` lost `elements_added` when reopened
+  * Fix: `CountingBloomFilter` remove/add overflow on repeated indexes, `check_alt()` hash count, and fullness in `__str__`
+  * Fix: `RotatingBloomFilter` stopped rotating
+  * Faster union, intersection, Jaccard index, element estimate, clear, and on-disk add
 * `CountMinSketch` and variants; see [#160](https://github.com/barrust/pyprobables/pull/160)
-  * Fix: `CountMeanSketch.frombytes()` and `CountMeanMinSketch.frombytes()` returned a `CountMinSketch` that used the `min` query
-  * Fix: `join()` lost saturation when the other sketch's bin was saturated
-  * Fix: the mean-min query divided by zero for a width of 1; it now uses each row's count
-  * Fix: `add()` and `remove()` clamped only one `int32` limit, so a negative count could raise `OverflowError`
-  * Fix: `HeavyHitters` accepted `num_hitters <= 0`, a confidence of 1 or more raised a bare "math domain error", and a width or depth below 1 divided by zero; these now raise `InitializationError`
-  * `clear()` zeroes the bins in place (150 ms to 0.6 ms for 5 million bins), `HeavyHitters` scans its hitters only when a new key may replace one, and queries no longer sort
-* `QuotientFilter`; see [#157](https://github.com/barrust/pyprobables/pull/157); thanks [bardrop](https://github.com/bardrop)
-  * Fix: removed elements were still counted in `elements_added`, so a filter with adds and removes kept expanding
-  * Fix: removing from a filter with no empty slots could loop forever or raise `IndexError`
+  * Fix: `CountMeanSketch` and `CountMeanMinSketch` loaded as a `CountMinSketch`
+  * Fix: `join()` lost saturation; mean-min query with a width of 1; negative counts overflowed
+  * Fix: invalid parameters raise `InitializationError`
+  * Faster `clear()` and `HeavyHitters`
+* `QuotientFilter`: fix removed elements still counted, and removal from a full filter; see [#157](https://github.com/barrust/pyprobables/pull/157)
+* Faster default hash: `default_fnv_1a` hashes all depths in one pass, same values; see [#161](https://github.com/barrust/pyprobables/pull/161)
 
 ### Version 0.7.1
 
