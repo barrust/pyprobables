@@ -2,6 +2,7 @@
 
 import math
 from array import array
+from bisect import bisect_left
 from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
@@ -11,8 +12,12 @@ from struct import error as StructError
 
 from probables.constants import UINT64_T_MAX
 from probables.exceptions import InitializationError, NotSupportedError
-from probables.hashes import SimpleHashT
-from probables.hyperloglog.hllpp_bias_data import BIAS_DATA, LINEAR_COUNTING_THRESHOLD, RAW_ESTIMATE_DATA
+from probables.hashes import KeyT, SimpleHashT
+from probables.hyperloglog.hllpp_bias_data import (
+    BIAS_DATA,
+    LINEAR_COUNTING_THRESHOLD,
+    RAW_ESTIMATE_DATA,
+)
 from probables.hyperloglog.hyperloglog import HyperLogLog
 from probables.utilities import MMap, is_valid_file, resolve_path
 
@@ -72,23 +77,31 @@ class HyperLogLogPlusPlus(HyperLogLog):
         sparse_enabled: bool = False,
         sparse_threshold: int | None = None,
     ) -> None:
-        super().__init__(precision=precision, hash_function=hash_function)
-        self._bias_correction = bool(bias_correction)
-        self._sparse_enabled = bool(sparse_enabled)
-        if filepath is None:
-            self._check_sparse_threshold(sparse_threshold)
-        self._sparse_threshold = sparse_threshold
-        self._sparse_set: dict[int, int] = {}
-        self._is_sparse = sparse_enabled
-        if self._is_sparse:
-            self._registers = array("B")
-
+        self._init_state(hash_function)
         if filepath is not None:
             if not is_valid_file(filepath):
                 raise InitializationError("HyperLogLogPlusPlus: failed to load provided file")
-            filepath = resolve_path(filepath)
-            with MMap(filepath) as filepointer:
+            with MMap(resolve_path(filepath)) as filepointer:
                 self._parse_hllpp_bytes(filepointer.read())
+            return
+
+        self._set_precision(precision)
+        self._check_sparse_threshold(sparse_threshold)
+        self._bias_correction = bool(bias_correction)
+        self._sparse_enabled = bool(sparse_enabled)
+        self._sparse_threshold: int | None = sparse_threshold
+        self._is_sparse = self._sparse_enabled
+        if not self._is_sparse:
+            self._registers = array("B", [0]) * self.number_registers
+
+    def _init_state(self, hash_function: SimpleHashT | None) -> None:
+        """Set every attribute to an empty state without allocating registers"""
+        super()._init_state(hash_function)
+        self._bias_correction = True
+        self._sparse_enabled = False
+        self._sparse_threshold = None
+        self._sparse_set: dict[int, int] = {}
+        self._is_sparse = False
 
     def _check_sparse_threshold(self, sparse_threshold: int | None) -> None:
         """Raise if `sparse_threshold` is not None or between 1 and the number of registers"""
@@ -104,8 +117,9 @@ class HyperLogLogPlusPlus(HyperLogLog):
     @classmethod
     def frombytes(cls, b: ByteString, hash_function: SimpleHashT | None = None) -> "HyperLogLogPlusPlus":
         """Create a HyperLogLogPlusPlus from bytes"""
-        hllpp = cls(hash_function=hash_function)
-        hllpp._parse_hllpp_bytes(bytes(b))
+        hllpp = cls.__new__(cls)
+        hllpp._init_state(hash_function)
+        hllpp._parse_hllpp_bytes(b)
         return hllpp
 
     @property
@@ -158,7 +172,7 @@ class HyperLogLogPlusPlus(HyperLogLog):
             self.export(filepointer)  # type: ignore[arg-type]
             return filepointer.getvalue()
 
-    def add(self, key: str | bytes | bytearray | int) -> None:
+    def add(self, key: KeyT) -> None:
         """Add element to sketch. Automatically promotes sparse to dense if needed."""
         if self._is_sparse:
             self._add_sparse(key)
@@ -172,7 +186,7 @@ class HyperLogLogPlusPlus(HyperLogLog):
         else:
             super().add_alt(value)
 
-    def _add_sparse(self, key: str | bytes | bytearray | int) -> None:
+    def _add_sparse(self, key: KeyT) -> None:
         """Add element to sparse representation"""
         self._add_alt_sparse(self._hash(key))
 
@@ -249,8 +263,7 @@ class HyperLogLogPlusPlus(HyperLogLog):
         if self._is_sparse:
             return self._estimate_sparse()
 
-        raw_estimate = self._raw_estimate_dense()
-        return self._correct_estimate(raw_estimate, self._registers.count(0))
+        return self._correct_estimate(self._raw_estimate(), self._registers.count(0))
 
     def _correct_estimate(self, raw_estimate: float, zero_count: int) -> float:
         """Apply HLL++ corrections to a raw estimate and register zero count."""
@@ -274,26 +287,11 @@ class HyperLogLogPlusPlus(HyperLogLog):
 
         return self._apply_large_range_correction(raw_estimate)
 
-    def _raw_estimate_dense(self) -> float:
-        """Return raw HLL estimate without small-range or large-range correction."""
-        indicator = sum(math.pow(2.0, -1 * register) for register in self._registers)
-        return self._alpha_mm() / indicator
-
-    def _apply_large_range_correction(self, estimate: float) -> float:
-        """Apply the large-range correction used by the base HLL implementation."""
-        if estimate > (1.0 / 30.0) * (UINT64_T_MAX + 1):
-            denominator = UINT64_T_MAX + 1
-            ratio = estimate / denominator
-            if ratio >= 1.0:
-                return float(denominator)
-            return -1.0 * denominator * math.log(1.0 - ratio)
-        return estimate
-
     def _estimate_sparse(self) -> float:
         """Estimate cardinality from the sparse per-register maxima."""
         if len(self._sparse_set) == 0:
             return 0.0
-        indicator = self.number_registers - len(self._sparse_set)
+        indicator: float = self.number_registers - len(self._sparse_set)
         indicator += sum(math.pow(2.0, -rho) for rho in self._sparse_set.values())
         raw_estimate = self._alpha_mm() / indicator
         return self._correct_estimate(raw_estimate, self.number_registers - len(self._sparse_set))
@@ -321,7 +319,6 @@ class HyperLogLogPlusPlus(HyperLogLog):
             with open(file, "wb") as filepointer:
                 self.export(filepointer)  # type: ignore[arg-type]
         else:
-            filepointer = file
             flags = self._SPARSE_MODE_FLAG if self._is_sparse else self._DENSE_MODE_FLAG
             if self._bias_correction:
                 flags |= self._BIAS_CORRECTION_FLAG
@@ -331,17 +328,17 @@ class HyperLogLogPlusPlus(HyperLogLog):
             header = self._HLLPP_HEADER.pack(self._HLLPP_MAGIC, self._HLLPP_VERSION, flags, threshold)
             footer = self._HLLPP_FOOTER.pack(self.precision, self.elements_added)
 
-            filepointer.write(header)
+            file.write(header)
 
             if self._is_sparse:
                 num_entries = len(self._sparse_set)
-                filepointer.write(self._SPARSE_COUNT.pack(num_entries))
+                file.write(self._SPARSE_COUNT.pack(num_entries))
                 for idx, rho in sorted(self._sparse_set.items()):
-                    filepointer.write(self._SPARSE_ENTRY.pack(idx, rho))
+                    file.write(self._SPARSE_ENTRY.pack(idx, rho))
             else:
-                filepointer.write(self._registers.tobytes())
+                file.write(self._registers.tobytes())
 
-            filepointer.write(footer)
+            file.write(footer)
 
     def _apply_bias_correction(self, estimate: float) -> float:
         """Apply nearest-neighbor empirical bias correction from HLL++ paper."""
@@ -354,9 +351,13 @@ class HyperLogLogPlusPlus(HyperLogLog):
         if len(raw_points) == 0 or len(raw_points) != len(bias_points):
             return estimate
 
-        # Paper-style nearest-neighbor bias estimation (k=6 in the paper).
+        # Paper-style nearest-neighbor bias estimation (k=6 in the paper). The raw estimates are
+        # sorted apart from a few tiny inversions (precisions 5 and 6), so the nearest points are
+        # within a few places of the insertion point; sort only that window by distance.
         k_neighbors = min(6, len(raw_points))
-        nearest = sorted(range(len(raw_points)), key=lambda i: abs(raw_points[i] - estimate))[:k_neighbors]
+        position = bisect_left(raw_points, estimate)
+        window = range(max(0, position - k_neighbors - 2), min(len(raw_points), position + k_neighbors + 2))
+        nearest = sorted(window, key=lambda i: abs(raw_points[i] - estimate))[:k_neighbors]
         mean_bias = sum(bias_points[i] for i in nearest) / float(k_neighbors)
         corrected = estimate - mean_bias
         return max(0.0, corrected)
@@ -396,24 +397,9 @@ class HyperLogLogPlusPlus(HyperLogLog):
         footer_size = footer_struct.size
         if len(data) < footer_size:
             raise InitializationError("HyperLogLogPlusPlus: invalid byte stream")
-        register_data = bytes(data[:-footer_size])
-        footer_data = bytes(data[-footer_size:])
-
-        precision, elements_added = footer_struct.unpack(footer_data)
+        precision, elements_added = footer_struct.unpack(bytes(data[-footer_size:]))
         self._set_precision(precision)
-        if len(register_data) != self.number_registers:
-            raise InitializationError("HyperLogLogPlusPlus: register length mismatch")
-        registers = array("B", register_data)
-        max_rank = 64 - self.precision + 1
-        occupied = sum(register != 0 for register in registers)
-        if (
-            any(register > max_rank for register in registers)
-            or elements_added < occupied
-            or (elements_added == 0) != (occupied == 0)
-        ):
-            raise InitializationError("HyperLogLogPlusPlus: invalid register data")
-        self._registers = registers
-        self._elements_added = elements_added
+        self._load_registers(bytes(data[:-footer_size]), elements_added)
         self._sparse_set.clear()
         self._is_sparse = False
 

@@ -43,23 +43,21 @@ class HyperLogLog:
         filepath: str | Path | None = None,
         hash_function: SimpleHashT | None = None,
     ) -> None:
-        self.__precision = 0
-        self._elements_added = 0
-        self._registers = array("B")
-
+        self._init_state(hash_function)
         if filepath is not None:
             if not is_valid_file(filepath):
                 raise InitializationError("HyperLogLog: failed to load provided file")
-            filepath = resolve_path(filepath)
-            self.__load(filepath)
+            self.__load(resolve_path(filepath))
         else:
             self._set_precision(precision)
             self._registers = array("B", [0]) * self.number_registers
 
-        if hash_function is None:
-            self._hash_function = hll_hash64
-        else:
-            self._hash_function = hash_function
+    def _init_state(self, hash_function: SimpleHashT | None) -> None:
+        """Set every attribute to an empty state without allocating registers"""
+        self.__precision = 0
+        self._elements_added = 0
+        self._registers = array("B")
+        self._hash_function: SimpleHashT = hll_hash64 if hash_function is None else hash_function
 
     def __str__(self) -> str:
         """String representation of the HyperLogLog"""
@@ -92,7 +90,8 @@ class HyperLogLog:
     @classmethod
     def frombytes(cls, b: ByteString, hash_function: SimpleHashT | None = None) -> "HyperLogLog":
         """Create a HyperLogLog from bytes"""
-        hll = cls(hash_function=hash_function)
+        hll = cls.__new__(cls)
+        hll._init_state(hash_function)
         hll._parse_bytes(b)
         return hll
 
@@ -149,8 +148,7 @@ class HyperLogLog:
     def clear(self) -> None:
         """Reset the HyperLogLog to an empty state"""
         self._elements_added = 0
-        for idx, _ in enumerate(self._registers):
-            self._registers[idx] = 0
+        self._registers = array("B", [0]) * self.number_registers
 
     def cardinality(self) -> int:
         """Return the estimated cardinality as an integer"""
@@ -158,18 +156,31 @@ class HyperLogLog:
 
     def estimate(self) -> float:
         """Return the estimated cardinality as a float"""
-        indicator = sum(math.pow(2.0, -1 * register) for register in self._registers)
-        estimate = self._alpha_mm() / indicator
-
+        estimate = self._raw_estimate()
         zero_count = self._registers.count(0)
         if estimate <= (5.0 * self.number_registers) / 2.0 and zero_count > 0:
-            estimate = self.number_registers * math.log(self.number_registers / zero_count)
-        elif estimate > (1.0 / 30.0) * (UINT64_T_MAX + 1):
+            return self.number_registers * math.log(self.number_registers / zero_count)
+        return self._apply_large_range_correction(estimate)
+
+    @staticmethod
+    def _apply_large_range_correction(estimate: float) -> float:
+        """Correct for 64-bit hash collisions and keep the estimate at or below 2^64
+
+        Note:
+            Only register states far beyond any real input (such as loaded or `add_alt` values with
+            maximal ranks) reach this; it keeps the estimate finite and meaningful for those."""
+        if estimate > (1.0 / 30.0) * (UINT64_T_MAX + 1):
             denominator = UINT64_T_MAX + 1
             ratio = estimate / denominator
-            estimate = float(denominator) if ratio >= 1.0 else -1.0 * denominator * math.log(1.0 - ratio)
-
+            if ratio >= 1.0:
+                return float(denominator)
+            return -1.0 * denominator * math.log(1.0 - ratio)
         return estimate
+
+    def _raw_estimate(self) -> float:
+        """Return the raw HyperLogLog estimate of the dense registers, without corrections"""
+        indicator = sum(math.pow(2.0, -1 * register) for register in self._registers)
+        return self._alpha_mm() / indicator
 
     def merge(self, second: "HyperLogLog") -> None:
         """Merge the `second` HyperLogLog into the first"""
@@ -194,10 +205,9 @@ class HyperLogLog:
             with open(file, "wb") as filepointer:
                 self.export(filepointer)  # type: ignore[arg-type]
         else:
-            filepointer = file
             footer = self.__FOOTER_STRUCT.pack(self.precision, self.elements_added)
-            filepointer.write(self._registers.tobytes())
-            filepointer.write(footer)
+            file.write(self._registers.tobytes())
+            file.write(footer)
 
     def _alpha_mm(self) -> float:
         """Return alpha * m^2 for the configured register count"""
@@ -230,19 +240,21 @@ class HyperLogLog:
             self._set_precision(precision)
         except (InitializationError, StructError, ValueError) as ex:
             raise InitializationError("HyperLogLog: invalid byte stream") from ex
+        self._load_registers(payload[: -self.__FOOTER_STRUCT.size], elements_added)
 
-        register_data = payload[: -self.__FOOTER_STRUCT.size]
+    def _load_registers(self, register_data: bytes, elements_added: int) -> None:
+        """Validate and set the dense registers for the current precision
+
+        Raises:
+            InitializationError: If the length, a rank, or the element count is invalid"""
+        name = self.__class__.__name__
         if len(register_data) != self.number_registers:
-            raise InitializationError("HyperLogLog: invalid byte stream")
+            raise InitializationError(f"{name}: register length mismatch")
         registers = array("B", register_data)
         max_rank = 64 - self.precision + 1
-        occupied = sum(register != 0 for register in registers)
-        if (
-            any(register > max_rank for register in registers)
-            or elements_added < occupied
-            or (elements_added == 0) != (occupied == 0)
-        ):
-            raise InitializationError("HyperLogLog: invalid byte stream")
+        occupied = self.number_registers - registers.count(0)
+        if max(registers) > max_rank or elements_added < occupied or (elements_added == 0) != (occupied == 0):
+            raise InitializationError(f"{name}: invalid register data")
         self._registers = registers
         self._elements_added = elements_added
 

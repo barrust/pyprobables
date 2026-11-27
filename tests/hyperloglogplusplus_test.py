@@ -18,7 +18,11 @@ sys.path.insert(0, str(this_dir.parent))
 from probables import HyperLogLog, HyperLogLogPlusPlus  # noqa: E402
 from probables.exceptions import InitializationError  # noqa: E402
 from probables.hashes import fnv_1a_32  # noqa: E402
-from probables.hyperloglog.hllpp_bias_data import BIAS_DATA, LINEAR_COUNTING_THRESHOLD, RAW_ESTIMATE_DATA  # noqa: E402
+from probables.hyperloglog.hllpp_bias_data import (  # noqa: E402
+    BIAS_DATA,
+    LINEAR_COUNTING_THRESHOLD,
+    RAW_ESTIMATE_DATA,
+)
 
 DELETE_TEMP_FILES = True
 
@@ -635,6 +639,44 @@ class TestHyperLogLogPlusPlusReviewFixes(unittest.TestCase):
             for i in range(10000):
                 hllpp.add(str(i))
             self.assertLess(abs(hllpp.estimate() - 10000) / 10000, 0.03)
+
+    def test_bias_correction_window_matches_full_sort(self):
+        """the bisect window picks the same neighbours as sorting every calibration point"""
+
+        def full_sort(precision: int, estimate: float) -> float:
+            raw_points, bias_points = RAW_ESTIMATE_DATA[precision], BIAS_DATA[precision]
+            nearest = sorted(range(len(raw_points)), key=lambda i: abs(raw_points[i] - estimate))[:6]
+            return max(0.0, estimate - sum(bias_points[i] for i in nearest) / 6.0)
+
+        rng = Random(11)
+        for precision in range(4, 19):
+            hllpp = HyperLogLogPlusPlus(precision=precision)
+            raw_points = RAW_ESTIMATE_DATA[precision]
+            estimates = list(raw_points)
+            estimates += [(low + high) / 2 for low, high in zip(raw_points, raw_points[1:])]
+            estimates += [rng.uniform(0, raw_points[-1] * 1.1) for _ in range(200)]
+            estimates += [0.0, raw_points[0] - 1, raw_points[-1] + 1]
+            for estimate in estimates:
+                self.assertEqual(full_sort(precision, estimate), hllpp._apply_bias_correction(estimate))
+
+    def test_clear_resets_registers(self):
+        """clear() leaves a full set of empty registers"""
+        hllpp = HyperLogLogPlusPlus(precision=10)
+        for i in range(1000):
+            hllpp.add(str(i))
+        hllpp.clear()
+        self.assertEqual(1024, len(hllpp._registers))
+        self.assertEqual(1024, hllpp._registers.count(0))
+        self.assertEqual(0, hllpp.cardinality())
+        hllpp.add("item")
+        self.assertEqual(1, hllpp.cardinality())
+
+    def test_sparse_construction_has_no_dense_registers(self):
+        """a sparse sketch, new or loaded, does not allocate dense registers"""
+        hllpp = HyperLogLogPlusPlus(precision=18, sparse_enabled=True)
+        self.assertEqual(0, len(hllpp._registers))
+        hllpp.add("item")
+        self.assertEqual(0, len(HyperLogLogPlusPlus.frombytes(bytes(hllpp))._registers))
 
 
 if __name__ == "__main__":

@@ -5,8 +5,8 @@ import math
 import os
 import sys
 import unittest
-from io import BytesIO
 from hashlib import sha1
+from io import BytesIO
 from pathlib import Path
 from random import Random
 from struct import Struct
