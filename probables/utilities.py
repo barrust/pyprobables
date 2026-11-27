@@ -9,6 +9,10 @@ from pathlib import Path
 from struct import Struct
 from typing import Literal
 
+# The bytes-like types the `frombytes` loaders accept. This replaces
+# `collections.abc.BytesLike`, deprecated since Python 3.12 and removed in 3.17.
+BytesLike = bytes | bytearray | memoryview
+
 
 def is_hex_string(hex_string: str | None) -> bool:
     """check if the passed in string is really hex"""

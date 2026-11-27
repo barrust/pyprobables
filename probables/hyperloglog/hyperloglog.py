@@ -2,7 +2,6 @@
 
 import math
 from array import array
-from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from pathlib import Path
@@ -12,7 +11,7 @@ from struct import error as StructError
 from probables.constants import UINT64_T_MAX
 from probables.exceptions import InitializationError, NotSupportedError
 from probables.hashes import KeyT, SimpleHashT, _fmix64, hll_hash64
-from probables.utilities import MMap, is_valid_file, resolve_path
+from probables.utilities import BytesLike, MMap, is_valid_file, resolve_path
 
 # 2^-rank for every possible register value, so the estimate sums table lookups in C
 INVERSE_POWERS_OF_TWO = tuple(math.ldexp(1.0, -rank) for rank in range(256))
@@ -95,7 +94,7 @@ class HyperLogLog:
         return self.cardinality()
 
     @classmethod
-    def frombytes(cls, b: ByteString, hash_function: SimpleHashT | None = None) -> "HyperLogLog":
+    def frombytes(cls, b: BytesLike, hash_function: SimpleHashT | None = None) -> "HyperLogLog":
         """Create a HyperLogLog from bytes"""
         # the smallest precision, so the registers it allocates (16 bytes) cost nothing to replace
         hll = cls(precision=4, hash_function=hash_function)
@@ -239,7 +238,7 @@ class HyperLogLog:
             raise InitializationError("HyperLogLog: precision must be between 4 and 20")
         self.__precision = precision
 
-    def _parse_bytes(self, data: ByteString | mmap) -> None:
+    def _parse_bytes(self, data: BytesLike | mmap) -> None:
         """Parse bytes and populate the sketch state"""
         payload = bytes(data)
         header_size, footer_size = self.__HEADER_STRUCT.size, self.__FOOTER_STRUCT.size
