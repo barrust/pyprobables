@@ -32,7 +32,7 @@ class TestQuotientFilter(unittest.TestCase):
         self.assertEqual(qf.quotient, 20)
         self.assertEqual(qf.remainder, 12)
         self.assertEqual(qf.elements_added, 0)
-        self.assertEqual(qf.num_elements, 1048576)  # 2**qf.quotient
+        self.assertEqual(qf.size, 1048576)  # 2**qf.quotient
 
         qf = QuotientFilter(quotient=8)
 
@@ -40,7 +40,7 @@ class TestQuotientFilter(unittest.TestCase):
         self.assertEqual(qf.quotient, 8)
         self.assertEqual(qf.remainder, 24)
         self.assertEqual(qf.elements_added, 0)
-        self.assertEqual(qf.num_elements, 256)  # 2**qf.quotient
+        self.assertEqual(qf.size, 256)  # 2**qf.quotient
         self.assertTrue(qf.auto_expand)
 
         qf = QuotientFilter(quotient=24, auto_expand=False)
@@ -49,7 +49,7 @@ class TestQuotientFilter(unittest.TestCase):
         self.assertEqual(qf.quotient, 24)
         self.assertEqual(qf.remainder, 8)
         self.assertEqual(qf.elements_added, 0)
-        self.assertEqual(qf.num_elements, 16777216)  # 2**qf.quotient
+        self.assertEqual(qf.size, 16777216)  # 2**qf.quotient
         self.assertFalse(qf.auto_expand)
 
         # reset auto_expand
@@ -589,6 +589,12 @@ class TestQuotientFilter(unittest.TestCase):
         self.assertEqual(len(qf), 10)
         self.assertTrue(all(qf.check(str(i)) for i in range(10)))
         self.assertEqual(sorted(qf.get_hashes()), sorted(fnv_1a(str(i)) & 0xFFFFFFFF for i in range(10)))
+
+    def test_qf_num_elements_deprecated(self):
+        """num_elements still returns the number of slots, with a DeprecationWarning"""
+        qf = QuotientFilter(quotient=8)
+        with self.assertWarnsRegex(DeprecationWarning, "removed in 0.8.0"):
+            self.assertEqual(qf.num_elements, qf.size)
 
     def test_quotient_filter_print_empty(self):
         """Test printing the data of a quotient filter in a manner to be read through"""

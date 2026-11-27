@@ -4,6 +4,7 @@ Author: Tyler Barrus (barrust@gmail.com)
 """
 
 import sys
+import warnings
 from array import array
 from collections.abc import Iterator
 from typing import TextIO
@@ -105,7 +106,17 @@ class QuotientFilter:
 
     @property
     def num_elements(self) -> int:
-        """int: The total size of the filter"""
+        """int: The number of slots in the filter, the same as `size`
+
+        Note:
+            Deprecated; it will be removed in 0.8.0. Use `size` for the number of slots, or `len()`
+            for the number of elements"""
+        warnings.warn(
+            "QuotientFilter.num_elements is deprecated and will be removed in 0.8.0; use `size` for the number "
+            "of slots, or `len()` for the number of elements",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self._size
 
     @property
@@ -120,10 +131,7 @@ class QuotientFilter:
 
     @property
     def size(self) -> int:
-        """int: The number of bins available in the filter
-
-        Note:
-            same as `num_elements`"""
+        """int: The number of slots in the filter (2**quotient)"""
         return self._size
 
     @property
