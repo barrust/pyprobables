@@ -630,6 +630,24 @@ class TestHyperLogLogPlusPlusReviewFixes(unittest.TestCase):
         sparse[: header.size] = header.pack(b"HLPP", 3, 0x01, 0)
         self.assertRaises(InitializationError, HyperLogLogPlusPlus.frombytes, bytes(sparse))
 
+    def test_without_bias_correction_matches_hyperloglog(self):
+        """with bias correction off, estimates match HyperLogLog (it was 21% high at 20,000)"""
+        for sparse_enabled in (False, True):
+            rng = Random(21)
+            hll = HyperLogLog(precision=14)
+            hllpp = HyperLogLogPlusPlus(precision=14, bias_correction=False, sparse_enabled=sparse_enabled)
+            added = 0
+            for cardinality in (10, 100, 1000, 12000, 20000, 30000, 50000):
+                while added < cardinality:
+                    value = rng.getrandbits(64)
+                    hll.add_alt(value)
+                    hllpp.add_alt(value)
+                    added += 1
+                with self.subTest(sparse_enabled=sparse_enabled, cardinality=cardinality):
+                    self.assertAlmostEqual(hll.estimate(), hllpp.estimate(), delta=1e-9 * hll.estimate())
+                    if cardinality <= 30000:  # below HyperLogLog's own bias near 2.5 * registers
+                        self.assertLess(abs(hllpp.estimate() - cardinality) / cardinality, 0.03)
+
     def test_32_bit_hash(self):
         """a 32-bit hash function still spreads elements over the registers"""
         for hllpp in (

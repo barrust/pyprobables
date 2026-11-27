@@ -29,7 +29,8 @@ class HyperLogLogPlusPlus(HyperLogLog):
         precision (int): The number of bits used to address registers
         filepath (str): Path to file to load
         hash_function (function): Hashing strategy function to use `hf(key, seed)`
-        bias_correction (bool): Enable HLL++ bias-correction hook
+        bias_correction (bool): Enable HLL++ empirical bias correction; when disabled the estimate \
+            matches the original HyperLogLog
         sparse_enabled (bool): Enable sparse mode for small cardinalities
         sparse_threshold (int): Optional sparse to dense promotion threshold
 
@@ -41,7 +42,8 @@ class HyperLogLogPlusPlus(HyperLogLog):
     Note:
         Bias and threshold tables are provided for precisions 4 through 18.
         For precisions 19 and 20 there is no empirical bias adjustment, and linear counting
-        is used below `2.5 * number_registers` as in the original HyperLogLog.
+        is used below `2.5 * number_registers` as in the original HyperLogLog. The same rule
+        is used when bias correction is disabled.
     Note:
         When loading from a file the precision, bias_correction, sparse_enabled and
         sparse_threshold are read from the file; the arguments are not used.
@@ -266,11 +268,12 @@ class HyperLogLogPlusPlus(HyperLogLog):
         if raw_estimate <= (5.0 * m):
             corrected = self._apply_bias_correction(raw_estimate) if self.bias_correction else raw_estimate
 
-            # Use linear counting under the precision-specific threshold; precisions without one
-            # (19 and 20) use the original HyperLogLog rule.
+            # The paper's linear counting thresholds switch to the raw estimate early, where it is
+            # still biased, so they only apply when bias correction fixes it. Without bias
+            # correction, or a threshold (precisions 19 and 20), use the original HyperLogLog rule.
             if zero_count > 0:
                 linear_count = m * math.log(m / zero_count)
-                threshold = self._LINEAR_COUNTING_THRESHOLD.get(self.precision)
+                threshold = self._LINEAR_COUNTING_THRESHOLD.get(self.precision) if self.bias_correction else None
                 if threshold is None:
                     if raw_estimate <= 2.5 * m:
                         return linear_count
