@@ -16,8 +16,8 @@ sys.path.insert(0, str(this_dir))
 sys.path.insert(0, str(this_dir.parent))
 
 from probables import HyperLogLog, HyperLogLogPlusPlus  # noqa: E402
-from probables.exceptions import InitializationError  # noqa: E402
-from probables.hashes import fnv_1a_32  # noqa: E402
+from probables.exceptions import InitializationError, NotSupportedError  # noqa: E402
+from probables.hashes import fnv_1a, fnv_1a_32  # noqa: E402
 from probables.hyperloglog.hllpp_bias_data import (  # noqa: E402
     BIAS_DATA,
     LINEAR_COUNTING_THRESHOLD,
@@ -677,6 +677,80 @@ class TestHyperLogLogPlusPlusReviewFixes(unittest.TestCase):
         self.assertEqual(0, len(hllpp._registers))
         hllpp.add("item")
         self.assertEqual(0, len(HyperLogLogPlusPlus.frombytes(bytes(hllpp))._registers))
+
+
+class TestHyperLogLogPlusPlusMerge(unittest.TestCase):
+    """Merging sketches in each combination of sparse and dense"""
+
+    @staticmethod
+    def _sketch(prefix: str, count: int, **kwargs) -> HyperLogLogPlusPlus:
+        hllpp = HyperLogLogPlusPlus(precision=14, **kwargs)
+        for i in range(count):
+            hllpp.add(f"{prefix}-{i}")
+        return hllpp
+
+    def test_merge_sparse_into_dense(self):
+        """a sparse sketch merges into a dense one register by register"""
+        dense = self._sketch("a", 1000)
+        sparse = self._sketch("b", 50, sparse_enabled=True)
+        self.assertTrue(sparse.is_sparse)
+        expected = self._sketch("a", 1000)
+        for i in range(50):
+            expected.add(f"b-{i}")
+        dense.merge(sparse)
+        self.assertFalse(dense.is_sparse)
+        self.assertEqual(expected._registers, dense._registers)
+        self.assertEqual(1050, dense.elements_added)
+        self.assertLess(abs(dense.cardinality() - 1050), 10)
+
+    def test_merge_sparse_into_sparse_promotes(self):
+        """merging two sparse sketches past the threshold switches to dense"""
+        first = self._sketch("c", 100, sparse_enabled=True)
+        second = self._sketch("d", 100, sparse_enabled=True)
+        self.assertTrue(first.is_sparse)
+        self.assertTrue(second.is_sparse)
+        first.merge(second)
+        self.assertFalse(first.is_sparse)
+        self.assertEqual(200, first.elements_added)
+        self.assertEqual(200, first.cardinality())
+
+    def test_merge_sparse_into_sparse_stays_sparse(self):
+        """merging two small sparse sketches stays sparse and keeps the larger rank"""
+        first = self._sketch("e", 10, sparse_enabled=True)
+        second = self._sketch("e", 20, sparse_enabled=True)
+        first.merge(second)
+        self.assertTrue(first.is_sparse)
+        self.assertEqual(second._sparse_set, first._sparse_set)
+        self.assertEqual(20, first.cardinality())
+
+    def test_merge_dense_into_sparse_promotes(self):
+        """merging a dense sketch into a sparse one switches it to dense"""
+        sparse = self._sketch("f", 10, sparse_enabled=True)
+        dense = self._sketch("g", 1000)
+        sparse.merge(dense)
+        self.assertFalse(sparse.is_sparse)
+        self.assertLess(abs(sparse.cardinality() - 1010), 10)
+
+    def test_merge_rejects_incompatible(self):
+        """merging something that is not a sketch, or has another precision or hash, raises"""
+        hllpp = self._sketch("h", 10)
+        cases = [
+            (object(), "Unable to merge with provided type"),
+            (HyperLogLogPlusPlus(precision=12), "Unable to merge HyperLogLogPlusPlus with different precision values"),
+            (HyperLogLogPlusPlus(precision=14, hash_function=fnv_1a), "Hash functions do not match"),
+        ]
+        for other, message in cases:
+            with self.subTest(message):
+                with self.assertRaises(NotSupportedError) as context:
+                    hllpp.merge(other)  # type: ignore[arg-type]
+                self.assertEqual(message, str(context.exception))
+        self.assertEqual(10, hllpp.cardinality())
+
+    def test_empty_sparse_estimate(self):
+        """an empty sparse sketch estimates 0"""
+        hllpp = HyperLogLogPlusPlus(sparse_enabled=True)
+        self.assertEqual(0.0, hllpp.estimate())
+        self.assertEqual(0, len(hllpp))
 
 
 if __name__ == "__main__":

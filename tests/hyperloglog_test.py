@@ -389,3 +389,28 @@ class TestHyperLogLog(unittest.TestCase):
             direct = math.fsum(2.0**-register for register in hll._registers)
             self.assertAlmostEqual(hll._alpha_mm() / direct, hll._raw_estimate(), delta=1e-9 * hll._raw_estimate())
             self.assertEqual(list(hll._registers).count(0), hll._zero_registers())
+
+    def test_hll_str(self):
+        """the string representation lists the settings and the estimate"""
+        hll = HyperLogLog(precision=10)
+        for i in range(100):
+            hll.add(str(i))
+        expected = (
+            "HyperLogLog:\n"
+            "\tPrecision: 10\n"
+            "\tNumber Registers: 1024\n"
+            f"\tError Rate: {1.04 / math.sqrt(1024)}\n"
+            "\tElements Added: 100\n"
+            f"\tCardinality: {hll.cardinality()}"
+        )
+        self.assertEqual(expected, str(hll))
+
+    def test_hll_small_precision_constants(self):
+        """precisions 4 to 6 use the fixed alpha constants from the HyperLogLog paper"""
+        for precision, alpha in ((4, 0.673), (5, 0.697), (6, 0.709)):
+            hll = HyperLogLog(precision=precision)
+            registers = hll.number_registers
+            self.assertAlmostEqual(alpha * registers * registers, hll._alpha_mm())
+            for i in range(registers):
+                hll.add(str(i))
+            self.assertLess(abs(hll.cardinality() - registers) / registers, 0.5)
