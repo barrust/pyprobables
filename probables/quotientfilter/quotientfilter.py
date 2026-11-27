@@ -4,14 +4,13 @@ Author: Tyler Barrus (barrust@gmail.com)
 """
 
 import sys
-import warnings
 from array import array
 from collections.abc import Iterator
 from typing import TextIO
 
 from probables.exceptions import QuotientFilterError
 from probables.hashes import KeyT, SimpleHashT, fnv_1a_32
-from probables.utilities import Bitarray
+from probables.utilities import Bitarray, deprecated
 
 _HASH_MASK = 0xFFFFFFFF  # the quotient and remainder together use 32 bits of the hash
 # the array type code that holds each remainder size; "I" and "L" vary in size by platform
@@ -105,18 +104,13 @@ class QuotientFilter:
         return self._r
 
     @property
+    @deprecated("0.8.0", "use `size` for the number of slots, or `len()` for the number of elements")
     def num_elements(self) -> int:
         """int: The number of slots in the filter, the same as `size`
 
         Note:
             Deprecated; it will be removed in 0.8.0. Use `size` for the number of slots, or `len()`
             for the number of elements"""
-        warnings.warn(
-            "QuotientFilter.num_elements is deprecated and will be removed in 0.8.0; use `size` for the number "
-            "of slots, or `len()` for the number of elements",
-            DeprecationWarning,
-            stacklevel=2,
-        )
         return self._size
 
     @property

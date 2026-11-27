@@ -17,6 +17,7 @@ sys.path.insert(0, str(this_dir))
 sys.path.insert(0, str(this_dir.parent))
 from probables import QuotientFilter  # noqa: E402
 from probables.hashes import fnv_1a  # noqa: E402
+from tests.utilities import fail_after  # noqa: E402
 
 DELETE_TEMP_FILES = True
 
@@ -590,6 +591,7 @@ class TestQuotientFilter(unittest.TestCase):
         self.assertTrue(all(qf.check(str(i)) for i in range(10)))
         self.assertEqual(sorted(qf.get_hashes()), sorted(fnv_1a(str(i)) & 0xFFFFFFFF for i in range(10)))
 
+    @fail_after("0.8.0")
     def test_qf_num_elements_deprecated(self):
         """num_elements still returns the number of slots, with a DeprecationWarning"""
         qf = QuotientFilter(quotient=8)

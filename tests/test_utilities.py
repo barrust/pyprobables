@@ -5,6 +5,8 @@ import os
 import subprocess
 import sys
 import unittest
+import warnings
+from unittest import mock
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 
@@ -12,8 +14,16 @@ this_dir = Path(__file__).parent
 sys.path.insert(0, str(this_dir))
 sys.path.insert(0, str(this_dir.parent))
 
-from probables.utilities import Bitarray, MMap, get_x_bits, is_hex_string, is_valid_file, resolve_path  # noqa: E402
-from tests.utilities import different_hash  # noqa: E402
+from probables.utilities import (  # noqa: E402
+    Bitarray,
+    MMap,
+    deprecated,
+    get_x_bits,
+    is_hex_string,
+    is_valid_file,
+    resolve_path,
+)
+from tests.utilities import _version_tuple, different_hash, fail_after  # noqa: E402
 
 DELETE_TEMP_FILES = True
 
@@ -261,6 +271,56 @@ class TestProbablesUtilities(unittest.TestCase):
                 with self.subTest(cls=type(obj).__name__, type=convert.__name__):
                     loaded = type(obj).frombytes(convert(data), **kwargs)
                     self.assertEqual(bytes(loaded), data)
+
+    def test_deprecated_warns_every_call(self):
+        """deprecated warns on every call, names the function, and keeps its name and docstring"""
+
+        class Thing:
+            """a class with deprecated members"""
+
+            @deprecated("9.0.0", "use `new` instead")
+            def old(self, val):
+                """the old way"""
+                return val * 2
+
+            @property
+            @deprecated("9.0.0")
+            def prop(self):
+                """an old property"""
+                return 5
+
+        thing = Thing()
+        for _ in range(2):
+            with self.assertWarnsRegex(
+                DeprecationWarning, r"Thing\.old is deprecated and will be removed in 9\.0\.0; use `new` instead$"
+            ) as ctx:
+                self.assertEqual(thing.old(3), 6)
+            self.assertEqual(ctx.filename, __file__)  # points at the caller
+        with self.assertWarnsRegex(DeprecationWarning, r"Thing\.prop is deprecated and will be removed in 9\.0\.0$"):
+            self.assertEqual(thing.prop, 5)
+        self.assertEqual(Thing.old.__name__, "old")
+        self.assertEqual(Thing.old.__doc__, "the old way")
+        self.assertEqual(Thing.prop.__doc__, "an old property")
+
+    def test_fail_after(self):
+        """fail_after runs the test before the version and fails it from that version on, including its release
+        candidates"""
+        calls = []
+
+        @fail_after("0.8.0")
+        def check():
+            calls.append(1)
+
+        for version in ("0.7.2", "0.7.10", "0.7.99rc1"):
+            with mock.patch("probables.__version__", version):
+                check()
+        self.assertEqual(len(calls), 3)
+        for version in ("0.8.0rc1", "0.8.0", "0.8.1", "1.0.0"):
+            with mock.patch("probables.__version__", version):
+                self.assertRaisesRegex(AssertionError, "must be removed in version 0.8.0", check)
+        self.assertEqual(len(calls), 3)
+        self.assertEqual(_version_tuple("0.8.0rc1"), (0, 8, 0))
+        self.assertEqual(_version_tuple("0.10"), (0, 10))
 
 
 if __name__ == "__main__":

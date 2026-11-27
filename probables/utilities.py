@@ -1,17 +1,49 @@
 """Utility Functions"""
 
+import functools
 import math
 import mmap
 import string
+import warnings
 from array import array
+from collections.abc import Callable
 from io import IOBase
 from pathlib import Path
 from struct import Struct
-from typing import Literal
+from typing import Any, Literal, TypeVar
 
 # The bytes-like types the `frombytes` loaders accept. This replaces
-# `collections.abc.BytesLike`, deprecated since Python 3.12 and removed in 3.17.
+# `collections.abc.ByteString`, deprecated since Python 3.12 and removed in 3.17.
 BytesLike = bytes | bytearray | memoryview
+
+
+_FuncT = TypeVar("_FuncT", bound=Callable[..., Any])
+
+
+def deprecated(removed_in: str, message: str = "") -> Callable[[_FuncT], _FuncT]:
+    """Decorator to mark a function, method, or property as deprecated; every call issues a
+    `DeprecationWarning` that says when it will be removed. Pair it with `fail_after` (in the tests) so the
+    tests fail if it is not removed by that version.
+
+    Args:
+        removed_in (str): The version in which it will be removed
+        message (str): What to use instead
+    Note:
+        For a property, put `@deprecated` below `@property`"""
+
+    def decorator(func: _FuncT) -> _FuncT:
+        msg = f"{func.__qualname__} is deprecated and will be removed in {removed_in}"
+        if message:
+            msg = f"{msg}; {message}"
+
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            warnings.warn(msg, DeprecationWarning, stacklevel=2)
+            return func(*args, **kwargs)
+
+        return wrapper  # type: ignore
+
+    return decorator
 
 
 def is_hex_string(hex_string: str | None) -> bool:
