@@ -12,7 +12,7 @@ this_dir = Path(__file__).parent
 sys.path.insert(0, str(this_dir))
 sys.path.insert(0, str(this_dir.parent))
 
-from probables import BloomFilter, BloomFilterOnDisk, ExpandingBloomFilter  # noqa: E402
+from probables import BloomFilter, BloomFilterOnDisk, CountingBloomFilter, ExpandingBloomFilter  # noqa: E402
 from probables.constants import UINT64_T_MAX  # noqa: E402
 from probables.exceptions import InitializationError, NotSupportedError, SimilarityError  # noqa: E402
 from probables.hashes import hash_with_depth_int  # noqa: E402
@@ -1028,6 +1028,27 @@ class TestBloomFilterReviewFixes(unittest.TestCase):
         self.assertIs(bits, blm.bloom)
         self.assertEqual(0, blm._cnt_number_bits_set())
         self.assertEqual(0, blm.elements_added)
+
+    def test_rejects_counting_bloom_filter(self):
+        """union, intersection, and jaccard_index reject CountingBloomFilter"""
+        msg = "The parameter second must be of type BloomFilter or a BloomFilterOnDisk"
+        blm = BloomFilter(est_elements=10, false_positive_rate=0.05)
+        cbf = CountingBloomFilter(est_elements=10, false_positive_rate=0.05)
+        blm.add("a")
+        cbf.add("a")
+        for method in (blm.union, blm.intersection, blm.jaccard_index):
+            with self.assertRaises(TypeError) as ctx:
+                method(cbf)  # type: ignore
+            self.assertEqual(str(ctx.exception), msg)
+
+        with NamedTemporaryFile(dir=os.getcwd(), suffix=".blm", delete=DELETE_TEMP_FILES) as fobj:
+            on_disk = BloomFilterOnDisk(fobj.name, est_elements=10, false_positive_rate=0.05)
+            on_disk.add("a")
+            for method in (on_disk.union, on_disk.intersection, on_disk.jaccard_index):
+                with self.assertRaises(TypeError) as ctx:
+                    method(cbf)  # type: ignore
+                self.assertEqual(str(ctx.exception), msg)
+            on_disk.close()
 
 
 if __name__ == "__main__":
