@@ -10,6 +10,7 @@
   * Fix: `CountingBloomFilter` remove/add overflow on repeated indexes, `check_alt()` hash count, and fullness in `__str__`
   * Fix: `RotatingBloomFilter` stopped rotating
   * Faster union, intersection, Jaccard index, element estimate, clear, and on-disk add
+  * Fix: union, intersection, and Jaccard index accepted a `CountingBloomFilter`, raising `OverflowError` or giving wrong results; they now raise `TypeError`; see [#166](https://github.com/barrust/pyprobables/pull/166); thanks [chenyangsu](https://github.com/chenyangsu)
 * `CountMinSketch` and variants; see [#160](https://github.com/barrust/pyprobables/pull/160)
   * Fix: `CountMeanSketch` and `CountMeanMinSketch` loaded as a `CountMinSketch`
   * Fix: `join()` lost saturation; mean-min query with a width of 1; negative counts overflowed
