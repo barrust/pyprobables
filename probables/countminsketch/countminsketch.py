@@ -79,7 +79,7 @@ class CountMinSketch:
             self.__load(filepath)
         else:
             if width is not None and depth is not None:
-                valid_prms = isinstance(width, Number) and width > 0 and isinstance(depth, Number) and depth > 0
+                valid_prms = isinstance(width, Number) and width >= 1 and isinstance(depth, Number) and depth >= 1
                 if not valid_prms:
                     msg = "CountMinSketch: width and depth must be greater than 0"
                     raise InitializationError(msg)
@@ -90,18 +90,19 @@ class CountMinSketch:
             elif confidence is not None and error_rate is not None:
                 valid_prms = (
                     isinstance(confidence, Number)
-                    and confidence > 0
+                    and 0 < confidence < 1
                     and isinstance(error_rate, Number)
                     and error_rate > 0
                 )
                 if not valid_prms:
-                    msg = "CountMinSketch: width and depth must be greater than 0"
+                    msg = "CountMinSketch: confidence must be between 0 and 1, and error rate greater than 0"
                     raise InitializationError(msg)
                 self.__confidence = confidence
                 self.__error_rate = error_rate
                 self.__width = math.ceil(2 / error_rate)
                 numerator = -1 * math.log(1 - confidence)
-                self.__depth = math.ceil(numerator / 0.6931471805599453)
+                # at least one row: a confidence too small to change 1 - confidence would give 0
+                self.__depth = max(1, math.ceil(numerator / 0.6931471805599453))
 
             else:
                 msg = (
@@ -159,9 +160,9 @@ class CountMinSketch:
         Returns:
             CountMinSketch: A count-min sketch object
         """
-        offset = cls.__FOOTER_STRUCT.size
-        width, depth, _ = cls.__FOOTER_STRUCT.unpack_from(bytes(b[-1 * offset :]))
-        cms = CountMinSketch(width=width, depth=depth, hash_function=hash_function)
+        # build the calling class (so a CountMeanSketch keeps its query type) at the smallest size,
+        # as parsing replaces the bins
+        cms = cls(width=1, depth=1, hash_function=hash_function)
         cms._parse_bytes(b)
         return cms
 
@@ -240,8 +241,7 @@ class CountMinSketch:
     def clear(self) -> None:
         """Reset the count-min sketch to an empty state"""
         self.__elements_added = 0
-        for i, _ in enumerate(self._bins):
-            self._bins[i] = 0
+        self._bins[:] = array("i", [0]) * (self.width * self.depth)
 
     def hashes(self, key: KeyT, depth: int | None = None) -> HashResultsT:
         """Return the hashes based on the provided key
@@ -272,20 +272,7 @@ class CountMinSketch:
             num_els (int): The number of times to insert the element
         Returns:
             int: The number of times the element was likely inserted after the insertion"""
-        bins = [(val % self.width) + (i * self.width) for i, val in enumerate(hashes)]
-        vals = [self._bins[x] + num_els for x in bins]
-
-        for i, val in enumerate(vals):
-            idx = bins[i]
-            if val > INT32_T_MAX:
-                self._bins[idx] = INT32_T_MAX
-                vals[i] = INT32_T_MAX
-            else:
-                self._bins[idx] = val
-        self.__elements_added += num_els
-        if self.elements_added > INT64_T_MAX:
-            self.__elements_added = INT64_T_MAX
-        return self.__query_method(sorted(vals))
+        return self.__update(hashes, num_els)
 
     def remove(self, key: KeyT, num_els: int = 1) -> int:
         """Remove element 'key' from the count-min sketch
@@ -305,20 +292,7 @@ class CountMinSketch:
             num_els (int): The number of times to remove the element
         Returns:
             int: The number of times the element was likely inserted after the removal"""
-        bins = [(v % self.width) + (i * self.width) for i, v in enumerate(hashes)]
-        vals = [self._bins[x] - num_els for x in bins]
-        for i, val in enumerate(vals):
-            idx = bins[i]
-            if val > INT32_T_MIN:
-                self._bins[idx] = val
-            else:
-                self._bins[idx] = INT32_T_MIN
-                vals[i] = INT32_T_MIN
-        self.__elements_added -= num_els
-        if self.elements_added < INT64_T_MIN:
-            self.__elements_added = INT64_T_MIN
-
-        return self.__query_method(sorted(vals))
+        return self.__update(hashes, -num_els)
 
     def check(self, key: KeyT) -> int:
         """Check number of times element 'key' is in the count-min sketch
@@ -337,7 +311,7 @@ class CountMinSketch:
         Returns:
             int: The number of times the element was likely inserted"""
         bins = [(val % self.width) + (i * self.width) for i, val in enumerate(hashes)]
-        return self.__query_method(sorted([self._bins[i] for i in bins]))
+        return self.__query_method([self._bins[i] for i in bins])
 
     def export(self, file: Path | str | IOBase | mmap) -> None:
         """Export the count-min sketch to disk
@@ -381,6 +355,10 @@ class CountMinSketch:
         for i in range(size):
             if self._bins[i] == INT32_T_MIN or self._bins[i] == INT32_T_MAX:
                 continue
+            if second._bins[i] == INT32_T_MIN or second._bins[i] == INT32_T_MAX:
+                # the other count is saturated (its true value is unknown), so the sum is too
+                self._bins[i] = second._bins[i]
+                continue
             tmp_els = self._bins[i] + second._bins[i]
 
             if tmp_els > INT32_T_MAX:
@@ -397,6 +375,30 @@ class CountMinSketch:
             self.__elements_added = INT64_T_MAX
         elif self.elements_added < INT64_T_MIN:
             self.__elements_added = INT64_T_MIN
+
+    def __update(self, hashes: HashResultsT, num_els: int) -> int:
+        """Add num_els (negative to remove) to each row's bin, saturating at the int32 limits
+
+        Every new value is calculated and clamped before any is written, so a count that would
+        pass a limit (num_els can be negative for either) cannot leave rows partly updated."""
+        bins = [(val % self.width) + (i * self.width) for i, val in enumerate(hashes)]
+        counts = self._bins
+        vals = [counts[x] + num_els for x in bins]
+        if num_els >= 0:
+            if max(vals) > INT32_T_MAX:
+                vals = [min(val, INT32_T_MAX) for val in vals]
+        elif min(vals) < INT32_T_MIN:
+            vals = [max(val, INT32_T_MIN) for val in vals]
+        for idx, val in zip(bins, vals, strict=True):
+            counts[idx] = val
+
+        elements_added = self.__elements_added + num_els
+        if elements_added > INT64_T_MAX:
+            elements_added = INT64_T_MAX
+        elif elements_added < INT64_T_MIN:
+            elements_added = INT64_T_MIN
+        self.__elements_added = elements_added
+        return self.__query_method(vals)
 
     def __load(self, file: Path | str | IOBase | mmap):
         """load the count-min sketch from file"""
@@ -428,19 +430,22 @@ class CountMinSketch:
 
     @staticmethod
     def __min_query(results: HashResultsT) -> int:
-        """generate the min query; assumes sorted list"""
-        return results[0]
+        """generate the min query"""
+        return min(results)
 
     def __mean_query(self, results: HashResultsT) -> int:
-        """generate the mean query; assumes sorted list"""
+        """generate the mean query"""
         return sum(results) // self.depth
 
     def __mean_min_query(self, results: HashResultsT) -> int:
-        """generate the mean-min query; assumes sorted list"""
-        if results[0] == 0 and results[-1] == 0:
+        """generate the mean-min query"""
+        if not any(results):
             return 0
         meanmin = []
         for t_bin in results:
+            if self.width == 1:  # no other columns to estimate the noise from
+                meanmin.append(t_bin)
+                continue
             diff = self.elements_added - t_bin
             calc = t_bin - diff // (self.width - 1)
             meanmin.append(calc)
@@ -566,6 +571,9 @@ class HeavyHitters(CountMinSketch):
         filepath: str | Path | None = None,
         hash_function: HashFuncT | None = None,
     ) -> None:
+        if isinstance(num_hitters, bool) or not isinstance(num_hitters, int) or num_hitters < 1:
+            msg = "HeavyHitters: num_hitters must be an integer greater than 0"
+            raise InitializationError(msg)
         super().__init__(width, depth, confidence, error_rate, filepath, hash_function)
         self.__top_x = {}  # type: ignore
         self.__top_x_size = 0
@@ -584,8 +592,8 @@ class HeavyHitters(CountMinSketch):
         Returns:
             HeavyHitters: A Bloom Filter object
         """
-        width, depth, _ = cls._parse_footer(b)
-        hh = HeavyHitters(width=width, depth=depth, num_hitters=num_hitters, hash_function=hash_function)
+        # the smallest sketch, as parsing replaces the bins
+        hh = cls(width=1, depth=1, num_hitters=num_hitters, hash_function=hash_function)
         hh._parse_bytes(b)
         return hh
 
@@ -642,22 +650,26 @@ class HeavyHitters(CountMinSketch):
             Override function"""
         res = super().add_alt(hashes, num_els)
 
-        # update the heavy hitters list as necessary
-        if self.__top_x_size < self.__num_hitters:  # still have room in top x
-            tmp = self.__top_x.get(key, None)
-            self.__top_x[key] = res
-            if tmp is None:
-                self.__top_x_size = len(self.__top_x)
-        elif key in self.__top_x:  # easy update as it is already there
-            self.__top_x[key] = res
-        elif res > self.__smallest:  # something in there is smaller
-            self.__top_x[key] = res
-            # get the key with the smallest element
-            tmp_key = min(self.__top_x, key=self.__top_x.get)  # type: ignore
-            # delete this key
-            self.__top_x.pop(tmp_key, None)
-            new_min = min(self.__top_x, key=self.__top_x.get)  # type: ignore
-            self.__smallest = self.__top_x[new_min]
+        # Update the heavy hitters. Once full, __smallest is a lower bound on the smallest tracked
+        # count: counts only grow, so updating a tracked key never needs a scan, and a new key
+        # that is not above the bound cannot be one of the heavy hitters.
+        top_x = self.__top_x
+        if key in top_x:  # already tracked: update it
+            top_x[key] = res
+            if res < self.__smallest:  # a negative num_els can lower a count
+                self.__smallest = res
+        elif self.__top_x_size < self.__num_hitters:  # still have room
+            top_x[key] = res
+            self.__top_x_size = len(top_x)
+            if self.__top_x_size == self.__num_hitters:
+                self.__smallest = min(top_x.values())
+        elif res > self.__smallest:  # may be larger than the smallest tracked count
+            smallest_key = min(top_x, key=top_x.get)  # type: ignore
+            smallest = top_x[smallest_key]
+            if res > smallest:  # replace it; the counts left are all at least `smallest`
+                del top_x[smallest_key]
+                top_x[key] = res
+            self.__smallest = smallest
         return res
 
     def remove_alt(self, hashes: HashResultsT, num_els: int = 1):
@@ -743,8 +755,8 @@ class StreamThreshold(CountMinSketch):
         Returns:
             StreamThreshold: A Bloom Filter object
         """
-        width, depth, _ = cls._parse_footer(b)
-        st = StreamThreshold(width=width, depth=depth, threshold=threshold, hash_function=hash_function)
+        # the smallest sketch, as parsing replaces the bins
+        st = cls(width=1, depth=1, threshold=threshold, hash_function=hash_function)
         st._parse_bytes(b)
         return st
 

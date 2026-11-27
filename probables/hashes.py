@@ -3,7 +3,7 @@
 from collections.abc import Callable
 from functools import wraps
 from hashlib import md5, sha256
-from struct import unpack
+from struct import Struct, unpack
 
 from probables.constants import UINT32_T_MAX, UINT64_T_MAX
 
@@ -68,6 +68,24 @@ def hash_with_depth_int(func: HashFuncT | SimpleHashT) -> HashFuncT:
     return hashing_func
 
 
+_FNV_64_OFFSET = 14695981039346656037
+_FNV_64_PRIME = 1099511628211
+# Each seed's 64-bit state lives in its own 128-bit lane of one integer. A 64-bit
+# value times the 41-bit prime fits in 105 bits, so lanes never carry into each
+# other and every lane is exactly fnv_1a(key, seed).
+_FNV_LANE_BITS = 128
+_fnv_lanes: dict[int, tuple[int, int, int, Callable[[bytes], tuple[int, ...]]]] = {}
+
+
+def _fnv_1a_lanes(depth: int) -> tuple[int, int, int, Callable[[bytes], tuple[int, ...]]]:
+    """Build (and cache) the constants to hash all `depth` seeds at once"""
+    ones = sum(1 << (_FNV_LANE_BITS * i) for i in range(depth))
+    start = sum(((_FNV_64_OFFSET + 31 * i) & UINT64_T_MAX) << (_FNV_LANE_BITS * i) for i in range(depth))
+    lanes = (ones, start, ones * UINT64_T_MAX, Struct(f"<{2 * depth}Q").unpack)
+    _fnv_lanes[depth] = lanes
+    return lanes
+
+
 def default_fnv_1a(key: KeyT, depth: int = 1) -> list[int]:
     """The default fnv-1a hashing routine
 
@@ -75,12 +93,19 @@ def default_fnv_1a(key: KeyT, depth: int = 1) -> list[int]:
         key (str): The element to be hashed
         depth (int): The number of hash permutations to compute
     Returns:
-        list(int): List of size depth hashes"""
-
-    res = []
-    for idx in range(depth):
-        res.append(fnv_1a(key, idx))
-    return res
+        list(int): List of size depth hashes
+    Note:
+        The result is `[fnv_1a(key, 0), ..., fnv_1a(key, depth - 1)]`; all the seeds
+        are hashed in a single pass over the key"""
+    if depth == 1:
+        return [fnv_1a(key)]
+    if depth < 0:
+        raise ValueError("depth must be zero or greater")
+    lanes = _fnv_lanes.get(depth)
+    ones, hval, mask, unpack_lanes = lanes if lanes is not None else _fnv_1a_lanes(depth)
+    for t_str in key if not isinstance(key, str) else map(ord, key):
+        hval = ((hval ^ (t_str * ones)) * _FNV_64_PRIME) & mask
+    return list(unpack_lanes(hval.to_bytes(16 * depth, "little"))[::2])
 
 
 def fnv_1a(key: KeyT, seed: int = 0) -> int:
@@ -93,13 +118,9 @@ def fnv_1a(key: KeyT, seed: int = 0) -> int:
         int: 64-bit hashed representation of key
     Note:
         Uses the lower 64 bits when overflows occur"""
-    hval = (14695981039346656037 + (31 * seed)) & UINT64_T_MAX
-    fnv_64_prime = 1099511628211
-    tmp = list(key) if not isinstance(key, str) else list(map(ord, key))
-    for t_str in tmp:
-        hval ^= t_str
-        hval *= fnv_64_prime
-        hval &= UINT64_T_MAX
+    hval = (_FNV_64_OFFSET + (31 * seed)) & UINT64_T_MAX
+    for t_str in key if not isinstance(key, str) else map(ord, key):
+        hval = ((hval ^ t_str) * _FNV_64_PRIME) & UINT64_T_MAX
     return hval
 
 
@@ -135,12 +156,8 @@ def fnv_1a_32(key: KeyT, seed: int = 0) -> int:
     Note:
         Uses the lower 32 bits when overflows occur"""
     hval = (0x811C9DC5 + (31 * seed)) & UINT32_T_MAX
-    fnv_32_prime = 0x01000193
-    tmp = list(key) if not isinstance(key, str) else list(map(ord, key))
-    for t_str in tmp:
-        hval ^= t_str
-        hval *= fnv_32_prime
-        hval &= UINT32_T_MAX
+    for t_str in key if not isinstance(key, str) else map(ord, key):
+        hval = ((hval ^ t_str) * 0x01000193) & UINT32_T_MAX
     return hval
 
 

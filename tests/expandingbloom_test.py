@@ -312,5 +312,44 @@ class TestRotatingBloomFilter(unittest.TestCase):
             self.assertEqual(blm2.elements_added, 15)
 
 
+class TestExpandingBloomFilterReviewFixes(unittest.TestCase):
+    """Regression tests for issues found in code review"""
+
+    def test_rotating_rotates_when_over_estimate(self):
+        """a newest filter over its estimate rotates on the next add (it never rotated again)"""
+        blm = RotatingBloomFilter(est_elements=10, false_positive_rate=0.05, max_queue_size=3)
+        for i in range(9):
+            blm.add(str(i))
+        blm._blooms[-1].elements_added = 11
+        blm.add("next")
+        self.assertEqual(2, blm.current_queue_size)
+        self.assertEqual(1, blm._blooms[-1].elements_added)
+
+    def test_load_calculates_parameters_once(self):
+        """loading many stored filters calculates their parameters once"""
+        from probables.blooms.bloom import BloomFilter
+
+        blm = ExpandingBloomFilter(est_elements=20, false_positive_rate=0.05)
+        for i in range(500):
+            blm.add(str(i))
+        self.assertGreater(blm.expansions, 10)
+        data = bytes(blm)
+
+        calls = []
+        original = BloomFilter._get_optimized_params.__func__  # type: ignore
+
+        def counting(cls, est_elements, false_positive_rate):
+            calls.append(est_elements)
+            return original(cls, est_elements, false_positive_rate)
+
+        BloomFilter._get_optimized_params = classmethod(counting)  # type: ignore
+        try:
+            restored = ExpandingBloomFilter.frombytes(data)
+        finally:
+            BloomFilter._get_optimized_params = classmethod(original)  # type: ignore
+        self.assertEqual(1, calls.count(20))  # once for all stored filters, not once each
+        self.assertEqual(data, bytes(restored))
+
+
 if __name__ == "__main__":
     unittest.main()

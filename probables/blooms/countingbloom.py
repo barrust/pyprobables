@@ -5,6 +5,7 @@ URL: https://github.com/barrust/counting_bloom
 """
 
 from array import array
+from collections import Counter
 from collections.abc import ByteString
 from pathlib import Path
 from struct import Struct
@@ -90,7 +91,8 @@ class CountingBloomFilter(BloomFilter):
         """
         offset = cls._FOOTER_STRUCT.size
         est_els, els_added, fpr, n_hashes, n_bits = cls._parse_footer(cls._FOOTER_STRUCT, bytes(b[-1 * offset :]))
-        blm = CountingBloomFilter(est_elements=est_els, false_positive_rate=fpr, hash_function=hash_function)
+        # the smallest filter, so the array it allocates costs nothing to replace
+        blm = CountingBloomFilter(est_elements=1, false_positive_rate=0.5, hash_function=hash_function)
         blm._set_values(est_els, fpr, n_hashes, n_bits, hash_function)
         blm._els_added = els_added
         blm._parse_bloom_array(b, cls._IMPT_STRUCT.size * blm.bloom_length)
@@ -100,7 +102,7 @@ class CountingBloomFilter(BloomFilter):
         """string representation of the counting bloom filter"""
         on_disk = "no" if self.is_on_disk is False else "yes"
 
-        cnt = sum(x for x in self._bloom if x > 0)
+        cnt = self._cnt_number_bits_set()
         total = sum(self._bloom)
         largest = max(self._bloom)
         largest_idx = (self._bloom).index(largest)
@@ -140,19 +142,12 @@ class CountingBloomFilter(BloomFilter):
             num_els (int): Number of times to insert the element
         Returns:
             int: Maximum number of insertions"""
-        # NOTE: this will increment indices each time it is viewed. Not sure if that is "correct"
-        #       if not then we will need to update this and the C version
-        indices = [hashes[i] % self._bloom_length for i in range(self._number_hashes)]
-        vals = [self._bloom[k] + num_els for k in indices]
-        for i, v in enumerate(vals):
-            k = indices[i]
-            if v > UINT32_T_MAX:
-                self._bloom[k] = UINT32_T_MAX
-                vals[i] = UINT32_T_MAX
-            else:
-                self._bloom[k] += num_els  # This keeps the original methodology
+        # NOTE: an index is incremented each time it appears in the hashes, as in the C version
+        #       (https://github.com/barrust/counting_bloom), capped at UINT32_T_MAX
+        for k, times in self._index_counts(hashes).items():
+            self._bloom[k] = min(self._bloom[k] + times * num_els, UINT32_T_MAX)
         self.elements_added = min(self.elements_added + num_els, UINT64_T_MAX)
-        return min(vals)
+        return self.check_alt(hashes)
 
     def check(self, key: KeyT) -> int:  # type: ignore
         """Check if the key is likely in the Counting Bloom Filter
@@ -171,7 +166,7 @@ class CountingBloomFilter(BloomFilter):
             hashes (list): A list of integers representing the key to check
         Returns:
             int: Maximum number of insertions"""
-        return min(self._bloom[x % self.number_bits] for x in hashes)
+        return min(self._bloom[hashes[i] % self._bloom_length] for i in range(self._number_hashes))
 
     def remove(self, key: KeyT, num_els: int = 1) -> int:
         """Remove the element from the counting bloom
@@ -192,20 +187,21 @@ class CountingBloomFilter(BloomFilter):
         Returns:
             int: Maximum number of insertions after the removal"""
 
-        indices = [hashes[i] % self._bloom_length for i in range(self._number_hashes)]
-        vals = [self._bloom[k] for k in indices]
-        min_val = min(vals)
-        if min_val == UINT32_T_MAX:  # cannot remove if we have hit the max
+        counts = self._index_counts(hashes)
+        # an index appearing more than once loses that many per removal, and indices at
+        # UINT32_T_MAX are saturated and never change
+        removable = [self._bloom[k] // times for k, times in counts.items() if self._bloom[k] < UINT32_T_MAX]
+        if not removable:  # cannot remove if we have hit the max
             return UINT32_T_MAX
-        if min_val == 0:
-            return 0
+        to_remove = min(num_els, *removable)
+        if to_remove == 0:
+            return self.check_alt(hashes)
 
-        to_remove = num_els if min_val > num_els else min_val
-        for k in indices:
+        for k, times in counts.items():
             if self._bloom[k] < UINT32_T_MAX:  # only remove if less than UINT32_T_MAX
-                self._bloom[k] -= to_remove
-        self.elements_added -= to_remove
-        return min_val - to_remove
+                self._bloom[k] -= times * to_remove
+        self.elements_added = max(self.elements_added - to_remove, 0)
+        return self.check_alt(hashes)
 
     def intersection(self, second: "CountingBloomFilter") -> "CountingBloomFilter":  # type: ignore
         """Take the intersection of two Counting Bloom Filters
@@ -301,4 +297,8 @@ class CountingBloomFilter(BloomFilter):
 
     def _cnt_number_bits_set(self) -> int:
         """calculate the total number of set bits in the bloom"""
-        return sum(1 for x in self._bloom if x > 0)
+        return self.bloom_length - self._bloom.count(0)
+
+    def _index_counts(self, hashes: HashResultsT) -> Counter:
+        """Counter: how many times each index appears in the first `number_hashes` hashes"""
+        return Counter(hashes[i] % self._bloom_length for i in range(self._number_hashes))

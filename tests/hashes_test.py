@@ -15,6 +15,7 @@ from probables.hashes import (  # noqa: E402
     default_fnv_1a,
     default_md5,
     default_sha256,
+    fnv_1a,
     fnv_1a_32,
     hash_with_depth_bytes,
     hash_with_depth_int,
@@ -45,6 +46,57 @@ class TestHashes(unittest.TestCase):
         self.assertEqual(hashes, this_is_a_test)
         hashes = default_fnv_1a("this is also a test", 5)
         self.assertEqual(hashes, this_is_also)
+
+    def test_default_fnv_1a_matches_seeded_fnv_1a(self):
+        """default_fnv_1a hashes every seed in one pass; each must equal fnv_1a with that seed"""
+        keys = ["", "a", "this is a test", "ünïcødé ✓ 漢字", "\U0010ffff" * 3, "x" * 500]
+        keys += [b"", b"\x00", b"\x00\xff" * 40, bytearray(b"bytearray key")]
+        for key in keys:
+            for depth in (1, 2, 3, 7, 20, 64):
+                self.assertEqual(default_fnv_1a(key, depth), [fnv_1a(key, i) for i in range(depth)], (key, depth))
+
+    def test_default_fnv_1a_depth_twelve(self):
+        """pin larger depths, unicode, and bytes to the values from before the single-pass version"""
+        self.assertEqual(default_fnv_1a("", 12), [14695981039346656037 + 31 * i for i in range(12)])
+        self.assertEqual(
+            default_fnv_1a("ünïcødé ✓ 漢字", 12),
+            [
+                661869587831408632,
+                1105060456507249917,
+                13451510071851465150,
+                2520458698514132755,
+                16539991672396879388,
+                272884311637956577,
+                16180252559674269794,
+                6107721969647728727,
+                18195033054970009984,
+                3602708202792784261,
+                5363526213276545158,
+                7553209879961425243,
+            ],
+        )
+        self.assertEqual(
+            default_fnv_1a(b"\x00\xff" * 4, 12),
+            [
+                2683268725573467957,
+                11427859403688565044,
+                1725143058140466483,
+                5339360078008635698,
+                14083950756123732785,
+                4381234410575634224,
+                1238832654098137903,
+                16740042108558900526,
+                7037888712964445997,
+                3894924006533305644,
+                949952337238160683,
+                9693980065399613738,
+            ],
+        )
+
+    def test_default_fnv_1a_no_depth(self):
+        """a depth of zero returns no hashes; a negative depth is an error"""
+        self.assertEqual(default_fnv_1a("test", 0), [])
+        self.assertRaises(ValueError, default_fnv_1a, "test", -1)
 
     def test_default_hash_colision(self):
         """test when different strings start with the same hash value (issue 62)"""
