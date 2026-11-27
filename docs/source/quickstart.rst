@@ -324,15 +324,16 @@ by default. It removes the bias the original HyperLogLog has around
 `2.5 * 2 ** precision` elements (about +2.4% at precision 14). With
 `bias_correction=False` its estimates match the original HyperLogLog.
 
-With `sparse_enabled=True` it starts with a sparse representation that stores
-only the registers that are set, and switches to the full set of registers once
-enough are used (at `sparse_threshold` registers, by default the smaller of 128
-and `2 ** precision / 128`). Unlike the sparse representation in the paper, which
-also stores registers at a higher precision, this one does not change the
-estimate; it only saves space while few registers are set. The saving is largest
-at high precisions (about 9 KB instead of 256 KB in memory at precision 18) and
-in exports (661 bytes instead of 16 KB at precision 14), so it suits many small
-sketches.
+With `sparse_enabled=True` it starts with the sparse representation from the
+paper: it stores only the registers that are set, 4 bytes each, with their index
+at precision 25, and estimates with linear counting over those 2 ** 25 registers.
+Small cardinalities are then nearly exact (within about 0.01%, compared with about
+0.5% for the registers at precision 14), and small sketches are compact (about
+4.6 KB in memory with 1,000 elements at precision 14, compared with 16 KB, and a
+426 byte export with 100 elements, compared with 16 KB). Once the sparse entries
+would use as much memory as the registers (`sparse_threshold` entries, by default
+`2 ** precision / 4`), it switches to the registers, converting each entry to the
+sketch's precision; from then on the estimates are the same as without sparse mode.
 
 .. code:: python3
 

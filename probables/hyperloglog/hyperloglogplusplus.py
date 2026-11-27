@@ -1,10 +1,12 @@
 """HyperLogLog++ implementation with sparse mode and bias correction."""
 
 import math
+import sys
 from array import array
 from bisect import bisect_left
 from collections.abc import ByteString
 from io import BytesIO, IOBase
+from itertools import chain
 from mmap import mmap
 from pathlib import Path
 from struct import Struct
@@ -18,8 +20,30 @@ from probables.hyperloglog.hllpp_bias_data import (
     LINEAR_COUNTING_THRESHOLD,
     RAW_ESTIMATE_DATA,
 )
-from probables.hyperloglog.hyperloglog import INVERSE_POWERS_OF_TWO, HyperLogLog
+from probables.hyperloglog.hyperloglog import HyperLogLog
 from probables.utilities import resolve_path
+
+# Sparse entries hold a register index at SPARSE_PRECISION bits and its rank, packed as
+# (index << 6) | rank in an unsigned 32-bit integer (Heule et al. 2013, Section 5.3).
+SPARSE_PRECISION = 25
+_SPARSE_WIDTH = 64 - SPARSE_PRECISION  # hash bits after the sparse index; ranks are at most 40
+_SPARSE_SUFFIX_MASK = (1 << _SPARSE_WIDTH) - 1
+_RANK_BITS = 6
+_RANK_MASK = (1 << _RANK_BITS) - 1
+_UINT32_TYPECODE = next(code for code in "IL" if array(code).itemsize == 4)
+_BIG_ENDIAN = sys.byteorder == "big"
+
+
+def _largest_rank_per_index(entries) -> list[int]:
+    """list(int): packed entries sorted by index, with only the largest rank for each index"""
+    # sorted by index then rank, so the last entry for each index has the largest rank
+    combined = sorted(entries)
+    unique = [
+        entry
+        for entry, after in zip(combined, combined[1:], strict=False)
+        if entry >> _RANK_BITS != after >> _RANK_BITS
+    ]
+    return unique + combined[-1:]
 
 
 class HyperLogLogPlusPlus(HyperLogLog):
@@ -32,16 +56,18 @@ class HyperLogLogPlusPlus(HyperLogLog):
             is mixed to 64 bits, so shorter hashes (such as `fnv_1a_32`) still use every register
         bias_correction (bool): Enable HLL++ empirical bias correction; when disabled the estimate \
             matches the original HyperLogLog
-        sparse_enabled (bool): Enable sparse mode for small cardinalities
-        sparse_threshold (int): Optional sparse to dense promotion threshold
+        sparse_enabled (bool): Start in sparse mode, for small cardinalities
+        sparse_threshold (int): The number of sparse entries at which to switch to dense \
+            registers; by default `number_registers // 4`, where both use the same memory
 
     Note:
         Empirical bias correction improves accuracy for small and medium cardinalities.
-        Sparse mode stores only the registers that are set, which saves memory (most at high
-        precisions) and export size while few registers are used; unlike the paper's sparse
-        representation it does not change the estimate. Automatic promotion from sparse to
-        dense occurs when the sparse set reaches its configured threshold or
-        max(1, min(128, number_registers // 128)).
+    Note:
+        Sparse mode follows the paper: it stores only the registers that are set, each as a
+        4-byte entry with its index at precision 25, and estimates with linear counting over
+        2^25 registers, so small cardinalities are nearly exact. It switches to dense
+        registers once the entries would use as much memory as the registers, converting
+        each entry to the sketch's precision.
     Note:
         Bias and threshold tables are provided for precisions 4 through 18.
         For precisions 19 and 20 there is no empirical bias adjustment, and linear counting
@@ -54,13 +80,19 @@ class HyperLogLogPlusPlus(HyperLogLog):
         Paper: https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/40671.pdf
     """
 
-    __slots__ = ("_bias_correction", "_sparse_enabled", "_sparse_threshold", "_sparse_set", "_is_sparse")
+    __slots__ = (
+        "_bias_correction",
+        "_sparse_enabled",
+        "_sparse_threshold",
+        "_sparse",
+        "_sparse_buffer",
+        "_is_sparse",
+    )
 
     # magic(4) + version(1) + flags(1) + sparse_threshold(4, 0 if not set)
     _HLLPP_HEADER = Struct("<4sBBI")
     _HLLPP_FOOTER = Struct("<IQ")  # precision(4) + elements_added(8)
     _SPARSE_COUNT = Struct("<I")
-    _SPARSE_ENTRY = Struct("<IB")
     _HLLPP_MAGIC = b"HLPP"
     _HLLPP_VERSION = 3
     _SPARSE_MODE_FLAG = 0x01
@@ -87,7 +119,9 @@ class HyperLogLogPlusPlus(HyperLogLog):
         self._bias_correction = bool(bias_correction)
         self._sparse_enabled = bool(sparse_enabled)
         self._sparse_threshold: int | None = None
-        self._sparse_set: dict[int, int] = {}
+        # sorted, packed entries (one per index), and new packed entries not yet merged into them
+        self._sparse = array(_UINT32_TYPECODE)
+        self._sparse_buffer = array(_UINT32_TYPECODE)
         self._is_sparse = self._sparse_enabled
         super().__init__(precision=precision, filepath=filepath, hash_function=hash_function)
         if filepath is None:
@@ -192,24 +226,80 @@ class HyperLogLogPlusPlus(HyperLogLog):
     def _add_alt_sparse(self, value: int) -> None:
         """Add pre-hashed element to sparse representation"""
         value &= UINT64_T_MAX
-        width = 64 - self.precision
-        idx = int(value >> width)
-        suffix = value & ((1 << width) - 1)
-        rho = self._rank(suffix, width)
-
-        self._sparse_set[idx] = max(rho, self._sparse_set.get(idx, 0))
+        self._sparse_update(value >> _SPARSE_WIDTH, self._rank(value & _SPARSE_SUFFIX_MASK, _SPARSE_WIDTH))
         self._elements_added += 1
-
-        if len(self._sparse_set) >= self._sparse_promotion_threshold():
+        # entries plus buffer is an upper bound (the buffer may repeat an index); check exactly when reached
+        threshold = self._sparse_promotion_threshold()
+        if len(self._sparse) + len(self._sparse_buffer) >= threshold and self._sparse_count() >= threshold:
             self._promote_to_dense()
+
+    def _sparse_update(self, idx: int, rank: int) -> None:
+        """Keep the larger rank for a sparse index"""
+        entries = self._sparse
+        position = bisect_left(entries, idx << _RANK_BITS)
+        if position < len(entries) and entries[position] >> _RANK_BITS == idx:
+            if rank > entries[position] & _RANK_MASK:
+                entries[position] = (idx << _RANK_BITS) | rank
+            return
+        # a new index: buffer it, and merge the buffer into the entries in batches, since merging
+        # costs a pass over the entries; the buffer is 4-byte entries too, so it stays compact
+        self._sparse_buffer.append((idx << _RANK_BITS) | rank)
+        if len(self._sparse_buffer) >= max(64, len(entries) // 8):
+            self._flush_sparse()
+
+    def _flush_sparse(self) -> None:
+        """Merge the buffered entries into the sorted entries, keeping the largest rank per index
+
+        Buffered indexes are never in the sorted entries (an index found there is updated in place),
+        so only the buffer is sorted; each buffered entry is then placed by binary search, and the
+        sorted entries between them are copied in C."""
+        if not self._sparse_buffer:
+            return
+        entries = self._sparse
+        merged = array(_UINT32_TYPECODE)
+        start = 0
+        for entry in _largest_rank_per_index(self._sparse_buffer):
+            position = bisect_left(entries, entry, start)
+            merged.extend(entries[start:position])
+            merged.append(entry)
+            start = position
+        merged.extend(entries[start:])
+        self._sparse = merged
+        self._sparse_buffer = array(_UINT32_TYPECODE)
+
+    def _sparse_count(self) -> int:
+        """int: the number of distinct sparse indexes"""
+        self._flush_sparse()
+        return len(self._sparse)
+
+    def _sparse_entries(self) -> array:
+        """array: the sorted, packed sparse entries"""
+        self._flush_sparse()
+        return self._sparse
+
+    def _sparse_register_items(self):
+        """Iterate over the sparse entries as (index, rank) at the sketch's precision
+
+        An index at precision 25 starts with the index at precision p. If any of the bits after
+        those are set, the rank is the position of the first one; otherwise it is the number of
+        those bits plus the stored rank."""
+        shift = SPARSE_PRECISION - self.precision
+        low_mask = (1 << shift) - 1
+        for entry in self._sparse_entries():
+            sparse_idx = entry >> _RANK_BITS
+            low = sparse_idx & low_mask
+            rank = shift - low.bit_length() + 1 if low else shift + (entry & _RANK_MASK)
+            yield sparse_idx >> shift, rank
 
     def _promote_to_dense(self) -> None:
         """Promote from sparse to dense representation"""
         registers = array("B", [0]) * self.number_registers
-        for idx, rho in self._sparse_set.items():
-            registers[idx] = rho
+        for idx, rank in self._sparse_register_items():
+            if rank > registers[idx]:
+                registers[idx] = rank
         self._registers = registers
-        self._sparse_set.clear()
+        self._sparse = array(_UINT32_TYPECODE)
+        self._sparse_buffer = array(_UINT32_TYPECODE)
         self._is_sparse = False
 
     def merge(self, second: "HyperLogLogPlusPlus | HyperLogLog") -> None:
@@ -234,27 +324,22 @@ class HyperLogLogPlusPlus(HyperLogLog):
     def _register_items(self):
         """Iterate over the (index, rank) of the registers that are set, in either representation"""
         if self._is_sparse:
-            return iter(self._sparse_set.items())
+            return self._sparse_register_items()
         return super()._register_items()
 
     def _merge_sparse_sparse(self, other: "HyperLogLogPlusPlus") -> None:
         """Merge two sparse sketches"""
-        combined: dict[int, int] = {}
-        for idx, rho in self._sparse_set.items():
-            combined[idx] = rho
-        for idx, rho in other._sparse_set.items():
-            combined[idx] = max(combined.get(idx, 0), rho)
-
-        self._sparse_set = combined
+        merged = _largest_rank_per_index(chain(self._sparse_entries(), other._sparse_entries()))
+        self._sparse = array(_UINT32_TYPECODE, merged)
         self._elements_added += other.elements_added
-
-        if len(self._sparse_set) >= self._sparse_promotion_threshold():
+        if self._sparse_count() >= self._sparse_promotion_threshold():
             self._promote_to_dense()
 
     def _merge_dense_sparse(self, other: "HyperLogLogPlusPlus") -> None:
         """Merge sparse sketch into dense sketch"""
-        for idx, rho in other._sparse_set.items():
-            self._registers[idx] = max(self._registers[idx], rho)
+        for idx, rank in other._sparse_register_items():
+            if rank > self._registers[idx]:
+                self._registers[idx] = rank
         self._elements_added += other.elements_added
 
     def estimate(self) -> float:
@@ -288,19 +373,19 @@ class HyperLogLogPlusPlus(HyperLogLog):
         return self._apply_large_range_correction(raw_estimate)
 
     def _estimate_sparse(self) -> float:
-        """Estimate cardinality from the sparse per-register maxima."""
-        if len(self._sparse_set) == 0:
+        """Estimate cardinality with linear counting over the 2^25 sparse registers"""
+        used = self._sparse_count()
+        if used == 0:
             return 0.0
-        indicator: float = self.number_registers - len(self._sparse_set)
-        indicator += sum(map(INVERSE_POWERS_OF_TWO.__getitem__, self._sparse_set.values()))
-        raw_estimate = self._alpha_mm() / indicator
-        return self._correct_estimate(raw_estimate, self.number_registers - len(self._sparse_set))
+        registers = 1 << SPARSE_PRECISION
+        return registers * math.log(registers / (registers - used))
 
     def _sparse_promotion_threshold(self) -> int:
-        """Return the sparse entry count at which dense storage is preferred."""
+        """int: the number of sparse entries at which to switch to dense registers"""
         if self._sparse_threshold is not None:
             return self._sparse_threshold
-        return max(1, min(128, self.number_registers // 128))
+        # 4-byte entries use as much memory as the 1-byte registers at a quarter of them
+        return max(1, self.number_registers // 4)
 
     def clear(self) -> None:
         """Clear the sketch"""
@@ -309,7 +394,8 @@ class HyperLogLogPlusPlus(HyperLogLog):
             self._elements_added = 0
         else:
             super().clear()
-        self._sparse_set.clear()
+        self._sparse = array(_UINT32_TYPECODE)
+        self._sparse_buffer = array(_UINT32_TYPECODE)
         self._is_sparse = self._sparse_enabled
 
     def export(self, file: Path | str | IOBase | mmap) -> None:
@@ -331,10 +417,12 @@ class HyperLogLogPlusPlus(HyperLogLog):
             file.write(header)
 
             if self._is_sparse:
-                num_entries = len(self._sparse_set)
-                file.write(self._SPARSE_COUNT.pack(num_entries))
-                for idx, rho in sorted(self._sparse_set.items()):
-                    file.write(self._SPARSE_ENTRY.pack(idx, rho))
+                entries = self._sparse_entries()
+                file.write(self._SPARSE_COUNT.pack(len(entries)))
+                if _BIG_ENDIAN:  # pragma: no cover
+                    entries = array(_UINT32_TYPECODE, entries)
+                    entries.byteswap()
+                file.write(entries.tobytes())
             else:
                 file.write(self._registers.tobytes())
 
@@ -373,22 +461,20 @@ class HyperLogLogPlusPlus(HyperLogLog):
             sparse_enabled = bool(flags & self._SPARSE_ENABLED_FLAG)
             if magic != self._HLLPP_MAGIC or flags & ~self._KNOWN_FLAGS or (sparse_mode and not sparse_enabled):
                 raise InitializationError("HyperLogLogPlusPlus: invalid byte stream")
-            if version == self._HLLPP_VERSION:
-                footer_struct = self._HLLPP_FOOTER
-                count_struct = self._SPARSE_COUNT
-                entry_struct = self._SPARSE_ENTRY
-            else:
+            if version != self._HLLPP_VERSION:
                 raise InitializationError("HyperLogLogPlusPlus: invalid byte stream")
 
             payload = data[self._HLLPP_HEADER.size :]
             if sparse_mode:
-                self._parse_hllpp_sparse_bytes(payload, footer_struct, count_struct, entry_struct)
+                self._parse_hllpp_sparse_bytes(payload, self._HLLPP_FOOTER, self._SPARSE_COUNT)
             else:
-                self._parse_hllpp_dense_bytes(payload, footer_struct)
+                self._parse_hllpp_dense_bytes(payload, self._HLLPP_FOOTER)
             self._check_sparse_threshold(threshold or None)
             self._sparse_threshold = threshold or None
             self._bias_correction = bool(flags & self._BIAS_CORRECTION_FLAG)
             self._sparse_enabled = sparse_enabled
+            if self._is_sparse and self._sparse_count() >= self._sparse_promotion_threshold():
+                self._promote_to_dense()
         except (StructError, ValueError) as ex:
             raise InitializationError("HyperLogLogPlusPlus: invalid byte stream") from ex
 
@@ -400,16 +486,11 @@ class HyperLogLogPlusPlus(HyperLogLog):
         precision, elements_added = footer_struct.unpack(bytes(data[-footer_size:]))
         self._set_precision(precision)
         self._load_registers(bytes(data[:-footer_size]), elements_added)
-        self._sparse_set.clear()
+        self._sparse = array(_UINT32_TYPECODE)
+        self._sparse_buffer = array(_UINT32_TYPECODE)
         self._is_sparse = False
 
-    def _parse_hllpp_sparse_bytes(
-        self,
-        data: ByteString,
-        footer_struct: Struct,
-        count_struct: Struct,
-        entry_struct: Struct,
-    ) -> None:
+    def _parse_hllpp_sparse_bytes(self, data: ByteString, footer_struct: Struct, count_struct: Struct) -> None:
         """Parse HyperLogLog++ sparse format"""
         footer_size = footer_struct.size
         if len(data) < footer_size + count_struct.size:
@@ -418,30 +499,31 @@ class HyperLogLogPlusPlus(HyperLogLog):
 
         precision, elements_added = footer_struct.unpack(bytes(data[-footer_size:]))
         self._set_precision(precision)
-        entries = self._parse_sparse_entries(sparse_data, count_struct, entry_struct)
+        entries = self._parse_sparse_entries(sparse_data, count_struct)
         if elements_added < len(entries) or (elements_added == 0) != (len(entries) == 0):
             raise InitializationError("HyperLogLogPlusPlus: invalid sparse element count")
 
-        self._sparse_set = entries
+        self._sparse = entries
+        self._sparse_buffer = array(_UINT32_TYPECODE)
         self._registers = array("B")
         self._elements_added = elements_added
         self._is_sparse = True
         self._sparse_enabled = True
 
-    def _parse_sparse_entries(self, sparse_data: bytes, count_struct: Struct, entry_struct: Struct) -> dict[int, int]:
-        """Parse and validate the sparse (index, rank) entries"""
+    def _parse_sparse_entries(self, sparse_data: bytes, count_struct: Struct) -> array:
+        """Parse and validate the packed sparse entries: increasing indexes and valid ranks"""
         num_entries = count_struct.unpack_from(sparse_data)[0]
-        if (
-            len(sparse_data) != count_struct.size + num_entries * entry_struct.size
-            or num_entries > self.number_registers
-        ):
+        if len(sparse_data) != count_struct.size + 4 * num_entries or num_entries > self.number_registers:
             raise InitializationError("HyperLogLogPlusPlus: invalid sparse byte stream")
 
-        entries: dict[int, int] = {}
-        max_rank = 64 - self.precision + 1
-        for offset in range(count_struct.size, len(sparse_data), entry_struct.size):
-            idx, rho = entry_struct.unpack_from(sparse_data, offset)
-            if idx >= self.number_registers or rho == 0 or rho > max_rank or idx in entries:
+        entries = array(_UINT32_TYPECODE)
+        entries.frombytes(sparse_data[count_struct.size :])
+        if _BIG_ENDIAN:  # pragma: no cover
+            entries.byteswap()
+        previous = -1
+        for entry in entries:
+            idx, rank = entry >> _RANK_BITS, entry & _RANK_MASK
+            if idx >= 1 << SPARSE_PRECISION or not 1 <= rank <= _SPARSE_WIDTH + 1 or idx <= previous:
                 raise InitializationError("HyperLogLogPlusPlus: invalid sparse register")
-            entries[idx] = rho
+            previous = idx
         return entries

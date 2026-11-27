@@ -152,8 +152,8 @@ Serialized HyperLogLog data uses standard little-endian fields without native
 alignment. Each export starts with a magic value and format version: `PHLL`
 version 1 for HyperLogLog and `HLPP` version 3 for HyperLogLog++. The
 HyperLogLog++ format stores its settings (bias correction, sparse mode, and
-sparse threshold) and uses 32-bit sparse register indexes so the full supported
-precision range is valid.
+sparse threshold); in sparse mode it stores each entry as an unsigned 32-bit
+integer holding the register index at precision 25 and its rank.
 
 HyperLogLog
 ++++++++++++++++++++++++++++++

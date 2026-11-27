@@ -313,8 +313,8 @@ class TestHyperLogLogPlusPlus(unittest.TestCase):
             lambda: HyperLogLogPlusPlus(precision=4, sparse_enabled=True, sparse_threshold=17),
         )
 
-    def test_hllpp_sparse_estimate_matches_dense_registers(self):
-        """Sparse estimates should account for stored ranks at every occupancy level."""
+    def test_hllpp_sparse_estimate_uses_sparse_precision(self):
+        """Sparse estimates use linear counting over 2^25 registers, and promote to the dense registers."""
         sparse = HyperLogLogPlusPlus(precision=4, sparse_enabled=True, sparse_threshold=16)
         dense = HyperLogLogPlusPlus(precision=4)
         width = 64 - sparse.precision
@@ -326,16 +326,16 @@ class TestHyperLogLogPlusPlus(unittest.TestCase):
             dense.add_alt(value)
 
         self.assertEqual(len(sparse._registers), 0)
-        self.assertGreater(sparse.estimate(), 0)
-        self.assertAlmostEqual(sparse.estimate(), dense.estimate())
+        self.assertAlmostEqual(8.0, sparse.estimate(), places=5)
+        sparse._promote_to_dense()
+        self.assertEqual(dense._registers, sparse._registers)
 
     def test_hllpp_sparse_default_threshold_promotes(self):
         """The default sparse threshold is reachable and bounded for memory efficiency."""
         hllpp = HyperLogLogPlusPlus(precision=4, sparse_enabled=True)
         width = 64 - hllpp.precision
         threshold = hllpp._sparse_promotion_threshold()
-        self.assertLessEqual(threshold, 128)
-        self.assertLessEqual(threshold, hllpp.number_registers)
+        self.assertEqual(max(1, hllpp.number_registers // 4), threshold)
 
         for idx in range(threshold - 1):
             hllpp.add_alt(idx << width)
@@ -343,20 +343,25 @@ class TestHyperLogLogPlusPlus(unittest.TestCase):
         self.assertTrue(hllpp.is_sparse)
         hllpp.add_alt((threshold - 1) << width)
         self.assertFalse(hllpp.is_sparse)
-        self.assertEqual(len(hllpp._sparse_set), 0)
+        self.assertEqual(0, hllpp._sparse_count())
         self.assertEqual(len(hllpp._registers), hllpp.number_registers)
         self.assertEqual(hllpp._registers.count(0), hllpp.number_registers - threshold)
 
-    def test_hllpp_sparse_uses_register_indexed_mapping(self):
-        """Sparse updates replace a register value directly rather than scanning entries."""
+    def test_hllpp_sparse_keeps_largest_rank(self):
+        """Sparse updates keep the largest rank per sparse index, buffered or in the sorted entries."""
         hllpp = HyperLogLogPlusPlus(precision=10, sparse_enabled=True, sparse_threshold=1024)
-        width = 64 - hllpp.precision
-        idx = 73
-        hllpp.add_alt((idx << width) | (1 << (width - 1)))
-        hllpp.add_alt(idx << width)
+        width = 64 - 25  # hash bits after the 25-bit sparse index
+        first, second = 73_000, 9
 
-        self.assertEqual(len(hllpp._sparse_set), 1)
-        self.assertEqual(hllpp._sparse_set[idx], width + 1)
+        hllpp.add_alt((first << width) | (1 << (width - 1)))  # rank 1, buffered
+        hllpp.add_alt((second << width) | 1)  # rank 39, buffered
+        hllpp.add_alt(second << width)  # rank 40 replaces 39 in the buffer
+        self.assertEqual([(second << 6) | 40, (first << 6) | 1], list(hllpp._sparse_entries()))
+
+        hllpp.add_alt(first << width)  # rank 40 replaces 1 in the sorted entries
+        hllpp.add_alt((first << width) | (1 << 5))  # rank 34 is smaller and ignored
+        self.assertEqual([(second << 6) | 40, (first << 6) | 40], list(hllpp._sparse_entries()))
+        self.assertEqual(5, hllpp.elements_added)
 
     def test_hllpp_sparse_v2_supports_full_precision_indexes(self):
         """Version 2 sparse serialization supports register indexes beyond 16 bits."""
@@ -368,7 +373,7 @@ class TestHyperLogLogPlusPlus(unittest.TestCase):
         serialized = bytes(hllpp)
         self.assertEqual(serialized[4], HyperLogLogPlusPlus._HLLPP_VERSION)
         restored = HyperLogLogPlusPlus.frombytes(serialized)
-        self.assertEqual(restored._sparse_set, hllpp._sparse_set)
+        self.assertEqual(list(restored._sparse_entries()), list(hllpp._sparse_entries()))
         self.assertEqual(len(restored._registers), 0)
         self.assertTrue(restored.sparse_enabled)
         self.assertTrue(restored.is_sparse)
@@ -396,7 +401,7 @@ class TestHyperLogLogPlusPlus(unittest.TestCase):
         """Merging sparse maps combines the maximum rank per register."""
         first = HyperLogLogPlusPlus(precision=8, sparse_enabled=True, sparse_threshold=128)
         second = HyperLogLogPlusPlus(precision=8, sparse_enabled=True, sparse_threshold=128)
-        expected = HyperLogLogPlusPlus(precision=8)
+        expected = HyperLogLogPlusPlus(precision=8, sparse_enabled=True, sparse_threshold=128)
         for value in range(10):
             first.add(str(value))
             second.add(str(value + 10))
@@ -407,7 +412,8 @@ class TestHyperLogLogPlusPlus(unittest.TestCase):
         self.assertTrue(first.is_sparse)
         self.assertEqual(len(first._registers), 0)
         self.assertEqual(first.elements_added, 20)
-        self.assertAlmostEqual(first.estimate(), expected.estimate())
+        self.assertEqual(list(expected._sparse_entries()), list(first._sparse_entries()))
+        self.assertAlmostEqual(20.0, first.estimate(), delta=0.01)
 
     def test_hllpp_serialization_uses_standard_little_endian_fields(self):
         """Version 3 streams use portable field sizes and byte order."""
@@ -467,7 +473,7 @@ class TestHyperLogLogPlusPlus(unittest.TestCase):
 
         sparse_header = header.pack(b"HLPP", 3, 0x01 | 0x04, 0)  # sparse mode, sparse enabled
         sparse_count = Struct("<I")
-        sparse_entry = Struct("<IB")
+        sparse_entry = Struct("<I")  # (25-bit sparse index << 6) | rank
 
         def sparse_stream(
             entries: list[tuple[int, int]],
@@ -477,14 +483,19 @@ class TestHyperLogLogPlusPlus(unittest.TestCase):
         ) -> bytes:
             count = len(entries) if declared_count is None else declared_count
             payload = sparse_header + sparse_count.pack(count)
-            payload += b"".join(sparse_entry.pack(idx, rho) for idx, rho in entries)
+            payload += b"".join(sparse_entry.pack((idx << 6) | rank) for idx, rank in entries)
             return payload + trailing_data + footer.pack(4, elements_added)
 
+        valid = HyperLogLogPlusPlus.frombytes(sparse_stream([(1, 1), (2, 3)], 2))
+        self.assertTrue(valid.is_sparse)
+        self.assertEqual(2, valid.cardinality())
+
         malformed_streams = (
-            sparse_stream([(1, 1), (1, 2)], 2),
-            sparse_stream([(16, 1)], 1),
-            sparse_stream([(1, 0)], 1),
-            sparse_stream([(1, 62)], 1),
+            sparse_stream([(1, 1), (1, 2)], 2),  # repeated index
+            sparse_stream([(2, 1), (1, 1)], 2),  # out of order
+            sparse_stream([(1 << 25, 1)], 1),  # index beyond 25 bits
+            sparse_stream([(1, 0)], 1),  # rank 0
+            sparse_stream([(1, 41)], 1),  # rank beyond 64 - 25 + 1
             sparse_stream([(1, 1)], 1, declared_count=2),
             sparse_stream([(1, 1)], 1, trailing_data=b"x"),
             sparse_stream([(1, 1)], 0),
@@ -515,15 +526,16 @@ class TestHyperLogLogPlusPlus(unittest.TestCase):
                 dense.add_alt(value)
 
             self.assertTrue(sparse.is_sparse)
-            self.assertAlmostEqual(sparse.estimate(), dense.estimate())
             error = abs(sparse.estimate() - cardinality) / cardinality
-            self.assertLessEqual(error, 0.35)
+            self.assertLessEqual(error, 0.001)  # nearly exact while sparse
 
             for _ in range(5000 - cardinality):
                 value = rng.getrandbits(64)
                 sparse.add_alt(value)
                 dense.add_alt(value)
             self.assertFalse(sparse.is_sparse)
+            self.assertEqual(dense._registers, sparse._registers)
+            self.assertEqual(dense.estimate(), sparse.estimate())
             error = abs(sparse.estimate() - 5000) / 5000
             self.assertLessEqual(error, 0.35)
 
@@ -631,7 +643,7 @@ class TestHyperLogLogPlusPlusReviewFixes(unittest.TestCase):
         self.assertRaises(InitializationError, HyperLogLogPlusPlus.frombytes, bytes(sparse))
 
     def test_without_bias_correction_matches_hyperloglog(self):
-        """with bias correction off, estimates match HyperLogLog (it was 21% high at 20,000)"""
+        """with bias correction off, dense estimates match HyperLogLog (it was 21% high at 20,000)"""
         for sparse_enabled in (False, True):
             rng = Random(21)
             hll = HyperLogLog(precision=14)
@@ -644,6 +656,9 @@ class TestHyperLogLogPlusPlusReviewFixes(unittest.TestCase):
                     hllpp.add_alt(value)
                     added += 1
                 with self.subTest(sparse_enabled=sparse_enabled, cardinality=cardinality):
+                    if hllpp.is_sparse:  # sparse estimates use 2^25 registers and are nearly exact
+                        self.assertLess(abs(hllpp.estimate() - cardinality) / cardinality, 0.001)
+                        continue
                     self.assertAlmostEqual(hll.estimate(), hllpp.estimate(), delta=1e-9 * hll.estimate())
                     if cardinality <= 30000:  # below HyperLogLog's own bias near 2.5 * registers
                         self.assertLess(abs(hllpp.estimate() - cardinality) / cardinality, 0.03)
@@ -723,8 +738,8 @@ class TestHyperLogLogPlusPlusMerge(unittest.TestCase):
 
     def test_merge_sparse_into_sparse_promotes(self):
         """merging two sparse sketches past the threshold switches to dense"""
-        first = self._sketch("c", 100, sparse_enabled=True)
-        second = self._sketch("d", 100, sparse_enabled=True)
+        first = self._sketch("c", 100, sparse_enabled=True, sparse_threshold=128)
+        second = self._sketch("d", 100, sparse_enabled=True, sparse_threshold=128)
         self.assertTrue(first.is_sparse)
         self.assertTrue(second.is_sparse)
         first.merge(second)
@@ -738,7 +753,7 @@ class TestHyperLogLogPlusPlusMerge(unittest.TestCase):
         second = self._sketch("e", 20, sparse_enabled=True)
         first.merge(second)
         self.assertTrue(first.is_sparse)
-        self.assertEqual(second._sparse_set, first._sparse_set)
+        self.assertEqual(list(second._sparse_entries()), list(first._sparse_entries()))
         self.assertEqual(20, first.cardinality())
 
     def test_merge_dense_into_sparse_promotes(self):
@@ -769,6 +784,93 @@ class TestHyperLogLogPlusPlusMerge(unittest.TestCase):
         hllpp = HyperLogLogPlusPlus(sparse_enabled=True)
         self.assertEqual(0.0, hllpp.estimate())
         self.assertEqual(0, len(hllpp))
+
+
+class TestHyperLogLogPlusPlusSparse(unittest.TestCase):
+    """The paper's sparse representation: entries at precision 25 and linear counting"""
+
+    def test_promotion_matches_dense_registers(self):
+        """switching to dense gives the registers a dense sketch has for the same values"""
+        edge_values = [0, 1, (1 << 64) - 1, 1 << 39, 5 << 39, (1 << 39) - 1]
+        for precision in range(4, 17):
+            rng = Random(precision)
+            values = edge_values + [rng.getrandbits(64) for _ in range(max(1, (1 << precision) // 4) + 5)]
+            sparse = HyperLogLogPlusPlus(precision=precision, sparse_enabled=True)
+            dense = HyperLogLog(precision=precision)
+            for value in values:
+                sparse.add_alt(value)
+                dense.add_alt(value)
+            with self.subTest(precision=precision):
+                self.assertFalse(sparse.is_sparse)  # the default threshold was reached
+                self.assertEqual(dense._registers, sparse._registers)
+
+    def test_promotion_at_highest_precision(self):
+        """precision 20 converts sparse entries correctly (5 bits between the two precisions)"""
+        rng = Random(20)
+        values = [rng.getrandbits(64) for _ in range(2000)] + [0, (1 << 64) - 1]
+        sparse = HyperLogLogPlusPlus(precision=20, sparse_enabled=True)
+        dense = HyperLogLog(precision=20)
+        for value in values:
+            sparse.add_alt(value)
+            dense.add_alt(value)
+        self.assertTrue(sparse.is_sparse)
+        sparse._promote_to_dense()
+        self.assertEqual(dense._registers, sparse._registers)
+
+    def test_small_cardinalities_nearly_exact(self):
+        """while sparse, estimates are within 0.1% (dense registers give about 0.5% at precision 14)"""
+        for cardinality in (10, 100, 1000, 4000):
+            rng = Random(cardinality)
+            hllpp = HyperLogLogPlusPlus(precision=14, sparse_enabled=True)
+            for _ in range(cardinality):
+                hllpp.add_alt(rng.getrandbits(64))
+            with self.subTest(cardinality=cardinality):
+                self.assertTrue(hllpp.is_sparse)
+                self.assertLess(abs(hllpp.estimate() - cardinality) / cardinality, 0.001)
+
+    def test_entries_sorted_unique_and_compact(self):
+        """after many buffered updates the entries are 4-byte, sorted, and one per sparse index"""
+        rng = Random(3)
+        hllpp = HyperLogLogPlusPlus(precision=16, sparse_enabled=True)
+        values = [rng.getrandbits(64) for _ in range(5000)]
+        values += values[:1000]  # repeats must not add entries
+        for value in values:
+            hllpp.add_alt(value)
+        entries = hllpp._sparse_entries()
+        self.assertEqual(4, entries.itemsize)
+        indexes = [entry >> 6 for entry in entries]
+        self.assertEqual(sorted(set(indexes)), indexes)
+        self.assertEqual(len({value >> 39 for value in values}), len(entries))
+        self.assertEqual(hllpp._sparse_count(), len(entries))
+
+    def test_default_threshold_matches_dense_size(self):
+        """by default sparse switches to dense when 4-byte entries would use as much memory"""
+        for precision in (4, 10, 14, 20):
+            hllpp = HyperLogLogPlusPlus(precision=precision, sparse_enabled=True)
+            self.assertEqual(max(1, hllpp.number_registers // 4), hllpp._sparse_promotion_threshold())
+
+    def test_load_at_threshold_promotes(self):
+        """a loaded sparse sketch with as many entries as its threshold switches to dense"""
+        hllpp = HyperLogLogPlusPlus(precision=8, sparse_enabled=True, sparse_threshold=3)
+        dense = HyperLogLogPlusPlus(precision=8)
+        for key in ("a", "b"):
+            hllpp.add(key)
+            dense.add(key)
+        self.assertTrue(hllpp.is_sparse)
+        data = bytearray(bytes(hllpp))
+        data[6:10] = Struct("<I").pack(2)  # lower the stored sparse threshold to the entry count
+        restored = HyperLogLogPlusPlus.frombytes(bytes(data))
+        self.assertFalse(restored.is_sparse)
+        self.assertEqual(2, restored.sparse_threshold)
+        self.assertEqual(dense._registers, restored._registers)
+
+    def test_export_size(self):
+        """a sparse export stores 4 bytes per entry"""
+        hllpp = HyperLogLogPlusPlus(precision=14, sparse_enabled=True)
+        for i in range(100):
+            hllpp.add(f"item-{i}")
+        header, count, footer = 10, 4, 12
+        self.assertEqual(header + count + 4 * hllpp._sparse_count() + footer, len(bytes(hllpp)))
 
 
 if __name__ == "__main__":
