@@ -560,7 +560,10 @@ class TestCountingBloomFilterReviewFixes(unittest.TestCase):
         repeated = next(k for k in indexes if indexes.count(k) > 1)
         for k in set(indexes):
             blm.bloom[k] = 5
-        blm.bloom[repeated] = 1  # present, but too low to remove the key once
+        # the key was not added (adding it puts 2 in the repeated index), but it looks present: a
+        # false positive. One removal takes 2 from the repeated index, which holds only 1, so it
+        # must change nothing
+        blm.bloom[repeated] = 1
         before = list(blm.bloom)
         self.assertEqual(1, blm.remove(key))
         self.assertEqual(before, list(blm.bloom))  # nothing was changed
