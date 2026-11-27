@@ -504,7 +504,7 @@ class TestCountMinSketch(unittest.TestCase):
             CountMinSketch(confidence=-3.0, error_rate=0.99)
 
         self.assertRaises(InitializationError, runner)
-        msg = "CountMinSketch: width and depth must be greater than 0"
+        msg = "CountMinSketch: confidence must be between 0 and 1, and error rate greater than 0"
         try:
             runner()
         except InitializationError as ex:
@@ -520,7 +520,7 @@ class TestCountMinSketch(unittest.TestCase):
             CountMinSketch(confidence=3.0, error_rate=0)
 
         self.assertRaises(InitializationError, runner)
-        msg = "CountMinSketch: width and depth must be greater than 0"
+        msg = "CountMinSketch: confidence must be between 0 and 1, and error rate greater than 0"
         try:
             runner()
         except InitializationError as ex:
@@ -536,7 +536,7 @@ class TestCountMinSketch(unittest.TestCase):
             CountMinSketch(confidence=3.0, error_rate="0.99")  # type: ignore
 
         self.assertRaises(InitializationError, runner)
-        msg = "CountMinSketch: width and depth must be greater than 0"
+        msg = "CountMinSketch: confidence must be between 0 and 1, and error rate greater than 0"
         try:
             runner()
         except InitializationError as ex:
@@ -941,6 +941,127 @@ class TestStreamThreshold(unittest.TestCase):
         st1 = StreamThreshold(threshold=1000, width=1000, depth=5)
         st2 = StreamThreshold(threshold=1000, width=1000, depth=5)
         self.assertRaises(NotSupportedError, lambda: st1.join(st2))
+
+
+class TestCountMinSketchReviewFixes(unittest.TestCase):
+    """Regression tests for issues found in code review"""
+
+    def test_frombytes_keeps_class_and_query_type(self):
+        """frombytes on a subclass returns that subclass (it returned a 'min' CountMinSketch)"""
+        for cls, query in ((CountMinSketch, "min"), (CountMeanSketch, "mean"), (CountMeanMinSketch, "mean-min")):
+            sketch = cls(width=100, depth=5)
+            for i in range(300):
+                sketch.add(str(i % 40))
+            loaded = cls.frombytes(bytes(sketch))
+            self.assertIs(cls, type(loaded))
+            self.assertEqual(query, loaded.query_type)
+            self.assertEqual(bytes(sketch), bytes(loaded))
+            self.assertEqual([sketch.check(str(i)) for i in range(40)], [loaded.check(str(i)) for i in range(40)])
+        hh = HeavyHitters.frombytes(bytes(HeavyHitters(width=10, depth=3)), num_hitters=5)
+        self.assertIs(HeavyHitters, type(hh))
+        st = StreamThreshold.frombytes(bytes(StreamThreshold(width=10, depth=3)), threshold=7)
+        self.assertIs(StreamThreshold, type(st))
+        self.assertEqual(7, st.threshold)
+
+    def test_mean_min_single_column(self):
+        """mean-min with a width of 1 uses each row's count (it divided by zero)"""
+        sketch = CountMeanMinSketch(width=1, depth=3)
+        self.assertEqual(1, sketch.add("a"))
+        self.assertEqual(3, sketch.add("b", 2))
+        self.assertEqual(3, sketch.check("a"))  # every key shares the single column
+        self.assertEqual(2, sketch.remove("a"))
+
+    def test_join_keeps_saturation(self):
+        """joining a saturated bin keeps it saturated (it became a finite, wrong count)"""
+        first, second = CountMinSketch(width=10, depth=3), CountMinSketch(width=10, depth=3)
+        first.remove("x", 10)
+        second.add("x", 2**31)  # clamped to INT32_T_MAX
+        first.join(second)
+        self.assertEqual(INT32_T_MAX, first.check("x"))  # was INT32_T_MAX - 10
+
+        first, second = CountMinSketch(width=10, depth=3), CountMinSketch(width=10, depth=3)
+        first.add("x", 10)
+        second.remove("x", 2**31 + 5)  # clamped to INT32_T_MIN
+        first.join(second)
+        self.assertEqual(INT32_T_MIN, first.check("x"))
+
+    def test_heavy_hitters_invalid_num_hitters(self):
+        """num_hitters must be a positive integer (0 failed on the first add)"""
+        for value in (0, -1, 1.5, True, "3"):
+            self.assertRaises(InitializationError, HeavyHitters, num_hitters=value, width=10, depth=3)
+        self.assertRaises(InitializationError, HeavyHitters.frombytes, bytes(CountMinSketch(10, 3)), num_hitters=0)
+
+    def test_invalid_confidence(self):
+        """a confidence of 1 or more raises InitializationError (it raised a math domain error)"""
+        msg = "CountMinSketch: confidence must be between 0 and 1, and error rate greater than 0"
+        for confidence in (1.0, 1.5, 0.0):
+            with self.assertRaises(InitializationError) as context:
+                CountMinSketch(confidence=confidence, error_rate=0.1)
+            self.assertEqual(msg, str(context.exception))
+        self.assertEqual(1, CountMinSketch(confidence=1e-20, error_rate=0.1).depth)  # at least one row
+
+    def test_add_remove_clamp_both_limits(self):
+        """negative counts clamp at the opposite limit (they raised OverflowError)"""
+        sketch = CountMinSketch(width=10, depth=3)
+        self.assertEqual(INT32_T_MIN, sketch.add("a", -3000000000))
+        self.assertEqual(INT32_T_MAX, sketch.remove("b", -3000000000))
+        self.assertEqual(INT32_T_MIN, sketch.check("a"))
+        self.assertEqual(INT32_T_MAX, sketch.check("b"))
+
+    def test_add_clamps_each_row(self):
+        """an add that clamps in one row still updates every other row"""
+        sketch = CountMinSketch(width=10, depth=3)
+        hashes = sketch.hashes("a")
+        first_bin = hashes[0] % sketch.width
+        sketch._bins[first_bin] = INT32_T_MAX - 1  # only the first row is near the limit
+        sketch.add("a", 5)
+        rows = [sketch._bins[(h % sketch.width) + i * sketch.width] for i, h in enumerate(hashes)]
+        self.assertEqual([INT32_T_MAX, 5, 5], rows)
+        self.assertEqual(5, sketch.elements_added)
+
+    def test_elements_added_clamps_both_limits(self):
+        """elements_added stays within a signed 64-bit integer"""
+        sketch = CountMinSketch(width=10, depth=3)
+        sketch.add("a", INT64_T_MIN)
+        sketch.add("a", -5)
+        self.assertEqual(INT64_T_MIN, sketch.elements_added)
+        sketch.remove("a", INT64_T_MIN)
+        sketch.remove("a", INT64_T_MIN)
+        self.assertEqual(INT64_T_MAX, sketch.elements_added)
+
+    def test_fractional_width_or_depth(self):
+        """a width or depth below 1 raises InitializationError (0.5 divided by zero)"""
+        for width, depth in ((0.5, 3), (10, 0.5)):
+            self.assertRaises(InitializationError, CountMinSketch, width=width, depth=depth)
+        self.assertEqual(10, CountMinSketch(width=10.7, depth=3).width)  # still truncated, as before
+
+    def test_heavy_hitters_smallest_count(self):
+        """heavy hitters keep the largest counts, without evicting on every new key"""
+        hh = HeavyHitters(num_hitters=3, width=1000, depth=5)
+        for key, count in (("a", 10), ("b", 20), ("c", 30)):
+            hh.add(key, count)
+        hh.add("d", 5)  # smaller than every tracked count: not tracked
+        self.assertEqual({"a": 10, "b": 20, "c": 30}, hh.heavy_hitters)
+        hh.add("a", 15)  # the smallest grows to 25, so "b" is now the smallest
+        hh.add("e", 21)  # larger than "b" (20): replaces it
+        self.assertEqual({"a": 25, "c": 30, "e": 21}, hh.heavy_hitters)
+        hh.add("f", 21)  # ties with the smallest ("e"): not tracked
+        self.assertEqual({"a": 25, "c": 30, "e": 21}, hh.heavy_hitters)
+        hh.add("c", -26)  # a negative count lowers "c" to 4, below the others
+        hh.add("g", 5)  # larger than "c" (4): replaces it
+        self.assertEqual({"a": 25, "e": 21, "g": 5}, hh.heavy_hitters)
+
+    def test_clear_in_place(self):
+        """clear() zeroes the same bins"""
+        sketch = CountMinSketch(width=100, depth=5)
+        bins = sketch._bins
+        for i in range(500):
+            sketch.add(str(i))
+        sketch.clear()
+        self.assertIs(bins, sketch._bins)
+        self.assertEqual(0, sum(1 for x in sketch._bins if x))
+        self.assertEqual(500, len(sketch._bins))
+        self.assertEqual(0, sketch.elements_added)
 
 
 if __name__ == "__main__":
