@@ -28,7 +28,7 @@ SimpleBloomT = Union["BloomFilter", "BloomFilterOnDisk"]
 
 def _verify_not_type_mismatch(second: SimpleBloomT) -> bool:
     """verify that there is not a type mismatch"""
-    return isinstance(second, BloomFilter | BloomFilterOnDisk)
+    return isinstance(second, BloomFilter | BloomFilterOnDisk) and second._type in ("regular", "regular-on-disk")
 
 
 class BloomFilter:
