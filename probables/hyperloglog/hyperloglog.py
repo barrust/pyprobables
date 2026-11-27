@@ -38,7 +38,11 @@ class HyperLogLog:
 
     __slots__ = ("__precision", "_elements_added", "_registers", "_hash_function")
 
+    # header: magic(4) + version(1); registers follow, then the footer: precision(4) + elements_added(8)
+    __HEADER_STRUCT = Struct("<4sB")
     __FOOTER_STRUCT = Struct("<IQ")
+    _HLL_MAGIC = b"PHLL"
+    _HLL_VERSION = 1
 
     def __init__(
         self,
@@ -212,9 +216,9 @@ class HyperLogLog:
             with open(file, "wb") as filepointer:
                 self.export(filepointer)  # type: ignore[arg-type]
         else:
-            footer = self.__FOOTER_STRUCT.pack(self.precision, self.elements_added)
+            file.write(self.__HEADER_STRUCT.pack(self._HLL_MAGIC, self._HLL_VERSION))
             file.write(self._registers.tobytes())
-            file.write(footer)
+            file.write(self.__FOOTER_STRUCT.pack(self.precision, self.elements_added))
 
     def _alpha_mm(self) -> float:
         """Return alpha * m^2 for the configured register count"""
@@ -238,16 +242,18 @@ class HyperLogLog:
     def _parse_bytes(self, data: ByteString | mmap) -> None:
         """Parse bytes and populate the sketch state"""
         payload = bytes(data)
-        if len(payload) < self.__FOOTER_STRUCT.size:
+        header_size, footer_size = self.__HEADER_STRUCT.size, self.__FOOTER_STRUCT.size
+        if len(payload) < header_size + footer_size:
             raise InitializationError("HyperLogLog: invalid byte stream")
+        magic, version = self.__HEADER_STRUCT.unpack_from(payload)
+        if magic != self._HLL_MAGIC or version != self._HLL_VERSION:
+            raise InitializationError("HyperLogLog: invalid byte stream; not an exported HyperLogLog")
         try:
-            precision, elements_added = self.__FOOTER_STRUCT.unpack_from(
-                payload, len(payload) - self.__FOOTER_STRUCT.size
-            )
+            precision, elements_added = self.__FOOTER_STRUCT.unpack_from(payload, len(payload) - footer_size)
             self._set_precision(precision)
         except (InitializationError, StructError, ValueError) as ex:
             raise InitializationError("HyperLogLog: invalid byte stream") from ex
-        self._load_registers(payload[: -self.__FOOTER_STRUCT.size], elements_added)
+        self._load_registers(payload[header_size:-footer_size], elements_added)
 
     def _load_registers(self, register_data: bytes, elements_added: int) -> None:
         """Validate and set the dense registers for the current precision

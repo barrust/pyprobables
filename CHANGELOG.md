@@ -1,14 +1,19 @@
 # PyProbables Changelog
 
-### Version 0.7.1
+### Version 0.7.2 (unreleased)
 
 * `HyperLogLog` and `HyperLogLogPlusPlus`
   * Add `HyperLogLog` cardinality estimator with merge, export, and load support
   * Add `HyperLogLogPlusPlus` with bias correction and optional sparse mode
+  * Exports start with a magic value and format version (`PHLL` for `HyperLogLog`, `HLPP` for `HyperLogLogPlusPlus`)
+
+### Version 0.7.1
+
 * `Cuckoo Filter`
   * Implement rewind for both regular and counting; see [#149](https://github.com/barrust/pyprobables/pull/149); thanks [mayur-dhavan](https://github.com/mayur-dhavan)
   * `CountingCuckooFilter`: Increment Elements Added by number of elements inserted
-
+* `CountingBloomFilter`
+  * Fix: CountingBloomFilter union/intersection overflow on large counts; see [#153](https://github.com/barrust/pyprobables/pull/153); thanks [alibb007](https://github.com/alibb007)
 ### Version 0.7.0
 
 ***Breaking Changes***

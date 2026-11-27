@@ -16,7 +16,7 @@ this_dir = Path(__file__).parent
 sys.path.insert(0, str(this_dir))
 sys.path.insert(0, str(this_dir.parent))
 
-from probables import HyperLogLog  # noqa: E402
+from probables import HyperLogLog, HyperLogLogPlusPlus  # noqa: E402
 from probables.exceptions import InitializationError, NotSupportedError  # noqa: E402
 from probables.hashes import fnv_1a, fnv_1a_32  # noqa: E402
 
@@ -192,28 +192,47 @@ class TestHyperLogLog(unittest.TestCase):
         for value in range(50):
             hll.add(str(value))
 
+        header = Struct("<4sB")
         footer = Struct("<IQ")
         data = bytes(hll)
-        self.assertEqual(len(data), hll.number_registers + footer.size)
+        self.assertEqual(len(data), header.size + hll.number_registers + footer.size)
+        self.assertEqual(data[: header.size], header.pack(b"PHLL", 1))
+        self.assertEqual(data[header.size : -footer.size], hll._registers.tobytes())
         self.assertEqual(data[-footer.size :], footer.pack(hll.precision, hll.elements_added))
 
     def test_hll_rejects_invalid_serialized_registers(self):
         """Reject impossible ranks and register state inconsistent with element count."""
+        header = Struct("<4sB").pack(b"PHLL", 1)
         footer = Struct("<IQ")
         hll = HyperLogLog(precision=4)
         invalid_rank = bytearray(hll._registers.tobytes())
         invalid_rank[0] = 62
         self.assertRaises(
             InitializationError,
-            lambda: HyperLogLog.frombytes(bytes(invalid_rank) + footer.pack(4, 1)),
+            lambda: HyperLogLog.frombytes(header + bytes(invalid_rank) + footer.pack(4, 1)),
         )
 
         occupied_without_elements = bytearray(hll._registers.tobytes())
         occupied_without_elements[0] = 1
         self.assertRaises(
             InitializationError,
-            lambda: HyperLogLog.frombytes(bytes(occupied_without_elements) + footer.pack(4, 0)),
+            lambda: HyperLogLog.frombytes(header + bytes(occupied_without_elements) + footer.pack(4, 0)),
         )
+
+    def test_hll_rejects_missing_or_unknown_header(self):
+        """Reject data without the magic, with an unknown version, or in the HyperLogLog++ format."""
+        hll = HyperLogLog(precision=4)
+        hll.add("item")
+        data = bytes(hll)
+        without_header = data[5:]  # the layout before the header was added
+        wrong_magic = b"XHLL" + data[4:]
+        future_version = data[:4] + b"\x02" + data[5:]
+        hllpp = HyperLogLogPlusPlus(precision=4)
+        hllpp.add("item")
+        for bad in (without_header, wrong_magic, future_version, bytes(hllpp)):
+            self.assertRaises(InitializationError, HyperLogLog.frombytes, bad)
+        self.assertRaises(InitializationError, HyperLogLogPlusPlus.frombytes, data)
+        self.assertEqual(1, HyperLogLog.frombytes(data).cardinality())
 
     def test_hll_export_load(self):
         """Test exporting and loading a HyperLogLog from file"""
