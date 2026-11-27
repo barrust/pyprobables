@@ -12,14 +12,13 @@ sys.path.insert(0, str(this_dir.parent))
 
 from probables.constants import UINT64_T_MAX  # noqa: E402
 from probables.hashes import (  # noqa: E402
-    default_hll_hash,
     default_fnv_1a,
     default_md5,
     default_sha256,
     fnv_1a_32,
-    hll_hash64,
     hash_with_depth_bytes,
     hash_with_depth_int,
+    hll_hash64,
 )
 
 
@@ -217,14 +216,6 @@ class TestHashes(unittest.TestCase):
         self.assertNotEqual(hash1, hash2)
         self.assertEqual(hash1, hll_hash64("this is a test", 0))
         self.assertEqual(hash1, hll_hash64(b"this is a test", 0))
-
-    def test_default_hll_hash(self):
-        """test depth wrapper for hll hash"""
-        hashes = default_hll_hash("this is a test", 5)
-        self.assertEqual(len(hashes), 5)
-        self.assertEqual(hashes[0], hll_hash64("this is a test", 0))
-        self.assertEqual(hashes[1], hll_hash64("this is a test", 1))
-        self.assertEqual(hashes, default_hll_hash(b"this is a test", 5))
 
 
 if __name__ == "__main__":

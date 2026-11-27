@@ -28,7 +28,8 @@ class HyperLogLogPlusPlus(HyperLogLog):
     Args:
         precision (int): The number of bits used to address registers
         filepath (str): Path to file to load
-        hash_function (function): Hashing strategy function to use `hf(key, seed)`
+        hash_function (function): Hashing strategy function to use `hf(key, seed)`; its result \
+            is mixed to 64 bits, so shorter hashes (such as `fnv_1a_32`) still use every register
         bias_correction (bool): Enable HLL++ empirical bias correction; when disabled the estimate \
             matches the original HyperLogLog
         sparse_enabled (bool): Enable sparse mode for small cardinalities

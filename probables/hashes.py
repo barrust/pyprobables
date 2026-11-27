@@ -125,17 +125,6 @@ def hll_hash64(key: KeyT, seed: int = 0) -> int:
     return _fmix64(fnv_1a(key, seed))
 
 
-def default_hll_hash(key: KeyT, depth: int = 1) -> list[int]:
-    """Return a list of HLL-appropriate 64-bit hashes.
-
-    Args:
-        key (str|bytes): The element to be hashed
-        depth (int): Number of hashes to generate
-    Returns:
-        list(int): List of size depth hashes"""
-    return [hll_hash64(key, idx) for idx in range(depth)]
-
-
 def fnv_1a_32(key: KeyT, seed: int = 0) -> int:
     """Pure python implementation of the 32 bit fnv-1a hash
     Args:
