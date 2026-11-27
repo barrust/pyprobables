@@ -50,21 +50,21 @@ class HyperLogLog:
         filepath: str | Path | None = None,
         hash_function: SimpleHashT | None = None,
     ) -> None:
-        self._init_state(hash_function)
-        if filepath is not None:
-            if not is_valid_file(filepath):
-                raise InitializationError("HyperLogLog: failed to load provided file")
-            self.__load(resolve_path(filepath))
-        else:
-            self._set_precision(precision)
-            self._registers = array("B", [0]) * self.number_registers
-
-    def _init_state(self, hash_function: SimpleHashT | None) -> None:
-        """Set every attribute to an empty state without allocating registers"""
         self.__precision = 0
         self._elements_added = 0
         self._registers = array("B")
         self._hash_function: SimpleHashT = hll_hash64 if hash_function is None else hash_function
+        if filepath is not None:
+            if not is_valid_file(filepath):
+                raise InitializationError(f"{self.__class__.__name__}: failed to load provided file")
+            self.__load(resolve_path(filepath))
+        else:
+            self._set_precision(precision)
+            self._registers = self._new_registers()
+
+    def _new_registers(self) -> array:
+        """array: the registers for a new, empty sketch"""
+        return array("B", [0]) * self.number_registers
 
     def __str__(self) -> str:
         """String representation of the HyperLogLog"""
@@ -97,8 +97,8 @@ class HyperLogLog:
     @classmethod
     def frombytes(cls, b: ByteString, hash_function: SimpleHashT | None = None) -> "HyperLogLog":
         """Create a HyperLogLog from bytes"""
-        hll = cls.__new__(cls)
-        hll._init_state(hash_function)
+        # the smallest precision, so the registers it allocates (16 bytes) cost nothing to replace
+        hll = cls(precision=4, hash_function=hash_function)
         hll._parse_bytes(b)
         return hll
 

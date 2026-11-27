@@ -19,7 +19,7 @@ from probables.hyperloglog.hllpp_bias_data import (
     RAW_ESTIMATE_DATA,
 )
 from probables.hyperloglog.hyperloglog import INVERSE_POWERS_OF_TWO, HyperLogLog
-from probables.utilities import MMap, is_valid_file, resolve_path
+from probables.utilities import resolve_path
 
 
 class HyperLogLogPlusPlus(HyperLogLog):
@@ -77,31 +77,25 @@ class HyperLogLogPlusPlus(HyperLogLog):
         sparse_enabled: bool = False,
         sparse_threshold: int | None = None,
     ) -> None:
-        self._init_state(hash_function)
-        if filepath is not None:
-            if not is_valid_file(filepath):
-                raise InitializationError("HyperLogLogPlusPlus: failed to load provided file")
-            with MMap(resolve_path(filepath)) as filepointer:
-                self._parse_hllpp_bytes(filepointer.read())
-            return
-
-        self._set_precision(precision)
-        self._check_sparse_threshold(sparse_threshold)
+        # set before the base __init__, which uses them to allocate (`_new_registers`) or load
+        # (`_parse_bytes`); loading replaces them with the settings stored in the file
         self._bias_correction = bool(bias_correction)
         self._sparse_enabled = bool(sparse_enabled)
-        self._sparse_threshold: int | None = sparse_threshold
-        self._is_sparse = self._sparse_enabled
-        if not self._is_sparse:
-            self._registers = array("B", [0]) * self.number_registers
-
-    def _init_state(self, hash_function: SimpleHashT | None) -> None:
-        """Set every attribute to an empty state without allocating registers"""
-        super()._init_state(hash_function)
-        self._bias_correction = True
-        self._sparse_enabled = False
-        self._sparse_threshold = None
+        self._sparse_threshold: int | None = None
         self._sparse_set: dict[int, int] = {}
-        self._is_sparse = False
+        self._is_sparse = self._sparse_enabled
+        super().__init__(precision=precision, filepath=filepath, hash_function=hash_function)
+        if filepath is None:
+            self._check_sparse_threshold(sparse_threshold)
+            self._sparse_threshold = sparse_threshold
+
+    def _new_registers(self) -> array:
+        """array: no dense registers while sparse, otherwise a full set"""
+        return array("B") if self._is_sparse else super()._new_registers()
+
+    def _parse_bytes(self, data: ByteString | mmap) -> None:
+        """Parse HyperLogLog++ bytes and populate the sketch state"""
+        self._parse_hllpp_bytes(data)
 
     def _check_sparse_threshold(self, sparse_threshold: int | None) -> None:
         """Raise if `sparse_threshold` is not None or between 1 and the number of registers"""
@@ -117,9 +111,9 @@ class HyperLogLogPlusPlus(HyperLogLog):
     @classmethod
     def frombytes(cls, b: ByteString, hash_function: SimpleHashT | None = None) -> "HyperLogLogPlusPlus":
         """Create a HyperLogLogPlusPlus from bytes"""
-        hllpp = cls.__new__(cls)
-        hllpp._init_state(hash_function)
-        hllpp._parse_hllpp_bytes(b)
+        # sparse at the smallest precision, so nothing is allocated before the data is parsed
+        hllpp = cls(precision=4, hash_function=hash_function, sparse_enabled=True)
+        hllpp._parse_bytes(b)
         return hllpp
 
     @property
@@ -362,7 +356,7 @@ class HyperLogLogPlusPlus(HyperLogLog):
         corrected = estimate - mean_bias
         return max(0.0, corrected)
 
-    def _parse_hllpp_bytes(self, data: ByteString) -> None:
+    def _parse_hllpp_bytes(self, data: ByteString | mmap) -> None:
         """Parse HyperLogLog++ bytes and populate state"""
         try:
             data = bytes(data)
