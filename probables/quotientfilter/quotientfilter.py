@@ -10,7 +10,11 @@ from typing import TextIO
 
 from probables.exceptions import QuotientFilterError
 from probables.hashes import KeyT, SimpleHashT, fnv_1a_32
-from probables.utilities import Bitarray
+from probables.utilities import Bitarray, deprecated
+
+_HASH_MASK = 0xFFFFFFFF  # the quotient and remainder together use 32 bits of the hash
+# the array type code that holds each remainder size; "I" and "L" vary in size by platform
+_TYPE_CODES = {8: "B", 16: "H", 32: next(c for c in ("I", "L") if array(c).itemsize == 4)}
 
 
 class QuotientFilter:
@@ -19,13 +23,17 @@ class QuotientFilter:
     Args:
         quotient (int): The size of the quotient to use
         auto_expand (bool): Automatically expand or not
-        hash_function (function): Hashing strategy function to use `hf(key, number)`
+        hash_function (function): Hashing strategy function to use `hf(key, number)`;
+            only the lower 32 bits of the hash are used
     Returns:
         QuotientFilter: The initialized filter
     Raises:
         QuotientFilterError: Raised when unable to initialize
     Note:
-        The size of the QuotientFilter will be 2**q"""
+        The size of the QuotientFilter will be 2**q
+    Note:
+        The quotient and remainder together store 32 bits of each hash, so the false positive rate is about
+        `elements_added / 2**32` and does not change when the filter expands"""
 
     __slots__ = (
         "_q",
@@ -65,14 +73,12 @@ class QuotientFilter:
 
         # ensure we use the smallest type possible to reduce memory wastage
         if self._r <= 8:
-            self._int_type_code = "B"
             self._bits_per_elm = 8
         elif self._r <= 16:
-            self._int_type_code = "I"
             self._bits_per_elm = 16
         else:
-            self._int_type_code = "L"
             self._bits_per_elm = 32
+        self._int_type_code = _TYPE_CODES[self._bits_per_elm]
 
         self._is_occupied = Bitarray(self._size)
         self._is_continuation = Bitarray(self._size)
@@ -82,6 +88,10 @@ class QuotientFilter:
     def __contains__(self, val: KeyT) -> bool:
         """setup the `in` keyword"""
         return self.check(val)
+
+    def __len__(self) -> int:
+        """The number of elements in the filter (the same as `elements_added`)"""
+        return self._elements_added
 
     @property
     def quotient(self) -> int:
@@ -94,8 +104,13 @@ class QuotientFilter:
         return self._r
 
     @property
+    @deprecated("0.8.0", "use `size` for the number of slots, or `len()` for the number of elements")
     def num_elements(self) -> int:
-        """int: The total size of the filter"""
+        """int: The number of slots in the filter, the same as `size`
+
+        Note:
+            Deprecated; it will be removed in 0.8.0. Use `size` for the number of slots, or `len()`
+            for the number of elements"""
         return self._size
 
     @property
@@ -110,10 +125,7 @@ class QuotientFilter:
 
     @property
     def size(self) -> int:
-        """int: The number of bins available in the filter
-
-        Note:
-            same as `num_elements`"""
+        """int: The number of slots in the filter (2**quotient)"""
         return self._size
 
     @property
@@ -139,7 +151,12 @@ class QuotientFilter:
     @max_load_factor.setter
     def max_load_factor(self, val: float):
         """set the maximum load factor"""
-        self._max_load_factor = float(val)
+        val = float(val)
+        if not 0 < val <= 1:
+            raise QuotientFilterError(
+                f"Invalid max load factor; it must be greater than 0 and at most 1; {val} was provided"
+            )
+        self._max_load_factor = val
 
     def add(self, key: KeyT) -> None:
         """Add key to the quotient filter
@@ -158,12 +175,16 @@ class QuotientFilter:
             _hash (int): The element to add
         Raises:
             QuotientFilterError: Raised when no locations are available in which to insert"""
-        if self._auto_resize and self.load_factor >= self._max_load_factor:
-            self.resize()
+        _hash &= _HASH_MASK
         key_quotient = _hash >> self._r
         key_remainder = _hash & ((1 << self._r) - 1)
-        if self._contained_at_loc(key_quotient, key_remainder) == -1:
-            self._add(key_quotient, key_remainder)
+        if self._contained_at_loc(key_quotient, key_remainder) != -1:
+            return
+        if self._auto_resize and self.load_factor >= self._max_load_factor:
+            self.resize()
+            key_quotient = _hash >> self._r
+            key_remainder = _hash & ((1 << self._r) - 1)
+        self._add(key_quotient, key_remainder)
 
     def remove(self, key: KeyT) -> None:
         """Remove key from the quotient filter
@@ -180,6 +201,7 @@ class QuotientFilter:
         Args:
             _hash (int): The element to remove
         """
+        _hash &= _HASH_MASK
         key_quotient = _hash >> self._r
         key_remainder = _hash & ((1 << self._r) - 1)
         self._remove_element(key_quotient, key_remainder)
@@ -201,6 +223,7 @@ class QuotientFilter:
             _hash (int): The element to add
         Return:
             bool: True if likely encountered, False if definately not"""
+        _hash &= _HASH_MASK
         key_quotient = _hash >> self._r
         key_remainder = _hash & ((1 << self._r) - 1)
         return self._contained_at_loc(key_quotient, key_remainder) != -1
@@ -225,7 +248,6 @@ class QuotientFilter:
             is_shifted = self._is_shifted.check_bit(idx)
             # Nothing here, keep going
             if is_occupied + is_continuation + is_shifted == 0:
-                assert len(queue) == 0
                 continue
 
             if is_occupied == 1:  # keep track of the indicies that match a hashed quotient
@@ -252,8 +274,13 @@ class QuotientFilter:
         Note:
             If `None` is provided, the quotient filter will double in size (quotient + 1)
         Raises:
-            QuotientFilterError: When the new quotient will not accommodate the elements already added"""
+            QuotientFilterError: When the new quotient will not accommodate the elements already added,
+                or when expanding a filter that already has a quotient of 31"""
         if quotient is None:
+            if self._q == 31:
+                raise QuotientFilterError(
+                    "Unable to expand; the quotient filter is at its largest size (quotient of 31)"
+                )
             quotient = self._q + 1
 
         if self.elements_added >= (1 << quotient):
@@ -265,10 +292,9 @@ class QuotientFilter:
 
         hashes = self.get_hashes()
 
-        for i in range(self._size):
-            self._filter[i] = 0
-
+        max_load_factor = self._max_load_factor
         self.__set_params(quotient, self._auto_resize, self._hash_func)
+        self._max_load_factor = max_load_factor
 
         for _h in hashes:
             self.add_alt(_h)
@@ -287,6 +313,14 @@ class QuotientFilter:
 
         for _h in second.hashes():
             self.add_alt(_h)
+
+    def clear(self) -> None:
+        """Remove every element from the quotient filter, keeping its current size and settings"""
+        self._is_occupied.clear()
+        self._is_continuation.clear()
+        self._is_shifted.clear()
+        self._filter[:] = array(self._int_type_code, [0]) * self._size
+        self._elements_added = 0
 
     def _shift_insert(self, q: int, r: int, orig_idx: int, insert_idx: int, flag: int):
         """Insert the element q and r by shifting elements as needed"""
@@ -424,12 +458,7 @@ class QuotientFilter:
         hashes = self.get_hashes()
         hashes.remove((q << self._r) + r)
 
-        self._is_occupied.clear()
-        self._is_continuation.clear()
-        self._is_shifted.clear()
-        for i in range(self._size):
-            self._filter[i] = 0
-        self._elements_added = 0
+        self.clear()
 
         for _h in hashes:
             self._add(_h >> self._r, _h & ((1 << self._r) - 1))
@@ -548,11 +577,11 @@ class QuotientFilter:
             bool: True if the metadata bits are all passing; False otherwise"""
         is_valid = True
         for i in range(self._size):
-            if self._is_occupied[i] == 0 and self._is_continuation == 1 and self._is_shifted == 0:
+            if self._is_occupied[i] == 0 and self._is_continuation[i] == 1 and self._is_shifted[i] == 0:
                 if verbose:
                     print(f"Row failed: {i}")
                 is_valid = False
-            if self._is_occupied[i] == 1 and self._is_continuation == 1 and self._is_shifted == 0:
+            if self._is_occupied[i] == 1 and self._is_continuation[i] == 1 and self._is_shifted[i] == 0:
                 if verbose:
                     print(f"Row failed: {i}")
                 is_valid = False
