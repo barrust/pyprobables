@@ -18,7 +18,7 @@ from probables.hyperloglog.hllpp_bias_data import (
     LINEAR_COUNTING_THRESHOLD,
     RAW_ESTIMATE_DATA,
 )
-from probables.hyperloglog.hyperloglog import HyperLogLog
+from probables.hyperloglog.hyperloglog import INVERSE_POWERS_OF_TWO, HyperLogLog
 from probables.utilities import MMap, is_valid_file, resolve_path
 
 
@@ -263,7 +263,7 @@ class HyperLogLogPlusPlus(HyperLogLog):
         if self._is_sparse:
             return self._estimate_sparse()
 
-        return self._correct_estimate(self._raw_estimate(), self._registers.count(0))
+        return self._correct_estimate(self._raw_estimate(), self._zero_registers())
 
     def _correct_estimate(self, raw_estimate: float, zero_count: int) -> float:
         """Apply HLL++ corrections to a raw estimate and register zero count."""
@@ -292,7 +292,7 @@ class HyperLogLogPlusPlus(HyperLogLog):
         if len(self._sparse_set) == 0:
             return 0.0
         indicator: float = self.number_registers - len(self._sparse_set)
-        indicator += sum(math.pow(2.0, -rho) for rho in self._sparse_set.values())
+        indicator += sum(map(INVERSE_POWERS_OF_TWO.__getitem__, self._sparse_set.values()))
         raw_estimate = self._alpha_mm() / indicator
         return self._correct_estimate(raw_estimate, self.number_registers - len(self._sparse_set))
 

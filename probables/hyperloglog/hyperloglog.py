@@ -14,6 +14,9 @@ from probables.exceptions import InitializationError, NotSupportedError
 from probables.hashes import KeyT, SimpleHashT, _fmix64, hll_hash64
 from probables.utilities import MMap, is_valid_file, resolve_path
 
+# 2^-rank for every possible register value, so the estimate sums table lookups in C
+INVERSE_POWERS_OF_TWO = tuple(math.ldexp(1.0, -rank) for rank in range(256))
+
 
 class HyperLogLog:
     """HyperLogLog implementation for approximate cardinality estimation.
@@ -157,7 +160,7 @@ class HyperLogLog:
     def estimate(self) -> float:
         """Return the estimated cardinality as a float"""
         estimate = self._raw_estimate()
-        zero_count = self._registers.count(0)
+        zero_count = self._zero_registers()
         if estimate <= (5.0 * self.number_registers) / 2.0 and zero_count > 0:
             return self.number_registers * math.log(self.number_registers / zero_count)
         return self._apply_large_range_correction(estimate)
@@ -177,9 +180,13 @@ class HyperLogLog:
             return -1.0 * denominator * math.log(1.0 - ratio)
         return estimate
 
+    def _zero_registers(self) -> int:
+        """int: the number of empty dense registers (counted on the bytes, which is done in C)"""
+        return self._registers.tobytes().count(0)
+
     def _raw_estimate(self) -> float:
         """Return the raw HyperLogLog estimate of the dense registers, without corrections"""
-        indicator = sum(math.pow(2.0, -1 * register) for register in self._registers)
+        indicator = sum(map(INVERSE_POWERS_OF_TWO.__getitem__, self._registers))
         return self._alpha_mm() / indicator
 
     def merge(self, second: "HyperLogLog") -> None:
@@ -252,7 +259,7 @@ class HyperLogLog:
             raise InitializationError(f"{name}: register length mismatch")
         registers = array("B", register_data)
         max_rank = 64 - self.precision + 1
-        occupied = self.number_registers - registers.count(0)
+        occupied = self.number_registers - register_data.count(0)
         if max(registers) > max_rank or elements_added < occupied or (elements_added == 0) != (occupied == 0):
             raise InitializationError(f"{name}: invalid register data")
         self._registers = registers

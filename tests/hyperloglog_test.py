@@ -358,3 +358,15 @@ class TestHyperLogLog(unittest.TestCase):
         for i in range(10000):
             hll.add(str(i))
         self.assertLess(abs(hll.estimate() - 10000) / 10000, 0.03)
+
+    def test_hll_raw_estimate_matches_direct_sum(self):
+        """the table-based register sum equals summing 2^-rank directly"""
+        rng = Random(9)
+        for precision in (4, 10, 14):
+            hll = HyperLogLog(precision=precision)
+            for _ in range(rng.randrange(1, 50 * hll.number_registers)):
+                hll.add_alt(rng.getrandbits(64))
+            hll._registers[0] = 64 - precision + 1  # include the largest possible rank
+            direct = math.fsum(2.0**-register for register in hll._registers)
+            self.assertAlmostEqual(hll._alpha_mm() / direct, hll._raw_estimate(), delta=1e-9 * hll._raw_estimate())
+            self.assertEqual(list(hll._registers).count(0), hll._zero_registers())
