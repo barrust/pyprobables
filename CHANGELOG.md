@@ -16,6 +16,7 @@
   * Fix: invalid parameters raise `InitializationError`
   * Faster `clear()` and `HeavyHitters`
 * `QuotientFilter`: fix removed elements still counted, and removal from a full filter; see [#157](https://github.com/barrust/pyprobables/pull/157); thanks [bardrop](https://github.com/bardrop)
+* `QuotientFilter`: fix `validate_metadata()`, hashes wider than 32 bits, and expanding on a duplicate add; store remainders in half the memory; validate `max_load_factor`; see [#163](https://github.com/barrust/pyprobables/pull/163)
 * Faster default hash: `default_fnv_1a` hashes all depths in one pass, same values; see [#161](https://github.com/barrust/pyprobables/pull/161)
 * Replace the deprecated `collections.abc.ByteString`, which warns on import in Python 3.15; fix `CuckooFilter.frombytes` with a `bytearray`; see [#162](https://github.com/barrust/pyprobables/pull/162)
 
