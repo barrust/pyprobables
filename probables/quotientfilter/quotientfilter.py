@@ -174,20 +174,16 @@ class QuotientFilter:
         Args:
             _hash (int): The element to add
         Raises:
-            QuotientFilterError: Raised when no locations are available in which to insert"""
-        _hash &= _HASH_MASK
-        key_quotient = _hash >> self._r
-        key_remainder = _hash & ((1 << self._r) - 1)
-        if self._contained_at_loc(key_quotient, key_remainder) != -1:
-            return
+            QuotientFilterError: Raised when no locations are available in which to insert
+        Note:
+            The filter is a multiset: adding a hash that is already present stores another copy"""
         if self._auto_resize and self.load_factor >= self._max_load_factor:
             self.resize()
-            key_quotient = _hash >> self._r
-            key_remainder = _hash & ((1 << self._r) - 1)
-        self._add(key_quotient, key_remainder)
+        _hash &= _HASH_MASK
+        self._add(_hash >> self._r, _hash & ((1 << self._r) - 1))
 
     def remove(self, key: KeyT) -> None:
-        """Remove key from the quotient filter
+        """Remove key (one copy, if it was added more than once) from the quotient filter
 
         Args:
             key (str|bytes): The element to remove
@@ -306,6 +302,8 @@ class QuotientFilter:
             second (QuotientFilter): The quotient filter to merge
         Note:
             The hashing function between the two filters should match
+        Note:
+            Every hash in `second` is added, so an element in both filters is then stored twice
         Note:
             Errors can occur if the quotient filter being inserted into does not expand (i.e., auto_expand=False)"""
         if self._hash_func("test", 0) != second._hash_func("test", 0):

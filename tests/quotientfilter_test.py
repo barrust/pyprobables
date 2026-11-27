@@ -16,7 +16,7 @@ this_dir = Path(__file__).parent
 sys.path.insert(0, str(this_dir))
 sys.path.insert(0, str(this_dir.parent))
 from probables import QuotientFilter  # noqa: E402
-from probables.hashes import fnv_1a  # noqa: E402
+from probables.hashes import fnv_1a, fnv_1a_32  # noqa: E402
 from tests.utilities import fail_after  # noqa: E402
 
 DELETE_TEMP_FILES = True
@@ -522,18 +522,46 @@ class TestQuotientFilter(unittest.TestCase):
         qf.max_load_factor = 1
         self.assertEqual(qf.max_load_factor, 1.0)
 
-    def test_qf_duplicate_add_does_not_resize(self):
-        """adding an element already present does not expand the filter at the load limit"""
+    def test_qf_multiset(self):
+        """adding a hash already present stores another copy; removing it removes one copy"""
+        qf = QuotientFilter(quotient=8)
+        qf.add("test")
+        qf.add("test")
+        self.assertEqual(len(qf), 2)
+        self.assertEqual(qf.get_hashes(), [fnv_1a_32("test")] * 2)
+        qf.remove("test")
+        self.assertTrue(qf.check("test"))
+        self.assertEqual(len(qf), 1)
+        qf.remove("test")
+        self.assertFalse(qf.check("test"))
+        self.assertEqual(len(qf), 0)
+        self.assertTrue(qf.validate_metadata())
+
+    def test_qf_shared_hash_no_false_negative(self):
+        """two keys with the same 32-bit hash: removing one keeps the other"""
+        key_a, key_b = "kmbaudjantlo", "lfjbpyjhzflg"
+        self.assertEqual(fnv_1a_32(key_a), fnv_1a_32(key_b))
+        qf = QuotientFilter(quotient=10)
+        qf.add(key_a)
+        qf.add(key_b)
+        self.assertEqual(len(qf), 2)
+        qf.remove(key_a)
+        self.assertTrue(qf.check(key_b))
+
+    def test_qf_multiset_resize_and_merge(self):
+        """copies are kept when expanding and added when merging"""
         qf = QuotientFilter(quotient=3)
-        hashes = [(i << 29) | 7 for i in range(7)]
+        hashes = [(i << 29) | 7 for i in range(4)] * 2  # each hash twice; expands at the 7th
         for _h in hashes:
             qf.add_alt(_h)
-        self.assertGreaterEqual(qf.load_factor, qf.max_load_factor)
-        qf.add_alt(hashes[0])
-        self.assertEqual(qf.quotient, 3)
-        qf.add_alt(7 << 29)  # a new element expands it
         self.assertEqual(qf.quotient, 4)
-        self.assertEqual(sorted(qf.get_hashes()), sorted(hashes + [7 << 29]))
+        self.assertEqual(sorted(qf.get_hashes()), sorted(hashes))
+
+        other = QuotientFilter(quotient=3)
+        other.add_alt(hashes[0])
+        qf.merge(other)
+        self.assertEqual(sorted(qf.get_hashes()), sorted(hashes + [hashes[0]]))
+        self.assertEqual(len(qf), 9)
 
     def test_qf_expand_past_largest_quotient(self):
         """expanding a filter with a quotient of 31 raises a clear error, from resize or add"""
@@ -555,16 +583,16 @@ class TestQuotientFilter(unittest.TestCase):
         self.assertTrue(qf.validate_metadata())
 
     def test_qf_len(self):
-        """len() is the number of elements in the filter"""
+        """len() is the number of elements in the filter, counting each copy"""
         qf = QuotientFilter(quotient=8)
         self.assertEqual(len(qf), 0)
         for i in range(100):
             qf.add(str(i))
-        qf.add("5")  # already present
-        self.assertEqual(len(qf), 100)
+        qf.add("5")  # a second copy
+        self.assertEqual(len(qf), 101)
         qf.remove("5")
         qf.remove("not added")
-        self.assertEqual(len(qf), 99)
+        self.assertEqual(len(qf), 100)
         self.assertEqual(len(qf), qf.elements_added)
 
     def test_qf_clear(self):

@@ -188,9 +188,11 @@ A few things to keep in mind:
   32 bits match, so the false positive rate is about ``elements_added / 2**32``.
   It cannot be configured, and it does not change when the filter expands (each
   expansion moves one bit from the remainder to the quotient).
-* Each hash is stored once. Removing an element also removes any other element
-  with the same 32-bit hash, which then becomes a false negative; the chance of
-  this is about ``elements_added / 2**32``.
+* The filter is a multiset, as in the original paper: adding an element that is
+  already present stores another copy, and removing it removes one copy. An
+  element added twice must be removed twice, and elements that share a 32-bit
+  hash do not remove each other. Only remove elements that were added; removing
+  one that was not can remove another element with the same hash.
 * The largest filter has a quotient of 31 (2**31 slots).
 
 `Further Reading <https://en.wikipedia.org/wiki/Quotient_filter>`__
