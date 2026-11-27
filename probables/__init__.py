@@ -18,7 +18,7 @@ from probables.exceptions import (
     SimilarityError,
 )
 from probables.hyperloglog import HyperLogLog, HyperLogLogPlusPlus
-from probables.quotientfilter import QuotientFilter
+from probables.quotientfilter import CountingQuotientFilter, QuotientFilter
 from probables.utilities import Bitarray
 
 __author__ = "Tyler Barrus"
@@ -51,6 +51,7 @@ __all__ = [
     "RotatingBloomFilter",
     "RotatingBloomFilterError",
     "QuotientFilter",
+    "CountingQuotientFilter",
     "Bitarray",
     "SimilarityError",
 ]
