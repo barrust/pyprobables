@@ -15,7 +15,7 @@
   * Fix: `join()` lost saturation; mean-min query with a width of 1; negative counts overflowed
   * Fix: invalid parameters raise `InitializationError`
   * Faster `clear()` and `HeavyHitters`
-* `QuotientFilter`: fix removed elements still counted, and removal from a full filter; see [#157](https://github.com/barrust/pyprobables/pull/157)
+* `QuotientFilter`: fix removed elements still counted, and removal from a full filter; see [#157](https://github.com/barrust/pyprobables/pull/157); thanks [bardrop](https://github.com/bardrop)
 * Faster default hash: `default_fnv_1a` hashes all depths in one pass, same values; see [#161](https://github.com/barrust/pyprobables/pull/161)
 
 ### Version 0.7.1
