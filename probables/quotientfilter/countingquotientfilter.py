@@ -415,13 +415,7 @@ class CountingQuotientFilter:
 
     def clear(self) -> None:
         """Remove every element from the filter, keeping its current size and settings"""
-        self._is_occupied.clear()
-        self._is_continuation.clear()
-        self._is_shifted.clear()
-        self._filter[:] = array(self._int_type_code, [0]) * self._size
-        self._elements_added = 0
-        self._unique_elements = 0
-        self._slots_used = 0
+        self.__set_params(self._q, self._auto_resize, self._hash_func)
 
     def validate_metadata(self) -> bool:
         """Check for invalid bit settings and that every run decodes
