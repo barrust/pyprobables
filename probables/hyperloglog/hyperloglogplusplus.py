@@ -4,7 +4,6 @@ import math
 import sys
 from array import array
 from bisect import bisect_left
-from collections.abc import ByteString
 from io import BytesIO, IOBase
 from itertools import chain
 from mmap import mmap
@@ -21,7 +20,7 @@ from probables.hyperloglog.hllpp_bias_data import (
     RAW_ESTIMATE_DATA,
 )
 from probables.hyperloglog.hyperloglog import HyperLogLog
-from probables.utilities import resolve_path
+from probables.utilities import BytesLike, resolve_path
 
 # Sparse entries hold a register index at SPARSE_PRECISION bits and its rank, packed as
 # (index << 6) | rank in an unsigned 32-bit integer (Heule et al. 2013, Section 5.3).
@@ -132,7 +131,7 @@ class HyperLogLogPlusPlus(HyperLogLog):
         """array: no dense registers while sparse, otherwise a full set"""
         return array("B") if self._is_sparse else super()._new_registers()
 
-    def _parse_bytes(self, data: ByteString | mmap) -> None:
+    def _parse_bytes(self, data: BytesLike | mmap) -> None:
         """Parse HyperLogLog++ bytes and populate the sketch state"""
         self._parse_hllpp_bytes(data)
 
@@ -148,7 +147,7 @@ class HyperLogLogPlusPlus(HyperLogLog):
             )
 
     @classmethod
-    def frombytes(cls, b: ByteString, hash_function: SimpleHashT | None = None) -> "HyperLogLogPlusPlus":
+    def frombytes(cls, b: BytesLike, hash_function: SimpleHashT | None = None) -> "HyperLogLogPlusPlus":
         """Create a HyperLogLogPlusPlus from bytes"""
         # sparse at the smallest precision, so nothing is allocated before the data is parsed
         hllpp = cls(precision=4, hash_function=hash_function, sparse_enabled=True)
@@ -450,7 +449,7 @@ class HyperLogLogPlusPlus(HyperLogLog):
         corrected = estimate - mean_bias
         return max(0.0, corrected)
 
-    def _parse_hllpp_bytes(self, data: ByteString | mmap) -> None:
+    def _parse_hllpp_bytes(self, data: BytesLike | mmap) -> None:
         """Parse HyperLogLog++ bytes and populate state"""
         try:
             data = bytes(data)
@@ -478,7 +477,7 @@ class HyperLogLogPlusPlus(HyperLogLog):
         except (StructError, ValueError) as ex:
             raise InitializationError("HyperLogLogPlusPlus: invalid byte stream") from ex
 
-    def _parse_hllpp_dense_bytes(self, data: ByteString, footer_struct: Struct) -> None:
+    def _parse_hllpp_dense_bytes(self, data: BytesLike, footer_struct: Struct) -> None:
         """Parse HyperLogLog++ dense format"""
         footer_size = footer_struct.size
         if len(data) < footer_size:
@@ -490,7 +489,7 @@ class HyperLogLogPlusPlus(HyperLogLog):
         self._sparse_buffer = array(_UINT32_TYPECODE)
         self._is_sparse = False
 
-    def _parse_hllpp_sparse_bytes(self, data: ByteString, footer_struct: Struct, count_struct: Struct) -> None:
+    def _parse_hllpp_sparse_bytes(self, data: BytesLike, footer_struct: Struct, count_struct: Struct) -> None:
         """Parse HyperLogLog++ sparse format"""
         footer_size = footer_struct.size
         if len(data) < footer_size + count_struct.size:

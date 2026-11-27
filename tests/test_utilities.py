@@ -2,6 +2,7 @@
 """probables utilitites tests"""
 
 import os
+import subprocess
 import sys
 import unittest
 from pathlib import Path
@@ -207,6 +208,59 @@ class TestProbablesUtilities(unittest.TestCase):
         # set as non-valid bit value
         self.assertRaises(ValueError, lambda: test_set(1, 5))
         self.assertRaises(ValueError, lambda: test_set(12, -1))
+
+    def test_import_without_deprecation_warnings(self):
+        """importing probables must not use deprecated APIs (ByteString warns on import in Python 3.15)"""
+        code = "import probables, probables.blooms, probables.countminsketch, probables.cuckoo, probables.hyperloglog"
+        res = subprocess.run(
+            [sys.executable, "-W", "error::DeprecationWarning", "-c", code],
+            cwd=str(this_dir.parent),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(res.returncode, 0, res.stderr)
+
+    def test_frombytes_accepts_bytes_like(self):
+        """every frombytes loads from bytes, bytearray, and memoryview (the BytesLike types)"""
+        from probables import (  # pylint: disable=import-outside-toplevel
+            BloomFilter,
+            CountingBloomFilter,
+            CountingCuckooFilter,
+            CountMeanSketch,
+            CountMinSketch,
+            CuckooFilter,
+            ExpandingBloomFilter,
+            HeavyHitters,
+            HyperLogLog,
+            HyperLogLogPlusPlus,
+            RotatingBloomFilter,
+            StreamThreshold,
+        )
+
+        cases = [
+            (BloomFilter(1000, 0.01), {}),
+            (CountingBloomFilter(1000, 0.01), {}),
+            (ExpandingBloomFilter(1000, 0.01), {}),
+            (RotatingBloomFilter(1000, 0.01), {"max_queue_size": 10}),
+            (CountMinSketch(width=100, depth=4), {}),
+            (CountMeanSketch(width=100, depth=4), {}),
+            (HeavyHitters(width=100, depth=4, num_hitters=5), {"num_hitters": 5}),
+            (StreamThreshold(width=100, depth=4, threshold=2), {"threshold": 2}),
+            (CuckooFilter(capacity=100), {}),
+            (CountingCuckooFilter(capacity=100), {}),
+            (HyperLogLog(precision=10), {}),
+            (HyperLogLogPlusPlus(precision=12), {}),
+            (HyperLogLogPlusPlus(precision=12, sparse_enabled=True), {}),
+        ]
+        for obj, kwargs in cases:
+            for key in ("a", "b", "c", "a"):
+                obj.add(key)
+            data = bytes(obj)
+            for convert in (bytes, bytearray, memoryview):
+                with self.subTest(cls=type(obj).__name__, type=convert.__name__):
+                    loaded = type(obj).frombytes(convert(data), **kwargs)
+                    self.assertEqual(bytes(loaded), data)
 
 
 if __name__ == "__main__":
