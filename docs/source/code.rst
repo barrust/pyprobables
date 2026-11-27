@@ -170,17 +170,28 @@ HyperLogLogPlusPlus
 QuotientFilter
 ------------------
 
-Quotient filters are an aproximate membership query filter (AMQ) that is both
-space efficient and returns a zero false negative rate and a probablistic false
-positive rate. Unlike Bloom filters, the quotient filter only requires a single
-hash of the element to insert. The upper **q** bits denote the location within the
-filter while the lower **r** bits are stored in the filter.
+Quotient filters are an approximate membership query filter (AMQ) that is
+space efficient, with no false negatives and a probabilistic false positive
+rate. Unlike Bloom filters, the quotient filter only requires a single hash of
+the element to insert. The upper **q** bits of a 32-bit hash denote the location
+within the filter while the lower **r** bits (32 - q) are stored in the filter.
 
-Quotient filters provide some useful benifits over Bloom filters including:
+Quotient filters provide some useful benefits over Bloom filters including:
 
 * Merging of two filters (not union)
 * Resizing of the filter
 * Ability to remove elements
+
+A few things to keep in mind:
+
+* The filter uses the lower 32 bits of the hash. A check only matches when all
+  32 bits match, so the false positive rate is about ``elements_added / 2**32``.
+  It cannot be configured, and it does not change when the filter expands (each
+  expansion moves one bit from the remainder to the quotient).
+* Each hash is stored once. Removing an element also removes any other element
+  with the same 32-bit hash, which then becomes a false negative; the chance of
+  this is about ``elements_added / 2**32``.
+* The largest filter has a quotient of 31 (2**31 slots).
 
 `Further Reading <https://en.wikipedia.org/wiki/Quotient_filter>`__
 
