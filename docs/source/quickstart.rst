@@ -320,10 +320,19 @@ HyperLogLog++
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 The **HyperLogLog++** (Heule, Nunkesser, and Hall, 2013) improves the estimate
 for small and medium cardinalities with empirical bias correction, which is on
-by default. With `sparse_enabled=True` it starts with a sparse representation
-that stores only the registers that are set, and switches to the full set of
-registers once enough are used (at `sparse_threshold` registers, by default
-the smaller of 128 and `2 ** precision / 128`).
+by default. It removes the bias the original HyperLogLog has around
+`2.5 * 2 ** precision` elements (about +2.4% at precision 14). With
+`bias_correction=False` its estimates match the original HyperLogLog.
+
+With `sparse_enabled=True` it starts with a sparse representation that stores
+only the registers that are set, and switches to the full set of registers once
+enough are used (at `sparse_threshold` registers, by default the smaller of 128
+and `2 ** precision / 128`). Unlike the sparse representation in the paper, which
+also stores registers at a higher precision, this one does not change the
+estimate; it only saves space while few registers are set. The saving is largest
+at high precisions (about 9 KB instead of 256 KB in memory at precision 18) and
+in exports (661 bytes instead of 16 KB at precision 14), so it suits many small
+sketches.
 
 .. code:: python3
 

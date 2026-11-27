@@ -35,10 +35,12 @@ class HyperLogLogPlusPlus(HyperLogLog):
         sparse_threshold (int): Optional sparse to dense promotion threshold
 
     Note:
-        Sparse mode provides memory efficiency for small cardinalities.
-        Empirical bias correction improves accuracy especially at low cardinalities.
-        Automatic promotion from sparse to dense occurs when the sparse set reaches
-        its configured threshold or max(1, min(128, number_registers // 128)).
+        Empirical bias correction improves accuracy for small and medium cardinalities.
+        Sparse mode stores only the registers that are set, which saves memory (most at high
+        precisions) and export size while few registers are used; unlike the paper's sparse
+        representation it does not change the estimate. Automatic promotion from sparse to
+        dense occurs when the sparse set reaches its configured threshold or
+        max(1, min(128, number_registers // 128)).
     Note:
         Bias and threshold tables are provided for precisions 4 through 18.
         For precisions 19 and 20 there is no empirical bias adjustment, and linear counting
