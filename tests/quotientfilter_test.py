@@ -178,7 +178,7 @@ class TestQuotientFilter(unittest.TestCase):
         for i in range(200):
             qf.add(str(i))
 
-        self.assertEqual(qf.max_load_factor, 0.85)
+        self.assertEqual(qf.max_load_factor, 0.65)  # expanding keeps the max load factor
         self.assertEqual(qf.elements_added, 200)
         self.assertEqual(qf.load_factor, 200 / qf.size)
         self.assertEqual(qf.quotient, 9)
@@ -552,6 +552,43 @@ class TestQuotientFilter(unittest.TestCase):
         self.assertEqual(sorted(qf.get_hashes()), sorted(hashes[:3] + hashes[4:]))
         self.assertEqual(qf._filter.itemsize * 8, qf.bits_per_elm)
         self.assertTrue(qf.validate_metadata())
+
+    def test_qf_len(self):
+        """len() is the number of elements in the filter"""
+        qf = QuotientFilter(quotient=8)
+        self.assertEqual(len(qf), 0)
+        for i in range(100):
+            qf.add(str(i))
+        qf.add("5")  # already present
+        self.assertEqual(len(qf), 100)
+        qf.remove("5")
+        qf.remove("not added")
+        self.assertEqual(len(qf), 99)
+        self.assertEqual(len(qf), qf.elements_added)
+
+    def test_qf_clear(self):
+        """clear removes every element and keeps the size and settings"""
+        qf = QuotientFilter(quotient=4, hash_function=fnv_1a)
+        qf.max_load_factor = 0.9
+        for i in range(40):
+            qf.add(str(i))
+        quotient = qf.quotient
+        self.assertGreater(quotient, 4)  # it expanded
+
+        qf.clear()
+        self.assertEqual(len(qf), 0)
+        self.assertEqual(qf.get_hashes(), [])
+        self.assertFalse(any(qf.check(str(i)) for i in range(40)))
+        self.assertEqual(qf.quotient, quotient)
+        self.assertEqual(qf.max_load_factor, 0.9)
+        self.assertTrue(qf.auto_expand)
+        self.assertTrue(all(qf._is_empty_element(i) and qf._filter[i] == 0 for i in range(qf.size)))
+
+        for i in range(10):
+            qf.add(str(i))
+        self.assertEqual(len(qf), 10)
+        self.assertTrue(all(qf.check(str(i)) for i in range(10)))
+        self.assertEqual(sorted(qf.get_hashes()), sorted(fnv_1a(str(i)) & 0xFFFFFFFF for i in range(10)))
 
     def test_quotient_filter_print_empty(self):
         """Test printing the data of a quotient filter in a manner to be read through"""

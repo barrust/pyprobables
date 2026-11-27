@@ -180,8 +180,7 @@ class Bitarray:
 
     def clear(self):
         """Clear all bits in the bitarray"""
-        for i in range(self._size_bytes):
-            self._bitarray[i] = 0
+        self._bitarray[:] = array("B", [0]) * self._size_bytes
 
     def as_string(self):
         """String representation of the bitarray

@@ -89,6 +89,10 @@ class QuotientFilter:
         """setup the `in` keyword"""
         return self.check(val)
 
+    def __len__(self) -> int:
+        """The number of elements in the filter (the same as `elements_added`)"""
+        return self._elements_added
+
     @property
     def quotient(self) -> int:
         """int: The size of the quotient, in bits"""
@@ -286,7 +290,9 @@ class QuotientFilter:
 
         hashes = self.get_hashes()
 
+        max_load_factor = self._max_load_factor
         self.__set_params(quotient, self._auto_resize, self._hash_func)
+        self._max_load_factor = max_load_factor
 
         for _h in hashes:
             self.add_alt(_h)
@@ -305,6 +311,14 @@ class QuotientFilter:
 
         for _h in second.hashes():
             self.add_alt(_h)
+
+    def clear(self) -> None:
+        """Remove every element from the quotient filter, keeping its current size and settings"""
+        self._is_occupied.clear()
+        self._is_continuation.clear()
+        self._is_shifted.clear()
+        self._filter[:] = array(self._int_type_code, [0]) * self._size
+        self._elements_added = 0
 
     def _shift_insert(self, q: int, r: int, orig_idx: int, insert_idx: int, flag: int):
         """Insert the element q and r by shifting elements as needed"""
@@ -442,11 +456,7 @@ class QuotientFilter:
         hashes = self.get_hashes()
         hashes.remove((q << self._r) + r)
 
-        self._is_occupied.clear()
-        self._is_continuation.clear()
-        self._is_shifted.clear()
-        self._filter = array(self._int_type_code, [0]) * self._size
-        self._elements_added = 0
+        self.clear()
 
         for _h in hashes:
             self._add(_h >> self._r, _h & ((1 << self._r) - 1))
