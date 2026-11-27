@@ -19,6 +19,7 @@ from probables.hashes import (  # noqa: E402
     fnv_1a_32,
     hash_with_depth_bytes,
     hash_with_depth_int,
+    hll_hash64,
 )
 
 
@@ -259,6 +260,14 @@ class TestHashes(unittest.TestCase):
         self.assertEqual(hashes, this_is_a_test)
         hashes = default_sha256(b"this is also a test", 5)
         self.assertEqual(hashes, this_is_also)
+
+    def test_hll_hash64(self):
+        """test deterministic non-cryptographic hll hash"""
+        hash1 = hll_hash64("this is a test", 0)
+        hash2 = hll_hash64("this is a test", 1)
+        self.assertNotEqual(hash1, hash2)
+        self.assertEqual(hash1, hll_hash64("this is a test", 0))
+        self.assertEqual(hash1, hll_hash64(b"this is a test", 0))
 
 
 if __name__ == "__main__":

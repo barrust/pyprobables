@@ -253,6 +253,102 @@ The counting cuckoo filter is similar to the standard filter except that it
 tracks the number of times a fingerprint has been added to the filter.
 
 
+HyperLogLog
+----------------------------------
+
+HyperLogLog estimates the number of distinct elements in a stream (its
+cardinality) using a small, fixed amount of memory, regardless of how many
+elements are added. The `precision` sets the number of registers
+(`2 ** precision`) and so the accuracy: the standard error is about
+`1.04 / sqrt(2 ** precision)`, or 0.8% at the default precision of 14.
+
+Import, Initialize, and Train
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. code:: python3
+
+    >>> from probables import HyperLogLog
+    >>> hll = HyperLogLog(precision=14)
+    >>> with open('war_and_peace.txt', 'r') as fp:
+    >>>     for line in fp:
+    >>>         for word in line.split():
+    >>>             hll.add(word.lower())  # add each word to the HyperLogLog
+
+
+Query the HyperLogLog
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. code:: python3
+
+    >>> print(hll.cardinality())  # the estimated number of distinct words
+    >>> print(hll.elements_added)  # the number of words added, including repeats
+
+
+Merge HyperLogLogs
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Two HyperLogLogs with the same precision and hash function can be merged; the
+result estimates the number of distinct elements added to either one.
+
+.. code:: python3
+
+    >>> first, second = HyperLogLog(precision=14), HyperLogLog(precision=14)
+    >>> for i in range(1000):
+    >>>     first.add('user-{}'.format(i))
+    >>> for i in range(500, 1500):
+    >>>     second.add('user-{}'.format(i))
+    >>> first.merge(second)
+    >>> print(first.cardinality())  # about 1500
+
+
+Export the HyperLogLog
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. code:: python3
+
+    >>> hll.export('war_and_peace.hll')
+
+
+Import a HyperLogLog
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. code:: python3
+
+    >>> hll2 = HyperLogLog(filepath='war_and_peace.hll')
+    >>> print(hll2.cardinality())  # the same estimate as before
+
+Exports start with a magic value and format version, so data that is not an
+exported HyperLogLog (including a HyperLogLog++ export) raises an
+`InitializationError` when loaded.
+
+HyperLogLog++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+The **HyperLogLog++** (Heule, Nunkesser, and Hall, 2013) improves the estimate
+for small and medium cardinalities with empirical bias correction, which is on
+by default. It removes the bias the original HyperLogLog has around
+`2.5 * 2 ** precision` elements (about +2.4% at precision 14). With
+`bias_correction=False` its estimates match the original HyperLogLog.
+
+With `sparse_enabled=True` it starts with the sparse representation from the
+paper: it stores only the registers that are set, 4 bytes each, with their index
+at precision 25, and estimates with linear counting over those 2 ** 25 registers.
+Small cardinalities are then nearly exact (within about 0.01%, compared with about
+0.5% for the registers at precision 14), and small sketches are compact (about
+4.6 KB in memory with 1,000 elements at precision 14, compared with 16 KB, and a
+426 byte export with 100 elements, compared with 16 KB). Once the sparse entries
+would use as much memory as the registers (`sparse_threshold` entries, by default
+`2 ** precision / 4`), it switches to the registers, converting each entry to the
+sketch's precision; from then on the estimates are the same as without sparse mode.
+
+.. code:: python3
+
+    >>> from probables import HyperLogLogPlusPlus
+    >>> hllpp = HyperLogLogPlusPlus(precision=14, sparse_enabled=True)
+    >>> for i in range(100):
+    >>>     hllpp.add('user-{}'.format(i))
+    >>> print(hllpp.is_sparse, hllpp.cardinality())  # prints True 100
+    >>> hllpp.export('users.hll')
+    >>> hllpp2 = HyperLogLogPlusPlus(filepath='users.hll')  # keeps its settings
+
+An export stores the precision, bias correction, and sparse settings, and a
+HyperLogLog++ loaded from a file uses them instead of the arguments passed in.
+
+
 Quotient Filters
 ----------------
 

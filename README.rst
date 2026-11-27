@@ -136,6 +136,19 @@ Import pyprobables and setup a Cuckoo Filter
     cko.check('google.com')  # should return True
 
 
+Import pyprobables and setup a HyperLogLog
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: python
+
+    from probables import HyperLogLog
+    hll = HyperLogLog(precision=14)
+    hll.add('google.com')
+    hll.add('facebook.com')
+    hll.add('google.com')
+    hll.cardinality()  # should return 2
+
+
 Import pyprobables and setup a Quotient Filter
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

@@ -1,5 +1,23 @@
 # PyProbables Changelog
 
+### Version 0.7.2 (unreleased)
+
+* `HyperLogLog` and `HyperLogLogPlusPlus`; see [#150](https://github.com/barrust/pyprobables/pull/150)
+  * Add `HyperLogLog` and `HyperLogLogPlusPlus` (bias correction and optional sparse mode) with merge, export, and load
+  * Exports start with a magic value and format version
+* `BloomFilter` and variants; see [#158](https://github.com/barrust/pyprobables/pull/158)
+  * Fix: `BloomFilterOnDisk` lost `elements_added` when reopened
+  * Fix: `CountingBloomFilter` remove/add overflow on repeated indexes, `check_alt()` hash count, and fullness in `__str__`
+  * Fix: `RotatingBloomFilter` stopped rotating
+  * Faster union, intersection, Jaccard index, element estimate, clear, and on-disk add
+* `CountMinSketch` and variants; see [#160](https://github.com/barrust/pyprobables/pull/160)
+  * Fix: `CountMeanSketch` and `CountMeanMinSketch` loaded as a `CountMinSketch`
+  * Fix: `join()` lost saturation; mean-min query with a width of 1; negative counts overflowed
+  * Fix: invalid parameters raise `InitializationError`
+  * Faster `clear()` and `HeavyHitters`
+* `QuotientFilter`: fix removed elements still counted, and removal from a full filter; see [#157](https://github.com/barrust/pyprobables/pull/157); thanks [bardrop](https://github.com/bardrop)
+* Faster default hash: `default_fnv_1a` hashes all depths in one pass, same values; see [#161](https://github.com/barrust/pyprobables/pull/161)
+
 ### Version 0.7.1
 
 * `Cuckoo Filter`
