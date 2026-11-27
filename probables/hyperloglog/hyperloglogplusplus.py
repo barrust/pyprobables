@@ -2,6 +2,7 @@
 
 import math
 from array import array
+from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from pathlib import Path
@@ -13,7 +14,7 @@ from probables.exceptions import InitializationError, NotSupportedError
 from probables.hashes import SimpleHashT
 from probables.hyperloglog.hllpp_bias_data import BIAS_DATA, LINEAR_COUNTING_THRESHOLD, RAW_ESTIMATE_DATA
 from probables.hyperloglog.hyperloglog import HyperLogLog
-from probables.utilities import BytesLike, MMap, is_valid_file, resolve_path
+from probables.utilities import MMap, is_valid_file, resolve_path
 
 
 class HyperLogLogPlusPlus(HyperLogLog):
@@ -34,22 +35,29 @@ class HyperLogLogPlusPlus(HyperLogLog):
         its configured threshold or max(1, min(128, number_registers // 128)).
     Note:
         Bias and threshold tables are provided for precisions 4 through 18.
-        For precisions 19 and 20, bias correction falls back to the raw estimate
-        (no empirical bias adjustment), while other HLL++ logic remains active.
+        For precisions 19 and 20 there is no empirical bias adjustment, and linear counting
+        is used below `2.5 * number_registers` as in the original HyperLogLog.
+    Note:
+        When loading from a file the precision, bias_correction, sparse_enabled and
+        sparse_threshold are read from the file; the arguments are not used.
     Note:
         Paper: https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/40671.pdf
     """
 
     __slots__ = ("_bias_correction", "_sparse_enabled", "_sparse_threshold", "_sparse_set", "_is_sparse")
 
-    _HLLPP_HEADER = Struct("<4sBB")  # magic(4) + version(1) + flags(1)
+    # magic(4) + version(1) + flags(1) + sparse_threshold(4, 0 if not set)
+    _HLLPP_HEADER = Struct("<4sBBI")
     _HLLPP_FOOTER = Struct("<IQ")  # precision(4) + elements_added(8)
     _SPARSE_COUNT = Struct("<I")
     _SPARSE_ENTRY = Struct("<IB")
     _HLLPP_MAGIC = b"HLPP"
-    _HLLPP_VERSION = 2
+    _HLLPP_VERSION = 3
     _SPARSE_MODE_FLAG = 0x01
     _DENSE_MODE_FLAG = 0x00
+    _BIAS_CORRECTION_FLAG = 0x02
+    _SPARSE_ENABLED_FLAG = 0x04
+    _KNOWN_FLAGS = _SPARSE_MODE_FLAG | _BIAS_CORRECTION_FLAG | _SPARSE_ENABLED_FLAG
 
     # Paper-faithful thresholds and bias calibration data (precision 4 through 18).
     _LINEAR_COUNTING_THRESHOLD = LINEAR_COUNTING_THRESHOLD
@@ -67,14 +75,8 @@ class HyperLogLogPlusPlus(HyperLogLog):
         super().__init__(precision=precision, hash_function=hash_function)
         self._bias_correction = bool(bias_correction)
         self._sparse_enabled = bool(sparse_enabled)
-        if sparse_threshold is not None and (
-            isinstance(sparse_threshold, bool)
-            or not isinstance(sparse_threshold, int)
-            or not 1 <= sparse_threshold <= self.number_registers
-        ):
-            raise InitializationError(
-                "HyperLogLogPlusPlus: sparse_threshold must be between 1 and the number of registers"
-            )
+        if filepath is None:
+            self._check_sparse_threshold(sparse_threshold)
         self._sparse_threshold = sparse_threshold
         self._sparse_set: dict[int, int] = {}
         self._is_sparse = sparse_enabled
@@ -87,13 +89,20 @@ class HyperLogLogPlusPlus(HyperLogLog):
             filepath = resolve_path(filepath)
             with MMap(filepath) as filepointer:
                 self._parse_hllpp_bytes(filepointer.read())
-            if self._sparse_threshold is not None and self._sparse_threshold > self.number_registers:
-                raise InitializationError(
-                    "HyperLogLogPlusPlus: sparse_threshold must be between 1 and the number of registers"
-                )
+
+    def _check_sparse_threshold(self, sparse_threshold: int | None) -> None:
+        """Raise if `sparse_threshold` is not None or between 1 and the number of registers"""
+        if sparse_threshold is not None and (
+            isinstance(sparse_threshold, bool)
+            or not isinstance(sparse_threshold, int)
+            or not 1 <= sparse_threshold <= self.number_registers
+        ):
+            raise InitializationError(
+                "HyperLogLogPlusPlus: sparse_threshold must be between 1 and the number of registers"
+            )
 
     @classmethod
-    def frombytes(cls, b: BytesLike, hash_function: SimpleHashT | None = None) -> "HyperLogLogPlusPlus":
+    def frombytes(cls, b: ByteString, hash_function: SimpleHashT | None = None) -> "HyperLogLogPlusPlus":
         """Create a HyperLogLogPlusPlus from bytes"""
         hllpp = cls(hash_function=hash_function)
         hllpp._parse_hllpp_bytes(bytes(b))
@@ -165,8 +174,7 @@ class HyperLogLogPlusPlus(HyperLogLog):
 
     def _add_sparse(self, key: str | bytes | bytearray | int) -> None:
         """Add element to sparse representation"""
-        raw_hash = self._hash_function(key, 0)
-        self._add_alt_sparse(raw_hash)
+        self._add_alt_sparse(self._hash(key))
 
     def _add_alt_sparse(self, value: int) -> None:
         """Add pre-hashed element to sparse representation"""
@@ -210,6 +218,12 @@ class HyperLogLogPlusPlus(HyperLogLog):
                 self._promote_to_dense()
             super().merge(second)
 
+    def _register_items(self):
+        """Iterate over the (index, rank) of the registers that are set, in either representation"""
+        if self._is_sparse:
+            return iter(self._sparse_set.items())
+        return super()._register_items()
+
     def _merge_sparse_sparse(self, other: "HyperLogLogPlusPlus") -> None:
         """Merge two sparse sketches"""
         combined: dict[int, int] = {}
@@ -245,11 +259,15 @@ class HyperLogLogPlusPlus(HyperLogLog):
         if raw_estimate <= (5.0 * m):
             corrected = self._apply_bias_correction(raw_estimate) if self.bias_correction else raw_estimate
 
-            # Use linear counting only under precision-specific thresholds.
+            # Use linear counting under the precision-specific threshold; precisions without one
+            # (19 and 20) use the original HyperLogLog rule.
             if zero_count > 0:
                 linear_count = m * math.log(m / zero_count)
-                threshold = self._LINEAR_COUNTING_THRESHOLD.get(self.precision, 0)
-                if linear_count <= threshold:
+                threshold = self._LINEAR_COUNTING_THRESHOLD.get(self.precision)
+                if threshold is None:
+                    if raw_estimate <= 2.5 * m:
+                        return linear_count
+                elif linear_count <= threshold:
                     return linear_count
 
             return corrected
@@ -305,7 +323,12 @@ class HyperLogLogPlusPlus(HyperLogLog):
         else:
             filepointer = file
             flags = self._SPARSE_MODE_FLAG if self._is_sparse else self._DENSE_MODE_FLAG
-            header = self._HLLPP_HEADER.pack(self._HLLPP_MAGIC, self._HLLPP_VERSION, flags)
+            if self._bias_correction:
+                flags |= self._BIAS_CORRECTION_FLAG
+            if self._sparse_enabled:
+                flags |= self._SPARSE_ENABLED_FLAG
+            threshold = 0 if self._sparse_threshold is None else self._sparse_threshold
+            header = self._HLLPP_HEADER.pack(self._HLLPP_MAGIC, self._HLLPP_VERSION, flags, threshold)
             footer = self._HLLPP_FOOTER.pack(self.precision, self.elements_added)
 
             filepointer.write(header)
@@ -338,14 +361,16 @@ class HyperLogLogPlusPlus(HyperLogLog):
         corrected = estimate - mean_bias
         return max(0.0, corrected)
 
-    def _parse_hllpp_bytes(self, data: BytesLike) -> None:
+    def _parse_hllpp_bytes(self, data: ByteString) -> None:
         """Parse HyperLogLog++ bytes and populate state"""
         try:
             data = bytes(data)
             if len(data) < self._HLLPP_HEADER.size:
                 raise InitializationError("HyperLogLogPlusPlus: invalid byte stream")
-            magic, version, flags = self._HLLPP_HEADER.unpack_from(data)
-            if magic != self._HLLPP_MAGIC or flags not in (self._SPARSE_MODE_FLAG, self._DENSE_MODE_FLAG):
+            magic, version, flags, threshold = self._HLLPP_HEADER.unpack_from(data)
+            sparse_mode = bool(flags & self._SPARSE_MODE_FLAG)
+            sparse_enabled = bool(flags & self._SPARSE_ENABLED_FLAG)
+            if magic != self._HLLPP_MAGIC or flags & ~self._KNOWN_FLAGS or (sparse_mode and not sparse_enabled):
                 raise InitializationError("HyperLogLogPlusPlus: invalid byte stream")
             if version == self._HLLPP_VERSION:
                 footer_struct = self._HLLPP_FOOTER
@@ -355,14 +380,18 @@ class HyperLogLogPlusPlus(HyperLogLog):
                 raise InitializationError("HyperLogLogPlusPlus: invalid byte stream")
 
             payload = data[self._HLLPP_HEADER.size :]
-            if flags == self._SPARSE_MODE_FLAG:
+            if sparse_mode:
                 self._parse_hllpp_sparse_bytes(payload, footer_struct, count_struct, entry_struct)
             else:
                 self._parse_hllpp_dense_bytes(payload, footer_struct)
+            self._check_sparse_threshold(threshold or None)
+            self._sparse_threshold = threshold or None
+            self._bias_correction = bool(flags & self._BIAS_CORRECTION_FLAG)
+            self._sparse_enabled = sparse_enabled
         except (StructError, ValueError) as ex:
             raise InitializationError("HyperLogLogPlusPlus: invalid byte stream") from ex
 
-    def _parse_hllpp_dense_bytes(self, data: BytesLike, footer_struct: Struct) -> None:
+    def _parse_hllpp_dense_bytes(self, data: ByteString, footer_struct: Struct) -> None:
         """Parse HyperLogLog++ dense format"""
         footer_size = footer_struct.size
         if len(data) < footer_size:
@@ -390,7 +419,7 @@ class HyperLogLogPlusPlus(HyperLogLog):
 
     def _parse_hllpp_sparse_bytes(
         self,
-        data: BytesLike,
+        data: ByteString,
         footer_struct: Struct,
         count_struct: Struct,
         entry_struct: Struct,

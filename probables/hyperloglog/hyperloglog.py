@@ -2,6 +2,7 @@
 
 import math
 from array import array
+from collections.abc import ByteString
 from io import BytesIO, IOBase
 from mmap import mmap
 from pathlib import Path
@@ -10,8 +11,8 @@ from struct import error as StructError
 
 from probables.constants import UINT64_T_MAX
 from probables.exceptions import InitializationError, NotSupportedError
-from probables.hashes import KeyT, SimpleHashT, hll_hash64
-from probables.utilities import BytesLike, MMap, is_valid_file, resolve_path
+from probables.hashes import KeyT, SimpleHashT, _fmix64, hll_hash64
+from probables.utilities import MMap, is_valid_file, resolve_path
 
 
 class HyperLogLog:
@@ -20,13 +21,16 @@ class HyperLogLog:
     Args:
         precision (int): The number of bits used to address registers
         filepath (str): Path to file to load
-        hash_function (function): Hashing strategy function to use `hf(key, seed)`
+        hash_function (function): Hashing strategy function to use `hf(key, seed)`; its result \
+            is mixed to 64 bits, so shorter hashes (such as `fnv_1a_32`) still use every register
 
     Note:
         The standard error rate is approximately `1.04 / sqrt(2 ** precision)`
     Note:
         The default hashing strategy uses a non-cryptographic 64-bit hash with strong
         avalanche behavior so the sketch can apply textbook register index / suffix splitting.
+    Note:
+        `add_alt()` uses its value as is, so it should be a well mixed 64-bit hash.
     """
 
     __slots__ = ("__precision", "_elements_added", "_registers", "_hash_function")
@@ -86,7 +90,7 @@ class HyperLogLog:
         return self.cardinality()
 
     @classmethod
-    def frombytes(cls, b: BytesLike, hash_function: SimpleHashT | None = None) -> "HyperLogLog":
+    def frombytes(cls, b: ByteString, hash_function: SimpleHashT | None = None) -> "HyperLogLog":
         """Create a HyperLogLog from bytes"""
         hll = cls(hash_function=hash_function)
         hll._parse_bytes(b)
@@ -120,7 +124,16 @@ class HyperLogLog:
 
     def add(self, key: KeyT) -> None:
         """Add the element `key` into the HyperLogLog"""
-        self.add_alt(self._hash_function(key, 0))
+        self.add_alt(self._hash(key))
+
+    def _hash(self, key: KeyT) -> int:
+        """int: the 64-bit hash of `key`
+
+        The default hash is already mixed; any other hash is mixed with a 64-bit finalizer, since
+        the register index uses the top bits and a 32-bit hash would leave them all zero."""
+        if self._hash_function is hll_hash64:
+            return self._hash_function(key, 0)
+        return _fmix64(self._hash_function(key, 0))
 
     def add_alt(self, _hash: int) -> None:
         """Add the pre-hashed value into the HyperLogLog"""
@@ -165,10 +178,14 @@ class HyperLogLog:
         if self._hash_function("test", 0) != second._hash_function("test", 0):
             raise NotSupportedError("Hash functions do not match")
 
-        for idx, value in enumerate(second._registers):
+        for idx, value in second._register_items():
             if value > self._registers[idx]:
                 self._registers[idx] = value
         self._elements_added += second.elements_added
+
+    def _register_items(self):
+        """Iterate over the (index, rank) of the registers that are set"""
+        return ((idx, value) for idx, value in enumerate(self._registers) if value)
 
     def export(self, file: Path | str | IOBase | mmap) -> None:
         """Export the HyperLogLog to file"""
@@ -201,7 +218,7 @@ class HyperLogLog:
             raise InitializationError("HyperLogLog: precision must be between 4 and 20")
         self.__precision = precision
 
-    def _parse_bytes(self, data: BytesLike | mmap) -> None:
+    def _parse_bytes(self, data: ByteString | mmap) -> None:
         """Parse bytes and populate the sketch state"""
         payload = bytes(data)
         if len(payload) < self.__FOOTER_STRUCT.size:

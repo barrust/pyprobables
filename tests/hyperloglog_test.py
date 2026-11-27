@@ -18,6 +18,7 @@ sys.path.insert(0, str(this_dir.parent))
 
 from probables import HyperLogLog  # noqa: E402
 from probables.exceptions import InitializationError, NotSupportedError  # noqa: E402
+from probables.hashes import fnv_1a, fnv_1a_32  # noqa: E402
 
 DELETE_TEMP_FILES = True
 
@@ -343,3 +344,17 @@ class TestHyperLogLog(unittest.TestCase):
                     hll.add_alt(rng.getrandbits(64))
                 relative_error = abs(hll.estimate() - cardinality) / cardinality
                 self.assertLessEqual(relative_error, min(0.35, (3.0 * hll.error_rate) + 0.1))
+
+    def test_hll_32_bit_hash(self):
+        """a 32-bit hash function still spreads elements over the registers (estimated 1 for 10000)"""
+        hll = HyperLogLog(precision=14, hash_function=fnv_1a_32)
+        for i in range(10000):
+            hll.add(str(i))
+        self.assertLess(abs(hll.estimate() - 10000) / 10000, 0.03)
+
+    def test_hll_custom_64_bit_hash(self):
+        """a 64-bit custom hash is mixed before use and still estimates well"""
+        hll = HyperLogLog(precision=14, hash_function=fnv_1a)
+        for i in range(10000):
+            hll.add(str(i))
+        self.assertLess(abs(hll.estimate() - 10000) / 10000, 0.03)
