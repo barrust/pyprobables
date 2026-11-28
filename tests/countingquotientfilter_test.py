@@ -293,6 +293,41 @@ class TestCountingQuotientFilter(unittest.TestCase):
         first.merge(first)  # merging a filter into itself doubles its counts
         self.assertEqual((first.check("a"), first.check("b"), first.check("c")), (10, 2, 10))
 
+    def test_cqf_update_absent_changes_nothing(self):
+        """removing from a quotient with no run, through the internal update, changes nothing"""
+        cqf = CountingQuotientFilter(quotient=4)
+        cqf.add_alt((3 << cqf.remainder) | 2)
+        self.assertEqual(cqf._update((7 << cqf.remainder) | 1, -1), 0)
+        self.assertEqual(cqf._is_occupied[7], 0)
+        self.assertEqual(cqf.get_hashes(), [((3 << cqf.remainder) | 2, 1)])
+        self.assertTrue(cqf.validate_metadata())
+
+    def test_cqf_merge_failure_after_resize_restores(self):
+        """a merge that fails after it expanded the filter restores the original size and contents"""
+        cqf = CountingQuotientFilter(quotient=3)
+        for i in range(3):
+            cqf.add_alt(i << cqf.remainder, 2)
+        before = (cqf.quotient, cqf.get_hashes(), len(cqf), cqf.slots_used, cqf.auto_expand)
+        other = CountingQuotientFilter(quotient=6)
+        for i in range(40):
+            other.add(str(i), i + 1)
+        real_update = CountingQuotientFilter._update
+        calls = []
+        expanded = []
+
+        def failing_update(self, _hash, change):
+            calls.append(1)
+            if len(calls) == 30:  # after the merge has expanded the filter
+                expanded.append(self.quotient)
+                raise MemoryError("simulated")
+            return real_update(self, _hash, change)
+
+        with mock.patch.object(CountingQuotientFilter, "_update", failing_update):
+            self.assertRaises(MemoryError, lambda: cqf.merge(other))
+        self.assertGreater(expanded[0], 3)  # it had expanded when the failure happened
+        self.assertEqual((cqf.quotient, cqf.get_hashes(), len(cqf), cqf.slots_used, cqf.auto_expand), before)
+        self.assertTrue(cqf.validate_metadata())
+
     def test_cqf_merge_other_types(self):
         """merging something other than a CountingQuotientFilter raises TypeError"""
         cqf = CountingQuotientFilter(quotient=8)

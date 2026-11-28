@@ -314,10 +314,14 @@ class QuotientFilter:
 
         Args:
             second (QuotientFilter): The quotient filter to merge
+        Raises:
+            TypeError: When `second` is not a QuotientFilter
         Note:
             The hashing function between the two filters should match
         Note:
             Errors can occur if the quotient filter being inserted into does not expand (i.e., auto_expand=False)"""
+        if not isinstance(second, QuotientFilter):
+            raise TypeError("The parameter second must be of type QuotientFilter")
         if self._hash_func("test", 0) != second._hash_func("test", 0):
             raise QuotientFilterError("Hash functions do not match")
 

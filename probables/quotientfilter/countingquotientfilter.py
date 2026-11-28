@@ -698,6 +698,8 @@ class CountingQuotientFilter:
         run_idx = next((i for i, (q, _) in enumerate(runs) if q == quot), None)
         # the run was already changed by _update_in_place; a quotient with no run gets a new one
         old_count, new_count, new_slots = changed if changed is not None else self._change_count([], rem, change)
+        if new_count == old_count:  # removing from a quotient with no run changes nothing
+            return old_count
 
         growth = len(new_slots) - (len(runs[run_idx][1]) if run_idx is not None else 0)
         if self._needs_resize(growth):
