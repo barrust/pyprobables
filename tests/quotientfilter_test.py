@@ -15,7 +15,7 @@ from probables.exceptions import QuotientFilterError
 this_dir = Path(__file__).parent
 sys.path.insert(0, str(this_dir))
 sys.path.insert(0, str(this_dir.parent))
-from probables import QuotientFilter  # noqa: E402
+from probables import CountingQuotientFilter, QuotientFilter  # noqa: E402
 from probables.hashes import fnv_1a  # noqa: E402
 from tests.utilities import fail_after  # noqa: E402
 
@@ -511,6 +511,23 @@ class TestQuotientFilter(unittest.TestCase):
         self.assertTrue(all(qf.check(str(i)) for i in range(100)))
         qf.remove("5")
         self.assertFalse(qf.check("5"))
+
+    def test_qf_merge_other_types(self):
+        """merging something other than a QuotientFilter raises TypeError"""
+        qf = QuotientFilter(quotient=8)
+        cqf = CountingQuotientFilter(quotient=8)
+        cqf.add("a", 2)
+        for other in (cqf, "not a filter", None):
+            self.assertRaises(TypeError, lambda o=other: qf.merge(o))
+        self.assertEqual(len(qf), 0)
+
+    def test_qf_quotient_must_be_an_integer(self):
+        """a quotient that is not an integer raises QuotientFilterError"""
+        for bad in (10.0, "10", None):
+            self.assertRaises(QuotientFilterError, lambda q=bad: QuotientFilter(quotient=q))
+        qf = QuotientFilter(quotient=8)
+        self.assertRaises(QuotientFilterError, lambda: qf.resize(9.0))
+        self.assertEqual(qf.quotient, 8)
 
     def test_qf_max_load_factor_validation(self):
         """the max load factor must be greater than 0 and at most 1"""

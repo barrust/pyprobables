@@ -201,6 +201,25 @@ QuotientFilter
 .. autoclass:: probables.QuotientFilter
     :members:
 
+CountingQuotientFilter
++++++++++++++++++++++++++++++++
+
+A counting quotient filter counts how many times each element was added, and
+removing an element subtracts from its count, so elements that share a hash do
+not remove each other. Each count is stored in the remainder slots after its
+element, so a large count takes a few slots rather than one per copy. It follows
+the counting quotient filter of Pandey, Bender, Johnson, and Patro,
+`A General-Purpose Counting Filter: Making Every Bit Count <https://doi.org/10.1145/3035918.3035963>`__
+(SIGMOD 2017), and its `reference implementation <https://github.com/saltsystemslab/cqf>`__.
+
+Like the quotient filter, it uses the lower 32 bits of the hash, so elements
+with the same 32-bit hash share a count. The largest filter has a quotient of 30,
+since the counts need at least 2 remainder bits. ``load_factor`` is the share of
+slots holding remainders or counts.
+
+.. autoclass:: probables.CountingQuotientFilter
+    :members:
+
 
 Utilities
 ------------------

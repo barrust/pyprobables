@@ -3,6 +3,7 @@ License: MIT
 Author: Tyler Barrus (barrust@gmail.com)
 """
 
+import operator
 import sys
 from array import array
 from collections.abc import Iterator
@@ -15,6 +16,27 @@ from probables.utilities import Bitarray, deprecated
 _HASH_MASK = 0xFFFFFFFF  # the quotient and remainder together use 32 bits of the hash
 # the array type code that holds each remainder size; "I" and "L" vary in size by platform
 _TYPE_CODES = {8: "B", 16: "H", 32: next(c for c in ("I", "L") if array(c).itemsize == 4)}
+
+
+def _remainder_storage(r_bits: int) -> tuple[int, str]:
+    """The bits per slot, and the array type code, that hold remainders of `r_bits` bits"""
+    bits = 8 if r_bits <= 8 else 16 if r_bits <= 16 else 32
+    return bits, _TYPE_CODES[bits]
+
+
+def _check_quotient(quotient: int, largest: int = 31) -> int:
+    """The quotient as an int, if it is an integer from 3 to `largest`"""
+    try:
+        quotient = operator.index(quotient)
+    except TypeError as exc:
+        raise QuotientFilterError(
+            f"Invalid quotient setting; quotient must be an integer; {quotient!r} was provided"
+        ) from exc
+    if quotient < 3 or quotient > largest:
+        raise QuotientFilterError(
+            f"Invalid quotient setting; quotient must be between 3 and {largest}; {quotient} was provided"
+        )
+    return quotient
 
 
 class QuotientFilter:
@@ -55,10 +77,7 @@ class QuotientFilter:
     def __init__(
         self, quotient: int = 20, auto_expand: bool = True, hash_function: SimpleHashT | None = None
     ):  # needs to be parameterized
-        if quotient < 3 or quotient > 31:
-            raise QuotientFilterError(
-                f"Invalid quotient setting; quotient must be between 3 and 31; {quotient} was provided"
-            )
+        quotient = _check_quotient(quotient)
         self.__set_params(quotient, auto_expand, hash_function)
 
     def __set_params(self, quotient: int, auto_expand: bool, hash_function: SimpleHashT | None):
@@ -72,13 +91,7 @@ class QuotientFilter:
         self._max_load_factor: float = 0.85
 
         # ensure we use the smallest type possible to reduce memory wastage
-        if self._r <= 8:
-            self._bits_per_elm = 8
-        elif self._r <= 16:
-            self._bits_per_elm = 16
-        else:
-            self._bits_per_elm = 32
-        self._int_type_code = _TYPE_CODES[self._bits_per_elm]
+        self._bits_per_elm, self._int_type_code = _remainder_storage(self._r)
 
         self._is_occupied = Bitarray(self._size)
         self._is_continuation = Bitarray(self._size)
@@ -283,12 +296,9 @@ class QuotientFilter:
                 )
             quotient = self._q + 1
 
+        quotient = _check_quotient(quotient)
         if self.elements_added >= (1 << quotient):
             raise QuotientFilterError("Unable to shrink since there will be too many elements in the quotient filter")
-        if quotient < 3 or quotient > 31:
-            raise QuotientFilterError(
-                f"Invalid quotient setting; quotient must be between 3 and 31; {quotient} was provided"
-            )
 
         hashes = self.get_hashes()
 
@@ -304,10 +314,14 @@ class QuotientFilter:
 
         Args:
             second (QuotientFilter): The quotient filter to merge
+        Raises:
+            TypeError: When `second` is not a QuotientFilter
         Note:
             The hashing function between the two filters should match
         Note:
             Errors can occur if the quotient filter being inserted into does not expand (i.e., auto_expand=False)"""
+        if not isinstance(second, QuotientFilter):
+            raise TypeError("The parameter second must be of type QuotientFilter")
         if self._hash_func("test", 0) != second._hash_func("test", 0):
             raise QuotientFilterError("Hash functions do not match")
 

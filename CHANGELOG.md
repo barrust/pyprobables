@@ -10,6 +10,7 @@
   * Fix: `CountingBloomFilter` remove/add overflow on repeated indexes, `check_alt()` hash count, and fullness in `__str__`
   * Fix: `RotatingBloomFilter` stopped rotating
   * Faster union, intersection, Jaccard index, element estimate, clear, and on-disk add
+  * Fix: union, intersection, and Jaccard index accepted a `CountingBloomFilter`, raising `OverflowError` or giving wrong results; they now raise `TypeError`; see [#166](https://github.com/barrust/pyprobables/pull/166); thanks [chenyangsu](https://github.com/chenyangsu)
 * `CountMinSketch` and variants; see [#160](https://github.com/barrust/pyprobables/pull/160)
   * Fix: `CountMeanSketch` and `CountMeanMinSketch` loaded as a `CountMinSketch`
   * Fix: `join()` lost saturation; mean-min query with a width of 1; negative counts overflowed
@@ -17,6 +18,8 @@
   * Faster `clear()` and `HeavyHitters`
 * `QuotientFilter`: fix removed elements still counted, and removal from a full filter; see [#157](https://github.com/barrust/pyprobables/pull/157); thanks [bardrop](https://github.com/bardrop)
 * `QuotientFilter`: add `clear()` and `len()`; fix `validate_metadata()`, hashes wider than 32 bits, expanding on a duplicate add, and expanding resetting `max_load_factor`; store remainders in half the memory; validate `max_load_factor`; see [#163](https://github.com/barrust/pyprobables/pull/163)
+* Add `CountingQuotientFilter`, which counts how many times each element was added and stores the counts in the filter's slots, based on the counting quotient filter (Pandey et al., SIGMOD 2017); see [#165](https://github.com/barrust/pyprobables/pull/165)
+* `QuotientFilter`: a quotient that is not an integer raises `QuotientFilterError`; see [#165](https://github.com/barrust/pyprobables/pull/165)
 * Deprecated: `QuotientFilter.num_elements` (the number of slots) will be removed in 0.8.0; use `size`, or `len()` for the number of elements
 * Faster default hash: `default_fnv_1a` hashes all depths in one pass, same values; see [#161](https://github.com/barrust/pyprobables/pull/161)
 * Replace the deprecated `collections.abc.ByteString`, which warns on import in Python 3.15; fix `CuckooFilter.frombytes` with a `bytearray`; see [#162](https://github.com/barrust/pyprobables/pull/162)
