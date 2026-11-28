@@ -7,18 +7,32 @@ The counter encoding follows the counting quotient filter of Pandey, Bender, Joh
 implementation, https://github.com/saltsystemslab/cqf
 """
 
+import copy
 from array import array
 from collections.abc import Iterator
 
 from probables.exceptions import QuotientFilterError
 from probables.hashes import KeyT, SimpleHashT, fnv_1a_32
+from probables.quotientfilter.quotientfilter import _check_quotient, _remainder_storage
 from probables.utilities import Bitarray
 
 _HASH_MASK = 0xFFFFFFFF  # the quotient and remainder together use 32 bits of the hash
-# the array type code that holds each remainder size; "I" and "L" vary in size by platform
-_TYPE_CODES = {8: "B", 16: "H", 32: next(c for c in ("I", "L") if array(c).itemsize == 4)}
-_MIN_QUOTIENT = 3
 _MAX_QUOTIENT = 30  # the counter encoding needs at least 2 remainder bits
+_STATE_ATTRS = (
+    "_q",
+    "_r",
+    "_size",
+    "_elements_added",
+    "_unique_elements",
+    "_slots_used",
+    "_auto_resize",
+    "_int_type_code",
+    "_bits_per_elm",
+    "_is_occupied",
+    "_is_continuation",
+    "_is_shifted",
+    "_filter",
+)
 
 
 def _encode_counter(rem: int, count: int, r_bits: int) -> list[int]:
@@ -163,17 +177,9 @@ class CountingQuotientFilter:
     )
 
     def __init__(self, quotient: int = 20, auto_expand: bool = True, hash_function: SimpleHashT | None = None):
-        self.__check_quotient(quotient)
+        quotient = _check_quotient(quotient, _MAX_QUOTIENT)
         self._max_load_factor: float = 0.85
         self.__set_params(quotient, auto_expand, hash_function)
-
-    @staticmethod
-    def __check_quotient(quotient: int) -> None:
-        if not _MIN_QUOTIENT <= quotient <= _MAX_QUOTIENT:
-            raise QuotientFilterError(
-                f"Invalid quotient setting; quotient must be between {_MIN_QUOTIENT} and {_MAX_QUOTIENT}; "
-                f"{quotient} was provided"
-            )
 
     def __set_params(self, quotient: int, auto_expand: bool, hash_function: SimpleHashT | None):
         self._q: int = quotient
@@ -185,13 +191,7 @@ class CountingQuotientFilter:
         self._auto_resize: bool = auto_expand
         self._hash_func: SimpleHashT = fnv_1a_32 if hash_function is None else hash_function  # type: ignore
 
-        if self._r <= 8:
-            self._bits_per_elm = 8
-        elif self._r <= 16:
-            self._bits_per_elm = 16
-        else:
-            self._bits_per_elm = 32
-        self._int_type_code = _TYPE_CODES[self._bits_per_elm]
+        self._bits_per_elm, self._int_type_code = _remainder_storage(self._r)
 
         self._is_occupied = Bitarray(self._size)
         self._is_continuation = Bitarray(self._size)
@@ -383,8 +383,11 @@ class CountingQuotientFilter:
         Note:
             If `None` is provided, the filter will double in size (quotient + 1)
         Raises:
-            QuotientFilterError: When the new quotient will not accommodate the elements already added,
-                or when expanding a filter that already has a quotient of 30"""
+            QuotientFilterError: When the elements already added, with their counts, will not fit in the new
+                quotient, or when expanding a filter that already has a quotient of 30; the filter is unchanged
+        Note:
+            The filter has exactly the new quotient afterwards, even if that is over its `max_load_factor`;
+            with `auto_expand`, the next add that needs more slots expands it"""
         if quotient is None:
             if self._q == _MAX_QUOTIENT:
                 raise QuotientFilterError(
@@ -392,50 +395,141 @@ class CountingQuotientFilter:
                     f"(quotient of {_MAX_QUOTIENT})"
                 )
             quotient = self._q + 1
-        self.__check_quotient(quotient)
-        if self._unique_elements >= (1 << quotient):
-            raise QuotientFilterError("Unable to shrink since there will be too many elements in the filter")
+        quotient = _check_quotient(quotient, _MAX_QUOTIENT)
 
         entries = list(self.hashes())
-        self.__set_params(quotient, self._auto_resize, self._hash_func)
-        for _hash, count in entries:
-            self._update(_hash, count)
+        needed = self._slots_needed(entries, quotient)
+        if needed > (1 << quotient) - 1:
+            raise QuotientFilterError(
+                f"Unable to resize; the elements need {needed} slots and a quotient of {quotient} holds "
+                f"{(1 << quotient) - 1}"
+            )
+
+        state = self.__save_state()
+        auto_expand = self._auto_resize
+        try:
+            self.__set_params(quotient, False, self._hash_func)  # re-adding fits, so it never expands
+            for _hash, count in entries:
+                self._update(_hash, count)
+        except BaseException:
+            self.__restore_state(state)
+            raise
+        self._auto_resize = auto_expand
 
     def merge(self, second: "CountingQuotientFilter") -> None:
         """Merge the `second` counting quotient filter into this one, adding the counts
 
         Args:
             second (CountingQuotientFilter): The filter to merge
+        Raises:
+            TypeError: When `second` is not a CountingQuotientFilter
+            QuotientFilterError: When the hash functions do not match, or the merged elements do not fit and
+                the filter does not expand; the filter is unchanged
         Note:
             The hashing function between the two filters should match"""
+        if not isinstance(second, CountingQuotientFilter):
+            raise TypeError("The parameter second must be of type CountingQuotientFilter")
         if self._hash_func("test", 0) != second._hash_func("test", 0):
             raise QuotientFilterError("Hash functions do not match")
-        for _hash, count in list(second.hashes()):
-            self._update(_hash, count)
+        entries = list(second.hashes())
+        state = self.__save_state(copy_arrays=True)
+        try:
+            for _hash, count in entries:
+                self._update(_hash, count)
+        except BaseException:
+            self.__restore_state(state)
+            raise
 
     def clear(self) -> None:
         """Remove every element from the filter, keeping its current size and settings"""
         self.__set_params(self._q, self._auto_resize, self._hash_func)
 
     def validate_metadata(self) -> bool:
-        """Check for invalid bit settings and that every run decodes
+        """Check that the metadata bits, the runs, and the element counts are all consistent
 
         Returns:
-            bool: True if the metadata bits are all valid; False otherwise"""
-        for i in range(self._size):
-            if self._is_continuation[i] == 1 and self._is_shifted[i] == 0:  # 0-1-0 and 1-1-0 are never valid
+            bool: True if the filter is valid; False otherwise"""
+        try:
+            return self._check_layout()
+        except (ValueError, IndexError):
+            return False
+
+    def _check_layout(self) -> bool:
+        """Walk every block and check its bits, the place and encoding of each run, and the totals"""
+        empty = next((i for i in range(self._size) if self._is_empty(i)), None)
+        if empty is None:
+            return False  # an empty slot is always kept
+        totals = [0, 0, 0]  # elements added, unique elements, slots used
+        pos = empty + 1
+        while pos < empty + self._size:
+            if self._is_empty(pos % self._size):
+                pos += 1
+                continue
+            pos = self._check_block(pos, totals)
+            if pos < 0:
                 return False
-        total = unique = 0
-        for _, count in self.hashes():
-            total += count
-            unique += 1
-        used = sum(not self._is_empty(i) for i in range(self._size))
-        return (total, unique, used) == (self._elements_added, self._unique_elements, self._slots_used)
+        return tuple(totals) == (self._elements_added, self._unique_elements, self._slots_used)
+
+    def _check_block(self, pos: int, totals: list[int]) -> int:
+        """Check the block starting at `pos` (unwrapped), adding its counts to `totals`
+
+        Returns:
+            The unwrapped position of the empty slot after the block, or -1 if the block is invalid"""
+        size = self._size
+        block_start = pos
+        homes: list[int] = []
+        run_starts: list[int] = []
+        while not self._is_empty(pos % size):
+            idx = pos % size
+            if self._is_continuation[idx] == 1 and self._is_shifted[idx] == 0:  # 0-1-0 and 1-1-0
+                return -1
+            if self._is_occupied[idx] == 1:
+                homes.append(pos)
+            if self._is_continuation[idx] == 0:
+                run_starts.append(pos)
+            pos += 1
+        if len(homes) != len(run_starts) or self._is_continuation[block_start % size] == 1:
+            return -1
+        run_ends = [*run_starts[1:], pos]
+        for home, run_start, run_end in zip(homes, run_starts, run_ends, strict=True):
+            # runs are packed in quotient order, so each starts at its home or after it, shifted if not home
+            if run_start < home or self._is_shifted[run_start % size] != (run_start != home):
+                return -1
+            slots = [self._filter[j % size] for j in range(run_start, run_end)]
+            entries = _decode_run(slots, self._r)
+            rems = [rem for rem, _ in entries]
+            if rems != sorted(set(rems)) or _encode_run(entries, self._r) != slots:
+                return -1
+            totals[0] += sum(count for _, count in entries)
+            totals[1] += len(entries)
+            totals[2] += len(slots)
+        return pos
 
     @staticmethod
     def __check_num_els(num_els: int) -> None:
         if not isinstance(num_els, int) or isinstance(num_els, bool) or num_els < 1:
             raise QuotientFilterError(f"num_els must be a positive integer; {num_els!r} was provided")
+
+    def _slots_needed(self, entries: list[tuple[int, int]], quotient: int) -> int:
+        """The number of slots the (hash, count) entries take in a filter with `quotient`"""
+        r_bits = 32 - quotient
+        runs: dict[int, list[list[int]]] = {}
+        for _hash, count in entries:
+            runs.setdefault(_hash >> r_bits, []).append([_hash & ((1 << r_bits) - 1), count])
+        return sum(len(_encode_run(sorted(run), r_bits)) for run in runs.values())
+
+    def __save_state(self, copy_arrays: bool = False) -> dict:
+        """The filter's state, to restore if an operation fails part-way; copy the arrays if they will be changed
+        in place (resize replaces them instead)"""
+        state = {name: getattr(self, name) for name in _STATE_ATTRS}
+        if copy_arrays:
+            for name in ("_is_occupied", "_is_continuation", "_is_shifted", "_filter"):
+                state[name] = copy.deepcopy(state[name])
+        return state
+
+    def __restore_state(self, state: dict) -> None:
+        for name, value in state.items():
+            setattr(self, name, value)
 
     def _is_empty(self, idx: int) -> bool:
         return (self._is_occupied[idx] + self._is_continuation[idx] + self._is_shifted[idx]) == 0
@@ -570,17 +664,42 @@ class CountingQuotientFilter:
                 self._is_shifted[idx] = 1 if run_start + i != home else 0
             pos = run_start + len(slots)
 
+    def _update_in_place(
+        self, quot: int, rem: int, change: int
+    ) -> tuple[int | None, tuple[int, int, list[int]] | None]:
+        """Apply a change that keeps the run's length (or changes nothing) in place
+
+        Returns:
+            The new count if done, else None; and, when the run of `quot` exists but its length changes, its
+            (old count, new count, new slots) so the caller doesn't decode it again"""
+        if self._is_occupied[quot] == 0:
+            return None, None
+        run_start = self._run_start(quot)
+        old_slots = self._read_run(run_start)
+        old_count, new_count, new_slots = self._change_count(old_slots, rem, change)
+        if new_count == old_count:
+            return old_count, None
+        if len(new_slots) != len(old_slots):
+            return None, (old_count, new_count, new_slots)
+        for i, val in enumerate(new_slots):
+            self._filter[(run_start + i) % self._size] = val
+        self._elements_added += new_count - old_count
+        self._unique_elements += (new_count > 0) - (old_count > 0)
+        return new_count, None
+
     def _update(self, _hash: int, change: int) -> int:
         """Add `change` (negative to remove) to the count of `_hash`; returns the new count"""
         quot, rem = _hash >> self._r, _hash & ((1 << self._r) - 1)
+        done, changed = self._update_in_place(quot, rem, change)
+        if done is not None:
+            return done
+
         start, runs, end = self._block_around(quot)
         run_idx = next((i for i, (q, _) in enumerate(runs) if q == quot), None)
-        old_slots = runs[run_idx][1] if run_idx is not None else []
-        old_count, new_count, new_slots = self._change_count(old_slots, rem, change)
-        if new_count == old_count:
-            return old_count
+        # the run was already changed by _update_in_place; a quotient with no run gets a new one
+        old_count, new_count, new_slots = changed if changed is not None else self._change_count([], rem, change)
 
-        growth = len(new_slots) - len(old_slots)
+        growth = len(new_slots) - (len(runs[run_idx][1]) if run_idx is not None else 0)
         if self._needs_resize(growth):
             self.resize()
             return self._update(_hash, change)
@@ -595,8 +714,7 @@ class CountingQuotientFilter:
         else:
             del runs[run_idx]
 
-        end, layout_end = self._absorb_blocks(runs, start, end)
-        self._write_runs(runs, start, max(end, layout_end))
+        self._write_runs(runs, start, max(self._absorb_blocks(runs, start, end)))
 
         self._slots_used += growth
         self._elements_added += new_count - old_count

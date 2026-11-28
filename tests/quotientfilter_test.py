@@ -512,6 +512,14 @@ class TestQuotientFilter(unittest.TestCase):
         qf.remove("5")
         self.assertFalse(qf.check("5"))
 
+    def test_qf_quotient_must_be_an_integer(self):
+        """a quotient that is not an integer raises QuotientFilterError"""
+        for bad in (10.0, "10", None):
+            self.assertRaises(QuotientFilterError, lambda q=bad: QuotientFilter(quotient=q))
+        qf = QuotientFilter(quotient=8)
+        self.assertRaises(QuotientFilterError, lambda: qf.resize(9.0))
+        self.assertEqual(qf.quotient, 8)
+
     def test_qf_max_load_factor_validation(self):
         """the max load factor must be greater than 0 and at most 1"""
         qf = QuotientFilter(quotient=8)

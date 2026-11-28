@@ -5,13 +5,14 @@ import random
 import sys
 import unittest
 from collections import Counter
+from unittest import mock
 from pathlib import Path
 
 this_dir = Path(__file__).parent
 sys.path.insert(0, str(this_dir))
 sys.path.insert(0, str(this_dir.parent))
 
-from probables import CountingQuotientFilter  # noqa: E402
+from probables import CountingQuotientFilter, QuotientFilter  # noqa: E402
 from probables.exceptions import QuotientFilterError  # noqa: E402
 from probables.hashes import fnv_1a, fnv_1a_32  # noqa: E402
 from probables.quotientfilter.countingquotientfilter import (  # noqa: E402
@@ -215,11 +216,56 @@ class TestCountingQuotientFilter(unittest.TestCase):
         cqf.resize(12)
         self.assertEqual(cqf.quotient, 12)
         self.assertEqual(cqf.get_hashes(), before)
-        cqf.resize(9)
+        cqf.resize(10)  # 597 slots fit in 1,023, though over the max load factor: it stays at exactly 10
+        self.assertEqual(cqf.quotient, 10)
         self.assertEqual(cqf.get_hashes(), before)
+        self.assertTrue(cqf.auto_expand)
         self.assertTrue(cqf.validate_metadata())
-        self.assertRaises(QuotientFilterError, lambda: cqf.resize(7))  # too many elements
         self.assertRaises(QuotientFilterError, lambda: cqf.resize(31))
+
+    def test_cqf_resize_too_small_changes_nothing(self):
+        """a resize the elements do not fit in raises before changing anything, with or without auto expand"""
+        for auto_expand in (False, True):
+            cqf = CountingQuotientFilter(quotient=10, auto_expand=auto_expand)
+            for i in range(100):
+                cqf.add(str(i), 1000)  # 3 slots each: 300 slots for 100 elements
+            before = (cqf.quotient, cqf.get_hashes(), len(cqf), cqf.slots_used)
+            with self.assertRaisesRegex(QuotientFilterError, "need 300 slots"):
+                cqf.resize(8)  # 255 slots, though 100 elements would fit one slot each
+            self.assertEqual((cqf.quotient, cqf.get_hashes(), len(cqf), cqf.slots_used), before)
+            self.assertEqual(cqf.auto_expand, auto_expand)
+            self.assertTrue(cqf.validate_metadata())
+            cqf.resize(9)
+            self.assertEqual(cqf.quotient, 9)
+            self.assertEqual(cqf.get_hashes(), before[1])
+
+    def test_cqf_resize_failure_restores(self):
+        """if re-adding fails part-way through a resize, the filter is restored"""
+        cqf = CountingQuotientFilter(quotient=8)
+        for i in range(30):
+            cqf.add(str(i), i + 1)
+        before = (cqf.quotient, cqf.get_hashes(), len(cqf), cqf.slots_used, cqf.auto_expand)
+        real_update = CountingQuotientFilter._update
+        calls = []
+
+        def failing_update(self, _hash, change):
+            calls.append(1)
+            if len(calls) == 10:
+                raise MemoryError("simulated")
+            return real_update(self, _hash, change)
+
+        with mock.patch.object(CountingQuotientFilter, "_update", failing_update):
+            self.assertRaises(MemoryError, lambda: cqf.resize(9))
+        self.assertEqual((cqf.quotient, cqf.get_hashes(), len(cqf), cqf.slots_used, cqf.auto_expand), before)
+        self.assertTrue(cqf.validate_metadata())
+
+    def test_cqf_quotient_must_be_an_integer(self):
+        """a quotient that is not an integer raises QuotientFilterError"""
+        for bad in (10.0, "10", None):
+            self.assertRaises(QuotientFilterError, lambda q=bad: CountingQuotientFilter(quotient=q))
+        cqf = CountingQuotientFilter(quotient=8)
+        self.assertRaises(QuotientFilterError, lambda: cqf.resize(9.0))
+        self.assertEqual(cqf.quotient, 8)
 
     def test_cqf_expand_past_largest_quotient(self):
         """expanding a filter with a quotient of 30 raises a clear error"""
@@ -243,6 +289,31 @@ class TestCountingQuotientFilter(unittest.TestCase):
 
         other_hash = CountingQuotientFilter(quotient=8, hash_function=fnv_1a)
         self.assertRaises(QuotientFilterError, lambda: first.merge(other_hash))
+
+        first.merge(first)  # merging a filter into itself doubles its counts
+        self.assertEqual((first.check("a"), first.check("b"), first.check("c")), (10, 2, 10))
+
+    def test_cqf_merge_other_types(self):
+        """merging something other than a CountingQuotientFilter raises TypeError"""
+        cqf = CountingQuotientFilter(quotient=8)
+        qf = QuotientFilter(quotient=8)
+        qf.add("a")
+        for other in (qf, "not a filter", None):
+            self.assertRaises(TypeError, lambda o=other: cqf.merge(o))
+        self.assertEqual(len(cqf), 0)
+
+    def test_cqf_merge_failure_changes_nothing(self):
+        """a merge that does not fit, without auto expand, raises and leaves the filter as it was"""
+        cqf = CountingQuotientFilter(quotient=4, auto_expand=False)
+        for i in range(5):
+            cqf.add_alt(i << cqf.remainder, 2)  # 10 of 15 usable slots
+        before = (cqf.get_hashes(), len(cqf), cqf.slots_used, cqf.unique_elements)
+        other = CountingQuotientFilter(quotient=4)
+        for i in range(10):
+            other.add_alt((i << other.remainder) | 1)  # 10 more slots
+        self.assertRaises(QuotientFilterError, lambda: cqf.merge(other))
+        self.assertEqual((cqf.get_hashes(), len(cqf), cqf.slots_used, cqf.unique_elements), before)
+        self.assertTrue(cqf.validate_metadata())
 
     def test_cqf_clear(self):
         """clear removes every element and keeps the size and settings"""
@@ -288,9 +359,122 @@ class TestCountingQuotientFilter(unittest.TestCase):
         cqf._elements_added += 1
         self.assertFalse(cqf.validate_metadata())
         cqf._elements_added -= 1
-        empty = next(i for i in range(cqf.size) if cqf._is_empty(i))
-        cqf._is_continuation[empty] = 1
-        self.assertFalse(cqf.validate_metadata())
+        self.assertTrue(cqf.validate_metadata())
+
+        def corrupted(change):
+            copy = CountingQuotientFilter(quotient=8)
+            for i in range(50):
+                copy.add(str(i), i + 1)
+            change(copy)
+            return copy.validate_metadata()
+
+        def first(cqf, test):
+            return next(i for i in range(cqf.size) if test(i))
+
+        def shifted_unoccupied(c):
+            return first(c, lambda i: c._is_shifted[i] and not c._is_occupied[i])
+
+        def shifted_run_start(c):
+            return first(c, lambda i: c._is_shifted[i] and not c._is_continuation[i])
+
+        def set_bit(bits, idx):
+            bits[idx] = 1
+
+        def clear_bit(bits, idx):
+            bits[idx] = 0
+
+        empty = first(cqf, cqf._is_empty)
+        self.assertFalse(corrupted(lambda c: set_bit(c._is_continuation, empty)))  # 0-1-0
+        self.assertFalse(corrupted(lambda c: set_bit(c._is_occupied, shifted_unoccupied(c))))  # an extra run
+        self.assertFalse(corrupted(lambda c: clear_bit(c._is_occupied, first(c, lambda i: c._is_occupied[i]))))
+        self.assertFalse(corrupted(lambda c: clear_bit(c._is_shifted, shifted_run_start(c))))  # not at its home
+        self.assertFalse(corrupted(lambda c: c._filter.__setitem__(first(c, lambda i: c._is_occupied[i]), 0)))
+
+        def cluster_start(c):
+            return first(c, lambda i: c._is_occupied[i] and not c._is_shifted[i] and not c._is_continuation[i])
+
+        self.assertFalse(corrupted(lambda c: set_bit(c._is_shifted, cluster_start(c))))  # marked shifted at home
+
+        def fill_empty(c):
+            for i in range(c.size):
+                if c._is_empty(i):
+                    c._is_occupied[i] = 1
+
+        self.assertFalse(corrupted(fill_empty))  # no empty slot
+
+        def duplicate_entry(c):  # a run of 5 5 5 decodes as 5 (count 2) then 5 again
+            quot = first(c, c._is_empty)
+            c._write_runs([(quot, [5, 5, 5])], quot, quot + 3)
+            c._elements_added += 3
+            c._unique_elements += 2
+            c._slots_used += 3
+
+        self.assertFalse(corrupted(duplicate_entry))
+
+        with mock.patch.object(CountingQuotientFilter, "_check_layout", side_effect=IndexError):
+            self.assertFalse(cqf.validate_metadata())  # never raises
+
+    def test_cqf_count_change_in_place(self):
+        """a count change that keeps the run's length is written in place, without moving other runs"""
+        cqf = CountingQuotientFilter(quotient=8)
+        cqf.add_alt((7 << cqf.remainder) | 5, 5)
+        cqf.add_alt((8 << cqf.remainder) | 9)
+        layout = [(cqf._filter[i], cqf._is_occupied[i], cqf._is_continuation[i], cqf._is_shifted[i]) for i in range(20)]
+        self.assertEqual(cqf.add_alt((7 << cqf.remainder) | 5), 6)  # 5 and 6 take the same slots
+        after = [(cqf._filter[i], cqf._is_occupied[i], cqf._is_continuation[i], cqf._is_shifted[i]) for i in range(20)]
+        self.assertEqual([row[1:] for row in after], [row[1:] for row in layout])
+        self.assertEqual(cqf.check_alt((7 << cqf.remainder) | 5), 6)
+        self.assertEqual(cqf.check_alt((8 << cqf.remainder) | 9), 1)
+        self.assertEqual(len(cqf), 7)
+        self.assertTrue(cqf.validate_metadata())
+
+    def test_cqf_small_remainders(self):
+        """2- and 3-bit remainders (quotients 30 and 29), tested on a small table by shrinking the remainder"""
+        rng = random.Random(5)
+        for r_bits in (2, 3):
+            for _ in range(30):
+                cqf = CountingQuotientFilter(quotient=5, auto_expand=False)
+                cqf._r = r_bits  # hashes are (quotient << r_bits) | remainder for this table
+                pool = [rng.randrange(cqf.size << r_bits) for _ in range(rng.choice([3, 8, 16]))]
+                model: Counter = Counter()
+                for _ in range(60):
+                    _hash, num = rng.choice(pool), rng.choice([1, 2, 3, 4, rng.randint(1, 300)])
+                    if rng.random() < 0.6:
+                        try:
+                            cqf.add_alt(_hash, num)
+                        except QuotientFilterError:
+                            continue
+                        model[_hash] += num
+                    else:
+                        cqf.remove_alt(_hash, num)
+                        model[_hash] = max(model[_hash] - num, 0)
+                    self.assertTrue(cqf.validate_metadata())
+                self.assertEqual(dict(cqf.get_hashes()), dict(+model))
+
+    def test_cqf_random_full_without_expanding(self):
+        """random adds and removes in a filter filled to its last empty slot, without auto expand"""
+        rng = random.Random(3)
+        for _ in range(40):
+            cqf = CountingQuotientFilter(quotient=rng.choice([3, 4, 5]), auto_expand=False)
+            cqf.max_load_factor = 1
+            pool = [rng.getrandbits(32) for _ in range(rng.choice([4, 10, 30]))]
+            pool.append((cqf.size - 1) << cqf.remainder)  # wraps around
+            model: Counter = Counter()
+            for _ in range(120):
+                _hash, num = rng.choice(pool), rng.choice([1, 1, 2, 3, 4, rng.randint(1, 50)])
+                if rng.random() < 0.65:
+                    before = cqf.get_hashes()
+                    try:
+                        self.assertEqual(cqf.add_alt(_hash, num), model[_hash] + num)
+                        model[_hash] += num
+                    except QuotientFilterError:
+                        self.assertEqual(cqf.get_hashes(), before)  # a failed add changes nothing
+                else:
+                    model[_hash] = max(model[_hash] - num, 0)
+                    self.assertEqual(cqf.remove_alt(_hash, num), model[_hash])
+                self.assertLess(cqf.slots_used, cqf.size)
+            self.assertEqual(dict(cqf.get_hashes()), dict(+model))
+            self.assertTrue(cqf.validate_metadata())
 
     def test_cqf_random_against_counter(self):
         """random adds and removes match a Counter of the hashes"""
